@@ -1,0 +1,125 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client"
+  output   = "../app/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+
+model User {
+  id            String   @id @default(cuid())
+  email         String   @unique
+  passwordHash  String
+  createdAt     DateTime @default(now())
+
+  incomes           Income[]
+  allocations       Allocation[]
+  expenses          Expense[]
+  savings           Saving[]
+  budgetExceptions  BudgetException[]
+  financialGoals    FinancialGoal[]
+  projects          Project[]
+}
+
+model Income {
+  id            String   @id @default(cuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id])
+  source        String
+  amount        Decimal
+  frequency     String   // monthly | weekly | occasional | recurring
+  expectedDate  DateTime?
+  actualDate    DateTime?
+  status        String   // expected | received
+  notes         String?
+  projectId     String?  // optional: income can come from a project
+  project       Project? @relation(fields: [projectId], references: [id])
+  createdAt     DateTime @default(now())
+}
+
+model Allocation {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  name        String
+  amount      Decimal
+  period      String   // monthly | weekly | daily
+  category    String   // fixed | subscription | daily_living | savings | custom
+  startDate   DateTime
+  endDate     DateTime?
+  recurrence  String?
+  notes       String?
+  expenses    Expense[]
+  createdAt   DateTime @default(now())
+}
+
+model Expense {
+  id            String     @id @default(cuid())
+  userId        String
+  user          User       @relation(fields: [userId], references: [id])
+  amount        Decimal
+  category      String
+  date          DateTime
+  allocationId  String?
+  allocation    Allocation? @relation(fields: [allocationId], references: [id])
+  projectId     String?
+  project       Project?   @relation(fields: [projectId], references: [id])
+  description   String?
+  notes         String?
+  createdAt     DateTime   @default(now())
+}
+
+model Saving {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id])
+  amount       Decimal
+  date         DateTime
+  source       String   // planned | underspending
+  destination  String   // savings | buffer
+  notes        String?
+  createdAt    DateTime @default(now())
+}
+
+model BudgetException {
+  id              String   @id @default(cuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id])
+  date            DateTime
+  plannedAmount   Decimal
+  actualAmount    Decimal
+  difference      Decimal
+  category        String
+  reason          String?
+  context         String?
+  resolution      String?
+  createdAt       DateTime @default(now())
+}
+
+model FinancialGoal {
+  id            String   @id @default(cuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id])
+  name          String
+  targetAmount  Decimal
+  currentAmount Decimal  @default(0)
+  createdAt     DateTime @default(now())
+}
+
+model Project {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id])
+  name      String
+  notes     String?
+  incomes   Income[]
+  expenses  Expense[]
+  createdAt DateTime  @default(now())
+}
