@@ -9,6 +9,7 @@
     "esModuleInterop": true,
     "module": "esnext",
     "moduleResolution": "bundler",
+    "baseUrl": ".",
     "resolveJsonModule": true,
     "isolatedModules": true,
     "jsx": "react-jsx",
@@ -19,6 +20,7 @@
       }
     ],
     "paths": {
+      "@/*": ["./*"],
       "@/domain/*": ["./domain/*"],
       "@/application/*": ["./application/*"],
       "@/infrastructure/*": ["./infrastructure/*"]

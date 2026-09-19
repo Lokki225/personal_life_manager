@@ -4,6 +4,7 @@ import {
   dailyBudget,
   dailySaving,
   daysInPeriod,
+  formatCurrency,
   overspending,
   remainingAllocation,
 } from './calculations'
@@ -24,5 +25,10 @@ describe('finance calculations', () => {
     expect(remainingAllocation(2000, 1600)).toBe(400)
     expect(dailySaving(2000, 1600)).toBe(400)
     expect(overspending(3500, 2000)).toBe(1500)
+  })
+
+  it('formats values in the local XOF currency', () => {
+    expect(formatCurrency(1500)).toBe('XOF 1,500.00')
+    expect(formatCurrency(0)).toBe('XOF 0.00')
   })
 })
