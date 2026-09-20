@@ -75,6 +75,28 @@ export async function saveUnderspend(formData: FormData): Promise<void> {
   revalidatePath('/finance/today')
 }
 
+export async function transferBufferToSavings(formData: FormData): Promise<void> {
+  const userId = await resolveUserId()
+
+  if (!userId) {
+    throw new Error('You must be signed in to transfer buffer to savings.')
+  }
+
+  const amount = Number(formData.get('amount') ?? 0)
+
+  await recordSaving({
+    userId,
+    amount,
+    date: new Date(),
+    source: 'buffer_transfer',
+    destination: 'savings',
+    notes: 'Transferred from weekly buffer to actual savings',
+  })
+
+  revalidatePath('/finance')
+  revalidatePath('/finance/today')
+}
+
 export async function recordException(formData: FormData): Promise<void> {
   const userId = await resolveUserId()
 

@@ -28,82 +28,67 @@ export default async function FinanceResumePage() {
   ])
 
   return (
-    <main className="min-h-screen bg-slate-100 p-6 text-slate-900">
+    <main className="theme-shell px-4 py-6 md:px-6">
       <div className="mx-auto max-w-6xl space-y-6">
-        <header className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <header className="bento-card p-6">
           <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <div>
-              <p className="text-sm font-medium uppercase tracking-[0.2em] text-slate-500">
-                Finance overview
-              </p>
-              <h1 className="mt-2 text-3xl font-semibold">Financial resume</h1>
+              <p className="bento-label">Finance overview</p>
+              <h1 className="mt-2 text-3xl font-semibold tracking-[-0.05em] text-[var(--text)]">
+                Financial resume
+              </h1>
             </div>
             <div className="flex flex-wrap gap-3">
-              <Link
-                href="/finance/today"
-                className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-700"
-              >
+              <Link href="/finance/today" className="bento-button-primary px-4 py-2.5 text-sm font-medium">
                 Today
               </Link>
-              <Link
-                href="/finance/history"
-                className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
-              >
+              <Link href="/finance/history" className="bento-button-secondary px-4 py-2.5 text-sm font-medium">
                 History
               </Link>
-              <Link
-                href="/finance/review"
-                className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
-              >
+              <Link href="/finance/review" className="bento-button-secondary px-4 py-2.5 text-sm font-medium">
                 Review
               </Link>
-              <Link
-                href="/finance/goals"
-                className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
-              >
+              <Link href="/finance/goals" className="bento-button-secondary px-4 py-2.5 text-sm font-medium">
                 Goals
               </Link>
-              <Link
-                href="/projects"
-                className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
-              >
+              <Link href="/projects" className="bento-button-secondary px-4 py-2.5 text-sm font-medium">
                 Projects
               </Link>
             </div>
           </div>
         </header>
 
-        <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-            <p className="text-sm text-slate-500">Income</p>
-            <p className="mt-2 text-2xl font-semibold">{formatCurrency(state.incomeTotal)}</p>
+        <section className="bento-grid md:grid-cols-2 xl:grid-cols-4">
+          <div className="bento-card p-5">
+            <p className="text-sm text-[var(--muted)]">Income</p>
+            <p className="mt-2 text-2xl font-semibold tracking-[-0.05em]">{formatCurrency(state.incomeTotal)}</p>
           </div>
-          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-            <p className="text-sm text-slate-500">Monthly budget</p>
-            <p className="mt-2 text-2xl font-semibold">{formatCurrency(state.periodBudget)}</p>
+          <div className="bento-card p-5">
+            <p className="text-sm text-[var(--muted)]">Monthly budget</p>
+            <p className="mt-2 text-2xl font-semibold tracking-[-0.05em]">{formatCurrency(state.periodBudget)}</p>
           </div>
-          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-            <p className="text-sm text-slate-500">Spent this month</p>
-            <p className="mt-2 text-2xl font-semibold">{formatCurrency(state.monthlySpent)}</p>
+          <div className="bento-card p-5">
+            <p className="text-sm text-[var(--muted)]">Spent this month</p>
+            <p className="mt-2 text-2xl font-semibold tracking-[-0.05em]">{formatCurrency(state.monthlySpent)}</p>
           </div>
-          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-            <p className="text-sm text-slate-500">Remaining</p>
-            <p className="mt-2 text-2xl font-semibold">{formatCurrency(state.monthlyRemaining)}</p>
+          <div className="bento-card p-5">
+            <p className="text-sm text-[var(--muted)]">Remaining</p>
+            <p className="mt-2 text-2xl font-semibold tracking-[-0.05em]">{formatCurrency(state.monthlyRemaining)}</p>
           </div>
         </section>
 
         <div className="grid gap-6 lg:grid-cols-2">
-          <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-            <h2 className="text-lg font-semibold">Allocation snapshot</h2>
-            <div className="mt-4 text-3xl font-semibold">{formatCurrency(state.allocationTotal)}</div>
-            <ul className="mt-4 space-y-3 text-sm text-slate-600">
+          <section className="bento-card p-6">
+            <h2 className="text-lg font-semibold text-[var(--text)]">Allocation snapshot</h2>
+            <div className="mt-4 text-3xl font-semibold tracking-[-0.05em] text-[var(--text)]">{formatCurrency(state.allocationTotal)}</div>
+            <ul className="mt-4 space-y-3 text-sm text-[var(--muted)]">
               {state.allocationBreakdown.length > 0 ? (
                 state.allocationBreakdown.map((allocation) => (
-                  <li key={`${allocation.name}-${allocation.category}`} className="flex items-center justify-between border-b border-slate-200 pb-2 last:border-b-0 last:pb-0">
+                  <li key={`${allocation.name}-${allocation.category}`} className="flex items-center justify-between border-b border-[var(--border)] pb-2 last:border-b-0 last:pb-0">
                     <span>
                       {allocation.name} ({allocation.category})
                     </span>
-                    <span>{formatCurrency(allocation.amount)}</span>
+                    <span className="text-[var(--text)]">{formatCurrency(allocation.amount)}</span>
                   </li>
                 ))
               ) : (
@@ -112,44 +97,42 @@ export default async function FinanceResumePage() {
             </ul>
           </section>
 
-          <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-            <h2 className="text-lg font-semibold">Savings & buffers</h2>
-            <div className="mt-4 space-y-4 text-sm text-slate-600">
-              <div className="flex items-center justify-between border-b border-slate-200 pb-2">
+          <section className="bento-card p-6">
+            <h2 className="text-lg font-semibold text-[var(--text)]">Savings & buffers</h2>
+            <div className="mt-4 space-y-4 text-sm text-[var(--muted)]">
+              <div className="flex items-center justify-between border-b border-[var(--border)] pb-2">
                 <span>Actual savings</span>
-                <span className="font-semibold text-slate-800">{formatCurrency(state.actualSavings)}</span>
+                <span className="font-semibold text-[var(--text)]">{formatCurrency(state.actualSavings)}</span>
               </div>
-              <div className="flex items-center justify-between border-b border-slate-200 pb-2">
+              <div className="flex items-center justify-between border-b border-[var(--border)] pb-2">
                 <span>Weekly buffer</span>
-                <span className="font-semibold text-slate-800">{formatCurrency(state.buffer)}</span>
+                <span className="font-semibold text-[var(--text)]">{formatCurrency(state.buffer)}</span>
               </div>
-              <div className="flex items-center justify-between border-b border-slate-200 pb-2">
+              <div className="flex items-center justify-between border-b border-[var(--border)] pb-2">
                 <span>Exceptions</span>
-                <span className="font-semibold text-slate-800">{state.exceptionCount}</span>
+                <span className="font-semibold text-[var(--text)]">{state.exceptionCount}</span>
               </div>
               <div className="flex items-center justify-between">
                 <span>Daily budget</span>
-                <span className="font-semibold text-slate-800">{formatCurrency(state.dailyBudget)}</span>
+                <span className="font-semibold text-[var(--text)]">{formatCurrency(state.dailyBudget)}</span>
               </div>
             </div>
           </section>
         </div>
 
-        <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-          <h2 className="text-xl font-semibold">Recent activity</h2>
+        <section className="bento-card p-6">
+          <h2 className="text-xl font-semibold text-[var(--text)]">Recent activity</h2>
           {recentEvents.length > 0 ? (
-            <ul className="mt-4 space-y-3 text-sm text-slate-700">
+            <ul className="mt-4 space-y-3 text-sm text-[var(--muted)]">
               {recentEvents.slice(0, 5).map((event) => (
-                <li key={`${event.type}-${event.id}`} className="flex items-center justify-between border-b border-slate-200 pb-2 last:border-b-0 last:pb-0">
-                  <span>
-                    {event.label}
-                  </span>
-                  <span>{formatCurrency(event.amount)}</span>
+                <li key={`${event.type}-${event.id}`} className="flex items-center justify-between border-b border-[var(--border)] pb-2 last:border-b-0 last:pb-0">
+                  <span className="text-[var(--text)]">{event.label}</span>
+                  <span className="text-[var(--text)]">{formatCurrency(event.amount)}</span>
                 </li>
               ))}
             </ul>
           ) : (
-            <p className="mt-4 text-sm text-slate-600">No activity recorded yet.</p>
+            <p className="mt-4 text-sm text-[var(--muted)]">No activity recorded yet.</p>
           )}
         </section>
       </div>

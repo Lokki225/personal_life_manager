@@ -46,6 +46,7 @@ export async function recomputeFinanceState(
     category: string
     date: Date
     description?: string | null
+    projectName?: string | null
   }>
   allocationBreakdown: Array<{ name: string; amount: number; category: string; period: string }>
 }> {
@@ -112,6 +113,7 @@ export async function recomputeFinanceState(
       category: String(expense.category ?? 'other'),
       date: new Date(expense.date ?? new Date()),
       description: expense.description ?? null,
+      projectName: expense.project?.name ?? null,
     }))
 
   const dailySpent = dailyExpenses.reduce<number>((sum, expense) => sum + expense.amount, 0)
@@ -145,9 +147,16 @@ export async function recomputeFinanceState(
     .filter((saving) => saving.destination === 'savings')
     .reduce<number>((sum, saving) => sum + Number(saving.amount || 0), 0)
 
-  const buffer = savings
-    .filter((saving) => saving.destination === 'buffer')
+  const transferredFromBuffer = savings
+    .filter((saving) => saving.source === 'buffer_transfer' && saving.destination === 'savings')
     .reduce<number>((sum, saving) => sum + Number(saving.amount || 0), 0)
+
+  const buffer = Math.max(
+    savings
+      .filter((saving) => saving.destination === 'buffer')
+      .reduce<number>((sum, saving) => sum + Number(saving.amount || 0), 0) - transferredFromBuffer,
+    0,
+  )
 
   const allocationBreakdown = allocations.map((allocation) => ({
     name: allocation.name,

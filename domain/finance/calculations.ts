@@ -103,3 +103,38 @@ export function overspending(
 ): number {
   return Math.max(actualSpending - dailyBudgetAmount, 0)
 }
+
+export type DailyFinanceStatus = {
+  label: 'Safe' | 'Caution' | 'Overspent'
+  tone: 'emerald' | 'amber' | 'rose'
+  message: string
+}
+
+export function getDailyFinanceStatus(
+  dailyBudgetAmount: number,
+  actualSpending: number,
+): DailyFinanceStatus {
+  const remaining = dailyBudgetAmount - actualSpending
+
+  if (remaining < 0) {
+    return {
+      label: 'Overspent',
+      tone: 'rose',
+      message: `You are over your daily budget by ${formatCurrency(Math.abs(remaining))}.`,
+    }
+  }
+
+  if (actualSpending >= dailyBudgetAmount * 0.9 && dailyBudgetAmount > 0) {
+    return {
+      label: 'Caution',
+      tone: 'amber',
+      message: `You are close to today’s budget. ${formatCurrency(remaining)} remains.`,
+    }
+  }
+
+  return {
+    label: 'Safe',
+    tone: 'emerald',
+    message: `You can still save ${formatCurrency(remaining)} today.`,
+  }
+}

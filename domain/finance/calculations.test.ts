@@ -5,6 +5,7 @@ import {
   dailySaving,
   daysInPeriod,
   formatCurrency,
+  getDailyFinanceStatus,
   overspending,
   remainingAllocation,
 } from './calculations'
@@ -30,5 +31,25 @@ describe('finance calculations', () => {
   it('formats values in the local XOF currency', () => {
     expect(formatCurrency(1500)).toBe('XOF 1,500.00')
     expect(formatCurrency(0)).toBe('XOF 0.00')
+  })
+
+  it('classifies the daily finance state as safe, caution, or overspent', () => {
+    expect(getDailyFinanceStatus(500, 200)).toMatchObject({
+      label: 'Safe',
+      tone: 'emerald',
+      message: 'You can still save XOF 300.00 today.',
+    })
+
+    expect(getDailyFinanceStatus(500, 450)).toMatchObject({
+      label: 'Caution',
+      tone: 'amber',
+      message: 'You are close to today’s budget. XOF 50.00 remains.',
+    })
+
+    expect(getDailyFinanceStatus(500, 650)).toMatchObject({
+      label: 'Overspent',
+      tone: 'rose',
+      message: 'You are over your daily budget by XOF 150.00.',
+    })
   })
 })
