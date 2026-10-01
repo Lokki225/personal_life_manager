@@ -1,7 +1,7 @@
 'use client'
 
 import { startTransition, useActionState, useState } from 'react'
-import { ArrowLeftRight, CircleAlert, Layers, Loader2, Plus } from 'lucide-react'
+import { ArrowLeftRight, CircleAlert, Layers, Loader2, Plus, Trash2 } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import { FieldError } from '@/components/ui/field-error'
@@ -13,7 +13,7 @@ import { fieldAttributes, initialFormState, type FormState } from '@/lib/forms/f
 
 import { consolidateBufferAction, transferChests } from '../actions'
 import { ActionDrawer, ActionForm, FIELD_CLASS } from '../today-actions'
-import { createChestAction } from './actions'
+import { createChestAction, deleteChestAction } from './actions'
 
 type ChestOption = { id: string; name: string; balance: number }
 
@@ -212,6 +212,53 @@ export function ConsolidateButton({ bufferBalance }: { bufferBalance: number }) 
       {state.formErrors.length > 0 ? (
         <p role="alert" className="flex items-start gap-2 text-sm text-destructive-strong">
           <CircleAlert className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+          {state.formErrors[0]}
+        </p>
+      ) : null}
+    </div>
+  )
+}
+
+// Deleting asks once more in place, since it cannot be undone.
+export function DeleteChestButton({ chestId, chestName }: { chestId: string; chestName: string }) {
+  const [confirming, setConfirming] = useState(false)
+  const [state, formAction, isPending] = useActionState(deleteChestAction, initialFormState)
+
+  const submit = () => {
+    const formData = new FormData()
+    formData.set('chestId', chestId)
+    startTransition(() => formAction(formData))
+  }
+
+  if (!confirming) {
+    return (
+      <Button
+        type="button"
+        variant="ghost"
+        size="icon"
+        onClick={() => setConfirming(true)}
+        className="-mr-2 size-11 text-muted-foreground hover:text-destructive-strong"
+        aria-label={`Delete ${chestName}`}
+      >
+        <Trash2 aria-hidden="true" />
+      </Button>
+    )
+  }
+
+  return (
+    <div className="space-y-2">
+      <p className="text-sm">Delete {chestName}? This cannot be undone.</p>
+      <div className="flex gap-2">
+        <Button type="button" variant="destructive" disabled={isPending} onClick={submit} className="h-11 flex-1">
+          {isPending ? <Loader2 className="animate-spin" aria-hidden="true" /> : <Trash2 aria-hidden="true" />}
+          Delete
+        </Button>
+        <Button type="button" variant="outline" disabled={isPending} onClick={() => setConfirming(false)} className="h-11 flex-1">
+          Keep
+        </Button>
+      </div>
+      {state.formErrors.length > 0 ? (
+        <p role="alert" className="text-sm text-destructive-strong">
           {state.formErrors[0]}
         </p>
       ) : null}

@@ -12,3 +12,13 @@ export function chestBalance(chestId: string, movements: MovementForBalance[]): 
     return balance
   }, 0)
 }
+
+// The built-in chest that holds borrowed money. It is not savings.
+export const DEBTS_CHEST_NAME = 'Debts Chest'
+
+const DEBT_CHEST_NAMES = ['Buffer', 'Base Chest', DEBTS_CHEST_NAME]
+
+// The chests money for a loan or a debt repayment may come out of.
+export function isDebtChest(chest: { name: string; isSystem: boolean }): boolean {
+  return chest.isSystem && DEBT_CHEST_NAMES.includes(chest.name)
+}

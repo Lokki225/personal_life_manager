@@ -1,26 +1,18 @@
-import { getHistory } from '@/application/finance/getHistory'
 import { chestBalance, type MovementForBalance } from '@/domain/finance/chests'
 import { evaluateCondition, evaluateGoalLogic } from '@/domain/finance/goal'
-import { financeRepository } from '@/infrastructure/repositories/financeRepository'
+import type { GoalRecordWithConditions } from '@/infrastructure/repositories/financeRepository'
 
-export async function evaluateGoal(goalId: string) {
-  const goal = await financeRepository.getGoal(goalId)
-  if (!goal) {
-    throw new Error(`Goal with ID ${goalId} not found`)
-  }
-
-  // Fetch movements ONCE, reuse for every chest_balance condition —
-  // don't refetch inside the loop.
-  const rawMovements = await financeRepository.listMovements(goal.userId)
-  const movements: MovementForBalance[] = rawMovements.map((m) => ({
-    sourceChestId: m.sourceChestId,
-    destinationChestId: m.destinationChestId,
-    amount: Number(m.amount),
-  }))
-
-  const conditionResults = []
-
-  for (const condition of goal.conditions) {
+// Evaluates a goal from data the caller already loaded, so a page with many
+// goals does not go back to the database for each one.
+export function evaluateGoal(
+  goal: GoalRecordWithConditions,
+  data: {
+    movements: MovementForBalance[]
+    // The `difference` of each exception recorded in the current month.
+    monthExceptionAmounts: number[]
+  },
+) {
+  const conditionResults = goal.conditions.map((condition) => {
     let actual: number
 
     switch (condition.measurement) {
@@ -28,30 +20,17 @@ export async function evaluateGoal(goalId: string) {
         if (!condition.chestId) {
           throw new Error(`Condition ${condition.id} is missing a chestId`)
         }
-        actual = chestBalance(condition.chestId, movements)
+        actual = chestBalance(condition.chestId, data.movements)
         break
       }
 
       case 'monthly_deviation_count': {
-        const history = await getHistory({
-          userId: goal.userId,
-          type: 'exception',
-          period: 'month',
-        })
-        const exceptions = history.filter(
-            (e): e is Extract<typeof history[number], { type: 'exception' }> => e.type === 'exception'
-        )
-        actual = exceptions.length
+        actual = data.monthExceptionAmounts.length
         break
       }
 
       case 'monthly_deviation_amount': {
-        const history = await getHistory({
-          userId: goal.userId,
-          type: 'exception',
-          period: 'month',
-        })
-        actual = history.reduce((sum, e) => sum + Number(e.amount), 0)
+        actual = data.monthExceptionAmounts.reduce((sum, amount) => sum + amount, 0)
         break
       }
 
@@ -60,12 +39,12 @@ export async function evaluateGoal(goalId: string) {
     }
 
     const satisfied = evaluateCondition(condition.operator, actual, Number(condition.targetValue))
-    conditionResults.push({ condition, actual, satisfied })
-  }
+    return { condition, actual, satisfied }
+  })
 
   const satisfied = evaluateGoalLogic(
     goal.logic,
-    conditionResults.map((r) => r.satisfied)
+    conditionResults.map((r) => r.satisfied),
   )
 
   return { satisfied, conditionResults }

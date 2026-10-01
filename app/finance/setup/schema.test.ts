@@ -7,7 +7,7 @@ import { setupForm } from './schema'
 // Builds the FormData exactly as the setup page names its inputs.
 const setupFormData = (rows: Record<string, string>[], income: Record<string, string> = {}) => {
   const formData = new FormData()
-  const fields = { incomeSource: 'Salary', incomeAmount: '300000', incomeFrequency: 'monthly', ...income }
+  const fields = { incomeSource: 'Salary', incomeAmount: '300000', incomeFrequency: 'monthly', incomePayDay: '25', ...income }
 
   Object.entries(fields).forEach(([key, value]) => formData.append(key, value))
   rows.forEach((row, index) =>
@@ -33,6 +33,7 @@ describe('setup form', () => {
         incomeSource: 'Salary',
         incomeAmount: 300000,
         incomeFrequency: 'monthly',
+        incomePayDay: 25,
         allocations: [
           { name: 'Rent', amount: 100000, period: 'monthly', category: 'fixed' },
           { name: "Everyday's bread", amount: 60000, period: 'monthly', category: 'daily_living' },
@@ -55,6 +56,14 @@ describe('setup form', () => {
     expect(errors['allocations.1.amount']).toEqual(['Use digits only, for example 60000.'])
     expect(errors['allocations.1.category']).toEqual(['Choose a category.'])
     expect(errors['allocations.0.name']).toBeUndefined()
+  })
+
+  it('only accepts a pay day that exists in a month', () => {
+    for (const day of ['0', '32', '1.5', 'x', '']) {
+      expect(errorsOf(setupFormData([rent], { incomePayDay: day }))).toEqual({
+        incomePayDay: ['Enter a day from 1 to 31.'],
+      })
+    }
   })
 
   it('gives a readable message when a whole row is missing', () => {

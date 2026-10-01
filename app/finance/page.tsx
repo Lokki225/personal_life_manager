@@ -4,6 +4,7 @@ import { ChevronDown, ChevronRight, Lock, Target, TriangleAlert, Wallet } from '
 
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
+import { listPendingIncomes } from '@/application/finance/confirmIncome'
 import { hasSetupPlan } from '@/application/finance/createSetupPlan'
 import { getHistory } from '@/application/finance/getHistory'
 import { recomputeFinanceState } from '@/application/finance/recomputeFinanceState'
@@ -12,9 +13,9 @@ import { getSignedInUser } from '@/infrastructure/auth/sessionUser'
 import { displayNameFromEmail, greetingFor } from '@/lib/greeting'
 import { cn } from '@/lib/utils'
 
-import { categoryStyle, EVENT_ICONS } from './categories'
+import { categoryStyle, eventStyle } from './categories'
 import { Meter, Money } from './money'
-import { AddExpenseDrawer, ExceptionDrawer, SaveRemainingDrawer } from './today-actions'
+import { AddExpenseDrawer, ConfirmIncomeDrawer, ExceptionDrawer, SaveRemainingDrawer } from './today-actions'
 
 const STATUS_STYLES = {
   emerald: { dot: 'bg-success', meter: 'success' },
@@ -51,15 +52,18 @@ export default async function FinanceTodayPage() {
 
   const userId = user.id
 
-  if (!(await hasSetupPlan(userId))) {
-    redirect('/finance/setup')
-  }
-
   const now = new Date()
-  const [state, monthEvents] = await Promise.all([
+  // Loaded together with the setup check: one trip to the database, not two.
+  const [isSetUp, state, monthEvents, pendingIncomes] = await Promise.all([
+    hasSetupPlan(userId),
     recomputeFinanceState({ userId, referenceDate: now }),
     getHistory({ userId, period: 'month', referenceDate: now }),
+    listPendingIncomes(userId, now),
   ])
+
+  if (!isSetUp) {
+    redirect('/finance/setup')
+  }
 
   const greeting = greetingFor(now)
   const displayName = displayNameFromEmail(user.email)
@@ -109,6 +113,21 @@ export default async function FinanceTodayPage() {
 
       <div className="grid items-start gap-4 lg:grid-cols-2">
         <div className="space-y-4">
+          {pendingIncomes.map((income) => (
+            <div
+              key={income.id}
+              className="flex flex-wrap items-center justify-between gap-3 rounded-xl border bg-card px-4 py-3"
+            >
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-medium">Has {income.source} arrived?</p>
+                <p className="text-xs text-muted-foreground">Confirm it to fill your chests.</p>
+              </div>
+              <ConfirmIncomeDrawer
+                income={{ id: income.id, source: income.source, usualAmount: income.usualAmount }}
+              />
+            </div>
+          ))}
+
           <Card className="gap-0 py-5">
             <CardContent className="space-y-5">
               {hasDailyBudget ? (
@@ -153,8 +172,21 @@ export default async function FinanceTodayPage() {
                         today&apos;s budget.
                       </p>
                     ) : null}
+                    {state.uncoveredDay ? (
+                      <p className="text-sm text-muted-foreground">
+                        Your plan covers 30 days, so today&apos;s budget comes from your Buffer and Base Chest.
+                      </p>
+                    ) : null}
                   </div>
                 </>
+              ) : state.uncoveredDay ? (
+                <div>
+                  <p className="text-sm font-medium text-muted-foreground">No budget today</p>
+                  <p className="mt-2 text-sm">
+                    Your plan covers 30 days, and your Buffer and Base Chest have nothing to cover the 31st. Expenses
+                    are still recorded.
+                  </p>
+                </div>
               ) : (
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">No daily budget yet</p>
@@ -362,6 +394,19 @@ export default async function FinanceTodayPage() {
                             </p>
                           </>
                         ) : null}
+                        {goal.borrowed > 0 ? (
+                          <p className="text-xs text-muted-foreground">
+                            Of which <Money value={goal.borrowed} /> borrowed
+                            {goal.owed > 0 ? (
+                              <>
+                                , <Money value={goal.owed} className="font-medium text-foreground" /> still owed
+                              </>
+                            ) : (
+                              ', fully repaid'
+                            )}
+                            .
+                          </p>
+                        ) : null}
                       </li>
                     )
                   })}
@@ -376,16 +421,18 @@ export default async function FinanceTodayPage() {
               {monthEvents.length > 0 ? (
                 <ul className="divide-y">
                   {monthEvents.slice(0, 5).map((event) => {
-                    const Icon = EVENT_ICONS[event.type]
+                    const { icon: Icon, tone, where } = eventStyle(event)
 
                     return (
                       <li key={`${event.type}-${event.id}`} className="flex items-center gap-3 py-2.5">
-                        <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-muted">
-                          <Icon className="size-4 text-muted-foreground" aria-hidden="true" />
+                        <span className={cn('flex size-9 shrink-0 items-center justify-center rounded-lg', tone)}>
+                          <Icon className="size-4" aria-hidden="true" />
                         </span>
                         <div className="min-w-0 flex-1">
                           <p className="truncate text-sm font-medium first-letter:uppercase">{event.label}</p>
-                          <p className="text-xs text-muted-foreground">{shortDateFormatter.format(event.date)}</p>
+                          <p className="truncate text-xs text-muted-foreground">
+                            {[where, shortDateFormatter.format(event.date)].filter(Boolean).join(' · ')}
+                          </p>
                         </div>
                         <Money
                           value={event.amount}

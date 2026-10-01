@@ -25,6 +25,7 @@ describe('getReview', () => {
         },
       ]),
       listGoals: vi.fn().mockResolvedValue([]),
+      listDebts: vi.fn().mockResolvedValue([]),
       listBudgetExceptions: vi.fn().mockResolvedValue([
         { id: 'x-1', category: 'food', difference: 45, date: new Date('2026-09-11T09:00:00Z') },
         { id: 'x-2', category: 'transportation', difference: 70, date: new Date('2026-09-14T09:00:00Z') },

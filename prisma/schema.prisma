@@ -30,6 +30,18 @@ enum MovementReason {
   GOAL_FUNDING 
   WITHDRAWAL 
   EXPENSE 
+  DEBT
+}
+
+enum DebtDirection {
+  BORROWED
+  LENT
+}
+
+enum InterestType {
+  NONE
+  PERCENT
+  FIXED
 }
 
 enum GoalLogic { 
@@ -95,6 +107,7 @@ model Goal {
   logic      GoalLogic       @default(ALL)
   conditions GoalCondition[]
   movements  MoneyMovement[]
+  debts      Debt[]
   createdAt  DateTime        @default(now())
 }
 
@@ -127,6 +140,8 @@ model User {
   budgetExceptions  BudgetException[]
   goals             Goal[]
   projects          Project[]
+  debts             Debt[]
+  incomeReceipts    IncomeReceipt[]
 }
 
 model Income {
@@ -142,7 +157,59 @@ model Income {
   notes         String?
   projectId     String?  // optional: income can come from a project
   project       Project? @relation(fields: [projectId], references: [id])
+  // Day of the month the income usually arrives (1-31).
+  payDay        Int      @default(1)
+  receipts      IncomeReceipt[]
   createdAt     DateTime @default(now())
+}
+
+// One confirmed arrival of an income, for one calendar month.
+model IncomeReceipt {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  incomeId    String
+  income      Income   @relation(fields: [incomeId], references: [id])
+  amount      Decimal
+  // First day of the month the receipt counts for.
+  periodStart DateTime
+  receivedAt  DateTime
+  createdAt   DateTime @default(now())
+
+  @@unique([incomeId, periodStart])
+}
+
+// Money borrowed from someone (BORROWED) or lent to someone (LENT).
+model Debt {
+  id            String        @id @default(cuid())
+  userId        String
+  user          User          @relation(fields: [userId], references: [id])
+  direction     DebtDirection
+  // Free text for now: a person, a company, an app.
+  counterparty  String
+  principal     Decimal
+  interestType  InterestType  @default(NONE)
+  // A percentage of the principal, or a fixed amount, depending on the type.
+  interestValue Decimal       @default(0)
+  takenAt       DateTime
+  dueDate       DateTime?
+  // Borrowed money added to that day's spending budget instead of a chest.
+  toDailyBudget Boolean       @default(false)
+  notes         String?
+  // The goal the money was borrowed for, when there is one.
+  goalId        String?
+  goal          Goal?         @relation(fields: [goalId], references: [id], onDelete: SetNull)
+  payments      DebtPayment[]
+  createdAt     DateTime      @default(now())
+}
+
+model DebtPayment {
+  id        String   @id @default(cuid())
+  debtId    String
+  debt      Debt     @relation(fields: [debtId], references: [id], onDelete: Cascade)
+  amount    Decimal
+  date      DateTime
+  createdAt DateTime @default(now())
 }
 
 model Allocation {

@@ -1,7 +1,7 @@
 'use client'
 
 import { startTransition, useActionState, useState, type FormEvent, type ReactNode } from 'react'
-import { CircleAlert, Loader2, MessageSquareWarning, PiggyBank, Plus } from 'lucide-react'
+import { BanknoteArrowDown, CircleAlert, Loader2, MessageSquareWarning, PiggyBank, Plus } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import {
@@ -20,7 +20,7 @@ import { CURRENCY_CODE, formatAmount } from '@/domain/finance/calculations'
 import { EXCEPTION_CATEGORIES, EXPENSE_CATEGORIES } from '@/domain/finance/options'
 import { fieldAttributes, initialFormState, type FormState } from '@/lib/forms/formState'
 
-import { addExpense, recordException, saveRemaining } from './actions'
+import { addExpense, confirmIncomeAction, recordException, saveRemaining } from './actions'
 import { categoryStyle } from './categories'
 
 type FormAction = (previousState: FormState, formData: FormData) => Promise<FormState>
@@ -202,6 +202,34 @@ export function AddExpenseDrawer() {
                 />
                 <FieldError state={state} name="description" scope={scope} />
               </div>
+            </>
+          )}
+        </ActionForm>
+      )}
+    </ActionDrawer>
+  )
+}
+
+export function ConfirmIncomeDrawer({ income }: { income: { id: string; source: string; usualAmount: number } }) {
+  const scope = `income-${income.id}`
+
+  return (
+    <ActionDrawer
+      title={`${income.source} arrived`}
+      description="Enter what really came in. Your planned savings and the income no allocation claims go into your chests."
+      trigger={
+        <Button variant="outline" className="h-11">
+          <BanknoteArrowDown aria-hidden="true" />
+          Confirm
+        </Button>
+      }
+    >
+      {(close) => (
+        <ActionForm action={confirmIncomeAction} submitLabel="Confirm income" onDone={close}>
+          {(state) => (
+            <>
+              <input type="hidden" name="incomeId" value={income.id} />
+              <AmountField state={state} scope={scope} defaultValue={income.usualAmount} />
             </>
           )}
         </ActionForm>

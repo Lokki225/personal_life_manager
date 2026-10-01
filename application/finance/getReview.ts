@@ -1,5 +1,6 @@
 import {
   ChestRepository,
+  DebtRepository,
   financeRepository,
   GoalRepository,
   MovementRepository,
@@ -20,7 +21,9 @@ export type ReviewGoalStatus = {
   id: string
   name: string
   satisfied: boolean
-  conditionResults: Array<{ measurement: string; actual: number; satisfied: boolean }>
+  borrowed: number
+  owed: number
+  conditionResults: Array<{ measurement: string; operator: string; target: number; actual: number; satisfied: boolean }>
 }
 
 export type GetReviewInput = {
@@ -33,7 +36,8 @@ export type GetReviewInput = {
     Partial<BudgetExceptionRepository> &
     Partial<ChestRepository> &
     Partial<MovementRepository> &
-    Partial<GoalRepository>
+    Partial<GoalRepository> &
+    Partial<DebtRepository>
 }
 
 export type GetReviewResult = {

@@ -8,7 +8,9 @@ const connectionString = process.env.DATABASE_URL
 export const prisma =
   globalForPrisma.prisma ??
   new PrismaClient({
-    adapter: new PrismaPg({ connectionString: connectionString ?? '' }),
+    // Opening a connection to the database costs far more than a query, so
+    // idle ones are kept for five minutes instead of the default ten seconds.
+    adapter: new PrismaPg({ connectionString: connectionString ?? '', idleTimeoutMillis: 300_000 }),
   })
 
 if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma

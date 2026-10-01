@@ -62,7 +62,7 @@ export type CreateExpenseData = {
 export type UpdateExpenseData = Partial<CreateExpenseData>
 
 export type InitialPlanData = {
-  income: { source: string; amount: number; frequency: string }
+  income: { source: string; amount: number; frequency: string; payDay: number }
   allocations: { name: string; amount: number; period: string; category: string }[]
   startDate: Date
 }
@@ -72,6 +72,70 @@ export interface SetupPlanRepository {
   // Writes the income and allocations together, or nothing at all.
   // Resolves to false, without writing, when the user already has an income.
   createInitialPlan: (userId: string, plan: InitialPlanData) => Promise<boolean>
+}
+
+export type IncomeReceiptRecord = NonNullable<Awaited<ReturnType<typeof prisma.incomeReceipt.findFirst>>>
+
+export type ConfirmIncomeReceiptData = {
+  incomeId: string
+  amount: number
+  periodStart: Date
+  periodEnd: Date
+  receivedAt: Date
+  // What this arrival puts into the chests, given what the month had already
+  // received. Savings go to "Monthly Savings" (or the Base Chest when there is
+  // none), unallocated income to the Base Chest.
+  depositsFor: (receivedBefore: number) => { savings: number; unallocated: number }
+}
+
+export interface IncomeReceiptRepository {
+  // The receipts counted for the month starting on `periodStart`.
+  listIncomeReceipts: (userId: string, periodStart: Date) => Promise<IncomeReceiptRecord[]>
+  // Records the arrival and its deposits together, once per income and month.
+  // Resolves to false, without writing, when it was already confirmed.
+  confirmIncomeReceipt: (userId: string, data: ConfirmIncomeReceiptData) => Promise<boolean>
+}
+
+export type DebtRecord = NonNullable<Awaited<ReturnType<typeof prisma.debt.findFirst>>>
+export type DebtPaymentRecord = NonNullable<Awaited<ReturnType<typeof prisma.debtPayment.findFirst>>>
+export type DebtRecordWithPayments = DebtRecord & {
+  payments: DebtPaymentRecord[]
+  goal?: { id: string; name: string } | null
+}
+
+// The chest side of a debt or of a repayment: money entering or leaving it.
+export type DebtMovementData = { type: 'IN' | 'OUT'; chestId: string; notes: string }
+
+export type CreateDebtData = {
+  direction: 'BORROWED' | 'LENT'
+  counterparty: string
+  principal: number
+  interestType: 'NONE' | 'PERCENT' | 'FIXED'
+  interestValue: number
+  takenAt: Date
+  dueDate?: Date | null
+  goalId?: string | null
+}
+
+// Borrowed for a goal: the money goes on from the Debts Chest to the goal's chest.
+export type DebtGoalFunding = { goalId: string; chestId: string }
+
+export interface DebtRepository {
+  listDebts: (userId: string) => Promise<DebtRecordWithPayments[]>
+  // The debt and its chest movements together, or nothing.
+  createDebt: (
+    userId: string,
+    data: CreateDebtData,
+    movement?: DebtMovementData | null,
+    funding?: DebtGoalFunding | null,
+  ) => Promise<DebtRecord>
+  // A repayment and its chest movement together, or nothing.
+  addDebtPayment: (
+    userId: string,
+    debtId: string,
+    payment: { amount: number; date: Date },
+    movement: DebtMovementData,
+  ) => Promise<DebtPaymentRecord>
 }
 
 export interface IncomeRepository {
@@ -138,7 +202,7 @@ export type UpdateChestData = Partial<Omit<CreateChestData, 'isSystem'>>
 export type CreateMovementData = {
   amount: number | string
   type: 'IN' | 'OUT' | 'TRANSFER'
-  reason: 'DAILY_SAVING' | 'PLANNED_SAVING' | 'BUFFER_CONSOLIDATION' | 'GOAL_FUNDING' | 'WITHDRAWAL' | 'EXPENSE'
+  reason: 'DAILY_SAVING' | 'PLANNED_SAVING' | 'BUFFER_CONSOLIDATION' | 'GOAL_FUNDING' | 'WITHDRAWAL' | 'EXPENSE' | 'DEBT'
   date: Date | string
   sourceChestId?: string | null
   destinationChestId?: string | null
@@ -169,6 +233,9 @@ export interface ChestRepository {
   getChest: (id: string) => Promise<ChestRecord | null>
   updateChest: (id: string, data: UpdateChestData) => Promise<ChestRecord>
   deleteChest: (id: string) => Promise<ChestRecord>
+  // Deletes one of the user's chests and unlinks it from past movements, so
+  // the balances of the other chests stay exactly as they were.
+  removeChest: (userId: string, chestId: string) => Promise<void>
 }
 
 export interface MovementRepository {
@@ -181,6 +248,16 @@ export interface GoalRepository {
   listGoals: (userId: string) => Promise<GoalRecordWithConditions[]>
   getGoal: (id: string) => Promise<GoalRecordWithConditions | null>
   deleteGoal: (id: string) => Promise<GoalRecord>
+  // A savings goal in one step: its chest, the goal with its balance
+  // condition, and the first contribution. All of it, or nothing.
+  createSavingsGoal: (userId: string, data: CreateSavingsGoalData) => Promise<GoalRecord>
+}
+
+export type CreateSavingsGoalData = {
+  name: string
+  targetAmount: number
+  alreadySaved: number
+  unit: string
 }
 
 export interface ProjectRepository {
@@ -207,6 +284,8 @@ function isWriteConflict(error: unknown): boolean {
 }
 
 export const financeRepository: SetupPlanRepository &
+  IncomeReceiptRepository &
+  DebtRepository &
   IncomeRepository &
   AllocationRepository &
   ExpenseRepository &
@@ -245,6 +324,175 @@ export const financeRepository: SetupPlanRepository &
         }
       }
     }
+  },
+
+  listIncomeReceipts: async (userId: string, periodStart: Date) => {
+    return prisma.incomeReceipt.findMany({ where: { userId, periodStart } })
+  },
+
+  confirmIncomeReceipt: async (userId: string, data: ConfirmIncomeReceiptData) => {
+    for (let attempt = 1; ; attempt += 1) {
+      try {
+        return await prisma.$transaction(
+          async (tx) => {
+            const receipts = await tx.incomeReceipt.findMany({ where: { userId, periodStart: data.periodStart } })
+
+            if (receipts.some((receipt) => receipt.incomeId === data.incomeId)) {
+              return false
+            }
+
+            // A month whose deposits were made before incomes were confirmed
+            // (no receipt, but planned savings already in) is not paid twice.
+            const depositedWithoutReceipt =
+              receipts.length === 0 &&
+              (await tx.moneyMovement.count({
+                where: {
+                  userId,
+                  reason: 'PLANNED_SAVING',
+                  date: { gte: data.periodStart, lte: data.periodEnd },
+                },
+              })) > 0
+
+            await tx.incomeReceipt.create({
+              data: {
+                userId,
+                incomeId: data.incomeId,
+                amount: data.amount,
+                periodStart: data.periodStart,
+                receivedAt: data.receivedAt,
+              },
+            })
+
+            if (depositedWithoutReceipt) {
+              return true
+            }
+
+            const deposits = data.depositsFor(receipts.reduce((total, receipt) => total + Number(receipt.amount), 0))
+
+            let chests = await tx.chest.findMany({ where: { userId } })
+
+            if (!chests.some((chest) => chest.isSystem && chest.name === 'Base Chest')) {
+              await tx.chest.createMany({
+                data: [
+                  { userId, name: 'Base Chest', type: 'AVAILABLE', isSystem: true },
+                  { userId, name: 'Buffer', type: 'AVAILABLE', isSystem: true },
+                  { userId, name: 'Monthly Savings', type: 'SECURE', isSystem: false },
+                  { userId, name: 'Debts Chest', type: 'AVAILABLE', isSystem: true },
+                ],
+              })
+              chests = await tx.chest.findMany({ where: { userId } })
+            }
+
+            const baseChest = chests.find((chest) => chest.isSystem && chest.name === 'Base Chest')!
+            // Money with no chest of its own always lands in the Base Chest.
+            const savingsChest = chests.find((chest) => chest.name === 'Monthly Savings') ?? baseChest
+
+            const movements = [
+              { amount: deposits.savings, destinationChestId: savingsChest.id, notes: 'Planned savings' },
+              { amount: deposits.unallocated, destinationChestId: baseChest.id, notes: 'Unallocated income' },
+            ].filter((movement) => movement.amount >= 1)
+
+            // Written here, not through recordMovement, because the check and
+            // the writes must share this transaction.
+            await tx.moneyMovement.createMany({
+              data: movements.map((movement) => ({
+                userId,
+                type: 'IN' as const,
+                reason: 'PLANNED_SAVING' as const,
+                date: data.receivedAt,
+                ...movement,
+              })),
+            })
+
+            return true
+          },
+          { isolationLevel: 'Serializable' },
+        )
+      } catch (error) {
+        if (!isWriteConflict(error) || attempt >= MAX_WRITE_ATTEMPTS) {
+          throw error
+        }
+      }
+    }
+  },
+
+  listDebts: async (userId: string) => {
+    return prisma.debt.findMany({
+      where: { userId },
+      include: { payments: { orderBy: { date: 'asc' } }, goal: { select: { id: true, name: true } } },
+      orderBy: { takenAt: 'desc' },
+    })
+  },
+
+  createDebt: async (
+    userId: string,
+    data: CreateDebtData,
+    movement?: DebtMovementData | null,
+    funding?: DebtGoalFunding | null,
+  ) => {
+    return prisma.$transaction(async (tx) => {
+      const debt = await tx.debt.create({ data: { userId, ...data } })
+
+      if (movement) {
+        await tx.moneyMovement.create({
+          data: {
+            userId,
+            amount: data.principal,
+            type: movement.type,
+            reason: 'DEBT',
+            date: data.takenAt,
+            notes: movement.notes,
+            ...(movement.type === 'IN'
+              ? { destinationChestId: movement.chestId }
+              : { sourceChestId: movement.chestId }),
+          },
+        })
+      }
+
+      if (movement && funding) {
+        await tx.moneyMovement.create({
+          data: {
+            userId,
+            amount: data.principal,
+            type: 'TRANSFER',
+            reason: 'GOAL_FUNDING',
+            date: data.takenAt,
+            sourceChestId: movement.chestId,
+            destinationChestId: funding.chestId,
+            relatedGoalId: funding.goalId,
+          },
+        })
+      }
+
+      return debt
+    })
+  },
+
+  addDebtPayment: async (
+    userId: string,
+    debtId: string,
+    payment: { amount: number; date: Date },
+    movement: DebtMovementData,
+  ) => {
+    return prisma.$transaction(async (tx) => {
+      const created = await tx.debtPayment.create({ data: { debtId, ...payment } })
+
+      await tx.moneyMovement.create({
+        data: {
+          userId,
+          amount: payment.amount,
+          type: movement.type,
+          reason: 'DEBT',
+          date: payment.date,
+          notes: movement.notes,
+          ...(movement.type === 'IN'
+            ? { destinationChestId: movement.chestId }
+            : { sourceChestId: movement.chestId }),
+        },
+      })
+
+      return created
+    })
   },
 
   createIncome: async (userId: string, data: CreateIncomeData) => {
@@ -548,6 +796,20 @@ export const financeRepository: SetupPlanRepository &
     return prisma.chest.delete({ where: { id } })
   },
 
+  removeChest: async (userId: string, chestId: string) => {
+    await prisma.$transaction([
+      prisma.moneyMovement.updateMany({
+        where: { userId, sourceChestId: chestId },
+        data: { sourceChestId: null },
+      }),
+      prisma.moneyMovement.updateMany({
+        where: { userId, destinationChestId: chestId },
+        data: { destinationChestId: null },
+      }),
+      prisma.chest.deleteMany({ where: { id: chestId, userId } }),
+    ])
+  },
+
   createMovement: async (userId: string, data: CreateMovementData) => {
     const createData: Record<string, unknown> = {
       amount: Number(data.amount),
@@ -597,6 +859,52 @@ export const financeRepository: SetupPlanRepository &
         },
       },
       include: { conditions: { include: { chest: { select: { id: true, name: true } } } } },
+    })
+  },
+
+  createSavingsGoal: async (userId: string, data: CreateSavingsGoalData) => {
+    return prisma.$transaction(async (tx) => {
+      const chest = await tx.chest.create({
+        data: { userId, name: data.name, type: 'AVAILABLE', isSystem: false },
+      })
+
+      const goal = await tx.goal.create({
+        data: {
+          userId,
+          name: data.name,
+          domain: 'finance',
+          logic: 'ALL',
+          conditions: {
+            create: [
+              {
+                measurement: 'chest_balance',
+                chestId: chest.id,
+                operator: 'GTE',
+                targetValue: data.targetAmount,
+                unit: data.unit,
+              },
+            ],
+          },
+        },
+      })
+
+      // Written here, not through recordMovement, because it must share this
+      // transaction. It is money entering from outside, so there is no source.
+      if (data.alreadySaved > 0) {
+        await tx.moneyMovement.create({
+          data: {
+            userId,
+            amount: data.alreadySaved,
+            type: 'IN',
+            reason: 'GOAL_FUNDING',
+            date: new Date(),
+            destinationChestId: chest.id,
+            relatedGoalId: goal.id,
+          },
+        })
+      }
+
+      return goal
     })
   },
 

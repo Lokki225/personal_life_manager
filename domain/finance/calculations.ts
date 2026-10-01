@@ -82,6 +82,111 @@ export function monthlyLivingBudget(
     )
 }
 
+// Where a month's income goes before any spending: what the savings
+// allocations set aside, and what no allocation claims.
+export function planDeposits(
+  plan: {
+    incomes: { amount: number; frequency: string }[]
+    allocations: { amount: number; period: BudgetPeriod; category: string }[]
+  },
+  referenceDate: Date,
+): { savings: number; unallocated: number } {
+  const income = plan.incomes.reduce(
+    (total, entry) =>
+      total + monthlyAmount(entry.amount, entry.frequency === 'weekly' ? 'weekly' : 'monthly', referenceDate),
+    0,
+  )
+  const monthly = plan.allocations.map((allocation) => ({
+    category: allocation.category,
+    amount: monthlyAmount(allocation.amount, allocation.period, referenceDate),
+  }))
+  const allocated = monthly.reduce((total, allocation) => total + allocation.amount, 0)
+  const savings = monthly
+    .filter((allocation) => allocation.category === 'savings')
+    .reduce((total, allocation) => total + allocation.amount, 0)
+
+  // Whole units only, and never more than the income can cover.
+  return {
+    savings: Math.floor(Math.min(savings, Math.max(income, 0))),
+    unallocated: Math.floor(Math.max(income - allocated, 0)),
+  }
+}
+
+// What one confirmed income adds to the chests. The month's receipts are
+// counted together, so savings fill up first and only what the allocations
+// leave over is unallocated, however the income is split across arrivals.
+export function receiptDeposits(
+  allocations: { amount: number; period: BudgetPeriod; category: string }[],
+  receivedBefore: number,
+  amount: number,
+  referenceDate: Date,
+): { savings: number; unallocated: number } {
+  const depositsAt = (received: number) =>
+    planDeposits({ incomes: [{ amount: received, frequency: 'monthly' }], allocations }, referenceDate)
+  const before = depositsAt(receivedBefore)
+  const after = depositsAt(receivedBefore + amount)
+
+  return { savings: after.savings - before.savings, unallocated: after.unallocated - before.unallocated }
+}
+
+// The date an income is expected in the reference month. A pay day the month
+// does not have (the 31st in June) falls on its last day.
+export function incomePayDate(payDay: number, referenceDate: Date): Date {
+  const day = Math.min(Math.max(Math.floor(payDay), 1), daysInPeriod('monthly', referenceDate))
+
+  return new Date(referenceDate.getFullYear(), referenceDate.getMonth(), day)
+}
+
+// Whether an income should be confirmed now. Its pay day must be reached, and
+// that pay day must be at least a month after the income was set up: the
+// money in hand at setup is already counted.
+export function isIncomeDue(payDay: number, setUpOn: Date, referenceDate: Date): boolean {
+  const expectedOn = incomePayDate(payDay, referenceDate)
+  const firstConfirmation = new Date(setUpOn.getFullYear(), setUpOn.getMonth() + 1, setUpOn.getDate())
+
+  return referenceDate >= expectedOn && expectedOn >= firstConfirmation
+}
+
+// The 31st: the monthly budget only covers 30 days.
+export function isUncoveredDay(referenceDate: Date): boolean {
+  return referenceDate.getDate() > MAX_BUDGET_DAYS_IN_MONTH
+}
+
+// On an uncovered day the budget comes from the reserves (Buffer and Base
+// Chest): a full day's budget when they hold enough, less when they do not,
+// nothing when they are empty. `drawnToday` is what the day already took out
+// of them, so the budget does not shrink as it is spent.
+export function uncoveredDayBudget(dailyBudgetAmount: number, reserves: number, drawnToday: number): number {
+  return Math.min(Math.max(dailyBudgetAmount, 0), Math.floor(Math.max(reserves, 0)) + Math.max(drawnToday, 0))
+}
+
+// Takes an amount out of the reserves, Buffer first, then the Base Chest.
+export function splitReserveDraw(
+  amount: number,
+  reserves: { buffer: number; base: number },
+): { fromBuffer: number; fromBase: number } {
+  const fromBuffer = Math.min(Math.max(amount, 0), Math.max(reserves.buffer, 0))
+  const fromBase = Math.min(Math.max(amount - fromBuffer, 0), Math.max(reserves.base, 0))
+
+  return { fromBuffer, fromBase }
+}
+
+export type InterestType = 'NONE' | 'PERCENT' | 'FIXED'
+
+// What a debt comes to once its interest is added. Interest is flat: a
+// percentage of the principal, or a fixed amount, charged once.
+export function debtTotal(principal: number, interestType: InterestType, interestValue: number): number {
+  if (interestType === 'PERCENT') {
+    return Math.round(principal + (principal * interestValue) / 100)
+  }
+
+  return interestType === 'FIXED' ? principal + interestValue : principal
+}
+
+export function debtOutstanding(total: number, payments: number[]): number {
+  return Math.max(total - payments.reduce((sum, payment) => sum + payment, 0), 0)
+}
+
 // How much of the month's budget should be used by the end of the reference
 // day when spending evenly. Used to tell "ahead" from "behind".
 export function expectedSpendToDate(monthBudget: number, referenceDate: Date): number {

@@ -1,7 +1,10 @@
 import {
+  ArrowDownLeft,
   ArrowLeftRight,
+  ArrowUpRight,
   Bus,
   CircleEllipsis,
+  PiggyBank,
   ReceiptText,
   ShoppingBag,
   Siren,
@@ -29,8 +32,44 @@ export function categoryStyle(category: string | null | undefined): CategoryStyl
   return CATEGORIES[key] ?? { label: key.charAt(0).toUpperCase() + key.slice(1).replace(/_/g, ' '), icon: ReceiptText }
 }
 
-export const EVENT_ICONS: Record<'expense' | 'exception' | 'movement', LucideIcon> = {
-  expense: ReceiptText,
-  exception: TriangleAlert,
-  movement: ArrowLeftRight,
+type EventLike = {
+  type: 'expense' | 'exception' | 'movement'
+  category?: string
+  label: string
+  movementType?: 'IN' | 'OUT' | 'TRANSFER'
+  sourceChestName?: string | null
+  destinationChestName?: string | null
+}
+
+// One icon, one word and one colour per kind of event, so a timeline reads at
+// a glance. `where` names the chest involved, when there is one.
+export function eventStyle(event: EventLike): { icon: LucideIcon; kind: string; tone: string; where: string | null } {
+  if (event.type === 'expense') {
+    const { icon, label } = categoryStyle(event.category)
+    return { icon, kind: label, tone: 'bg-muted text-muted-foreground', where: null }
+  }
+
+  if (event.type === 'exception') {
+    return { icon: TriangleAlert, kind: 'Exception', tone: 'bg-warning/15 text-warning', where: null }
+  }
+
+  if (event.movementType === 'TRANSFER') {
+    return { icon: ArrowLeftRight, kind: 'Transfer', tone: 'bg-category-income/15 text-category-income', where: null }
+  }
+
+  if (event.movementType === 'OUT') {
+    return {
+      icon: ArrowUpRight,
+      kind: 'Money out',
+      tone: 'bg-muted text-muted-foreground',
+      where: event.sourceChestName ? `From ${event.sourceChestName}` : null,
+    }
+  }
+
+  return {
+    icon: event.label === 'Daily saving' ? PiggyBank : ArrowDownLeft,
+    kind: event.label === 'Daily saving' ? 'Saved' : 'Money in',
+    tone: 'bg-success/15 text-success',
+    where: event.destinationChestName ? `Into ${event.destinationChestName}` : null,
+  }
 }

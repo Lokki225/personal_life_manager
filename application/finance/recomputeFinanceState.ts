@@ -1,16 +1,20 @@
 import {
   dailyLivingBudget,
-  dailySaving,
+  debtOutstanding,
+  debtTotal,
+  isUncoveredDay,
   monthlyAmount,
   monthlyLivingBudget,
+  uncoveredDayBudget,
   type BudgetPeriod,
 } from '../../domain/finance/calculations'
-import { chestBalance, type MovementForBalance } from '../../domain/finance/chests'
+import { chestBalance, DEBTS_CHEST_NAME, type MovementForBalance } from '../../domain/finance/chests'
 import { evaluateGoal } from './evaluateGoal'
 import {
   financeRepository,
   type AllocationRepository,
   type BudgetExceptionRepository,
+  type DebtRepository,
   type ExpenseRepository,
   type IncomeRepository,
   type ChestRepository,
@@ -27,7 +31,8 @@ export type RecomputeFinanceStateInput = {
     Partial<BudgetExceptionRepository> &
     Partial<ChestRepository> &
     Partial<MovementRepository> &
-    Partial<GoalRepository>
+    Partial<GoalRepository> &
+    Partial<DebtRepository>
 }
 
 export async function recomputeFinanceState(input: RecomputeFinanceStateInput): Promise<{
@@ -47,6 +52,10 @@ export async function recomputeFinanceState(input: RecomputeFinanceStateInput): 
   dailySaving: number
   // What was moved to a chest from today's budget.
   savedToday: number
+  // The 31st: the plan covers 30 days, so the budget comes from the reserves.
+  uncoveredDay: boolean
+  // What the reserves (Buffer and Base Chest) still owe to today's budget.
+  reserveBudgetLeft: number
   overspending: number
   actualSavings: number
   buffer: number
@@ -70,6 +79,9 @@ export async function recomputeFinanceState(input: RecomputeFinanceStateInput): 
     id: string
     name: string
     satisfied: boolean
+    // Money borrowed for this goal, and how much of those debts is still owed.
+    borrowed: number
+    owed: number
     conditionResults: Array<{ measurement: string; operator: string; target: number; actual: number; satisfied: boolean }>
   }>
 }> {
@@ -82,8 +94,9 @@ export async function recomputeFinanceState(input: RecomputeFinanceStateInput): 
   const listChests = repository.listChests ?? financeRepository.listChests
   const listMovements = repository.listMovements ?? financeRepository.listMovements
   const listGoals = repository.listGoals ?? financeRepository.listGoals
+  const listDebts = repository.listDebts ?? financeRepository.listDebts
 
-  const [incomes, allocations, expenses, budgetExceptions, chests, rawMovements, goals] =
+  const [incomes, allocations, expenses, budgetExceptions, chests, rawMovements, goals, debts] =
     await Promise.all([
       listIncomes(userId),
       listAllocations(userId),
@@ -92,6 +105,7 @@ export async function recomputeFinanceState(input: RecomputeFinanceStateInput): 
       listChests(userId),
       listMovements(userId),
       listGoals(userId),
+      listDebts(userId),
     ])
 
   const incomeTotal = incomes.reduce<number>((sum, income) => sum + Number(income.amount || 0), 0)
@@ -126,7 +140,7 @@ export async function recomputeFinanceState(input: RecomputeFinanceStateInput): 
 
   // The stored allocation is an amount per period, so the daily budget is that
   // amount spread over the period, and the month budget is what was allocated.
-  const dailyBudgetAmount = dailyLivingBudget(dailyLivingAllocations, referenceDate)
+  const plannedDailyBudget = dailyLivingBudget(dailyLivingAllocations, referenceDate)
   const periodBudget = monthlyLivingBudget(dailyLivingAllocations, referenceDate)
 
   const startOfPeriod = new Date(referenceDate.getFullYear(), referenceDate.getMonth(), 1)
@@ -153,12 +167,34 @@ export async function recomputeFinanceState(input: RecomputeFinanceStateInput): 
 
   const dailySpent = dailyExpenses.reduce<number>((sum, expense) => sum + expense.amount, 0)
 
-  const monthlySpent = expenses
-    .filter((expense) => {
-      const expenseDate = new Date(expense.date ?? new Date())
-      return expenseDate >= startOfPeriod && expenseDate <= endOfPeriod
+  const isToday = (value: Date | string) => {
+    const date = new Date(value)
+    return (
+      date.getFullYear() === today.getFullYear() &&
+      date.getMonth() === today.getMonth() &&
+      date.getDate() === today.getDate()
+    )
+  }
+
+  // Spending paid out of the reserves on a 31st. It is not the plan's money.
+  const reserveDraws = rawMovements.filter((m) => m.reason === 'EXPENSE' && m.type === 'OUT')
+  const drawnToday = reserveDraws
+    .filter((m) => isToday(m.date))
+    .reduce<number>((sum, m) => sum + Number(m.amount || 0), 0)
+  const drawnThisMonth = reserveDraws
+    .filter((m) => {
+      const moveDate = new Date(m.date)
+      return moveDate >= startOfPeriod && moveDate <= endOfPeriod
     })
-    .reduce<number>((sum, expense) => sum + Number(expense.amount || 0), 0)
+    .reduce<number>((sum, m) => sum + Number(m.amount || 0), 0)
+
+  const monthlySpent =
+    expenses
+      .filter((expense) => {
+        const expenseDate = new Date(expense.date ?? new Date())
+        return expenseDate >= startOfPeriod && expenseDate <= endOfPeriod
+      })
+      .reduce<number>((sum, expense) => sum + Number(expense.amount || 0), 0) - drawnThisMonth
 
   // --- Chests & movements replace the old Saving model ---
   const movements: MovementForBalance[] = rawMovements.map((m) => ({
@@ -178,23 +214,27 @@ export async function recomputeFinanceState(input: RecomputeFinanceStateInput): 
   const bufferChest = chestsWithBalances.find((c) => c.isSystem && c.name === 'Buffer')
   const buffer = bufferChest ? Math.max(bufferChest.balance, 0) : 0
 
-  // "Actual savings" = everything saved OUTSIDE the buffer (Base Chest, Monthly Savings, goal chests...)
+  // "Actual savings" = everything saved OUTSIDE the buffer (Base Chest, Monthly Savings, goal chests...).
+  // The Debts Chest holds borrowed money, which is not savings.
   const actualSavings = chestsWithBalances
-    .filter((c) => c.id !== bufferChest?.id)
+    .filter((c) => c.id !== bufferChest?.id && !(c.isSystem && c.name === DEBTS_CHEST_NAME))
     .reduce((sum, c) => sum + Math.max(c.balance, 0), 0)
 
   // Money already saved TODAY — any DAILY_SAVING movement dated today, to any chest
   const todaySavingMovement = rawMovements
-    .filter((m) => {
-      const moveDate = new Date(m.date)
-      return (
-        m.reason === 'DAILY_SAVING' &&
-        moveDate.getFullYear() === today.getFullYear() &&
-        moveDate.getMonth() === today.getMonth() &&
-        moveDate.getDate() === today.getDate()
-      )
-    })
+    .filter((m) => m.reason === 'DAILY_SAVING' && isToday(m.date))
     .reduce<number>((sum, m) => sum + Number(m.amount || 0), 0)
+
+  // The plan pays for 30 days. On the 31st the Buffer and Base Chest pay
+  // instead, for as much of a normal day as they can.
+  const uncoveredDay = isUncoveredDay(referenceDate)
+  const baseChest = chestsWithBalances.find((c) => c.isSystem && c.name === 'Base Chest')
+  const reserveBudget = uncoveredDay
+    ? uncoveredDayBudget(plannedDailyBudget, (bufferChest?.balance ?? 0) + (baseChest?.balance ?? 0), drawnToday)
+    : 0
+  const reserveBudgetLeft = Math.max(reserveBudget - drawnToday, 0)
+
+  const dailyBudgetAmount = uncoveredDay ? reserveBudget : plannedDailyBudget
 
   const dailyRemaining = Math.max(dailyBudgetAmount - dailySpent - todaySavingMovement, 0)
   // What was saved today is committed too, so spending after saving can still
@@ -220,24 +260,41 @@ export async function recomputeFinanceState(input: RecomputeFinanceStateInput): 
     period: allocation.period,
   }))
 
-  // --- Goals: evaluate each one ---
-  const goalResults = await Promise.all(
-    goals.map(async (goal) => {
-      const result = await evaluateGoal(goal.id)
-      return {
-        id: goal.id,
-        name: goal.name,
-        satisfied: result.satisfied,
-        conditionResults: result.conditionResults.map((r) => ({
-          measurement: r.condition.measurement,
-          operator: String(r.condition.operator),
-          target: Number(r.condition.targetValue),
-          actual: r.actual,
-          satisfied: r.satisfied,
-        })),
-      }
-    }),
-  )
+  // --- Goals: evaluate each one, from what is already loaded ---
+  const monthExceptionAmounts = budgetExceptions
+    .filter((exception) => {
+      const date = new Date(exception.date ?? referenceDate)
+      return date >= startOfPeriod && date <= endOfPeriod
+    })
+    .map((exception) => Number(exception.difference || 0))
+
+  const goalResults = goals.map((goal) => {
+    const result = evaluateGoal(goal, { movements, monthExceptionAmounts })
+    const goalDebts = debts.filter((debt) => debt.goalId === goal.id && debt.direction === 'BORROWED')
+
+    return {
+      id: goal.id,
+      name: goal.name,
+      satisfied: result.satisfied,
+      borrowed: goalDebts.reduce((sum, debt) => sum + Number(debt.principal), 0),
+      owed: goalDebts.reduce(
+        (sum, debt) =>
+          sum +
+          debtOutstanding(
+            debtTotal(Number(debt.principal), debt.interestType, Number(debt.interestValue)),
+            debt.payments.map((payment) => Number(payment.amount)),
+          ),
+        0,
+      ),
+      conditionResults: result.conditionResults.map((r) => ({
+        measurement: r.condition.measurement,
+        operator: String(r.condition.operator),
+        target: Number(r.condition.targetValue),
+        actual: r.actual,
+        satisfied: r.satisfied,
+      })),
+    }
+  })
 
   return {
     incomeTotal,
@@ -253,8 +310,11 @@ export async function recomputeFinanceState(input: RecomputeFinanceStateInput): 
     monthlySpent,
     monthlyRemaining,
     monthlyOverspend,
-    dailySaving: dailySaving(dailyBudgetAmount, dailySpent + todaySavingMovement),
+    // What is still in the reserves is already saved, so it cannot be saved again.
+    dailySaving: Math.max(dailyRemaining - reserveBudgetLeft, 0),
     savedToday: todaySavingMovement,
+    uncoveredDay,
+    reserveBudgetLeft,
     overspending: dailyOverspend,
     actualSavings,
     buffer,

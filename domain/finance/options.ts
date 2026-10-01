@@ -5,6 +5,10 @@ export const INCOME_FREQUENCIES = ['monthly', 'weekly', 'occasional', 'recurring
 export const EXPENSE_CATEGORIES = ['food', 'transport', 'shopping', 'other'] as const
 export const EXCEPTION_CATEGORIES = ['transport', 'food', 'emergency', 'other'] as const
 
+export const DEBT_DIRECTIONS = ['BORROWED', 'LENT'] as const
+export const INTEREST_TYPES = ['NONE', 'PERCENT', 'FIXED'] as const
+
+export type DebtDirection = (typeof DEBT_DIRECTIONS)[number]
 export type AllocationPeriod = (typeof ALLOCATION_PERIODS)[number]
 export type AllocationCategory = (typeof ALLOCATION_CATEGORIES)[number]
 export type IncomeFrequency = (typeof INCOME_FREQUENCIES)[number]

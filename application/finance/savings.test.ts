@@ -2,7 +2,9 @@ import { describe, expect, it, vi } from 'vitest'
 
 import { consolidateBuffer } from './consolidateBuffer'
 import { createChest } from './createChest'
+import { createCustomGoal } from './createCustomGoal'
 import { createSavingsGoal } from './createSavingsGoal'
+import { deleteChest } from './deleteChest'
 import { fundGoal } from './fundGoal'
 import { transferBetweenChests } from './transferBetweenChests'
 
@@ -108,38 +110,144 @@ describe('consolidateBuffer', () => {
 })
 
 describe('createSavingsGoal', () => {
-  it('creates a chest, a goal on its balance, and the first contribution', async () => {
-    const deps = {
-      createChest: vi.fn().mockResolvedValue({ id: 'goal-chest' }),
-      createGoal: vi.fn().mockResolvedValue({ id: 'goal-1' }),
-      record: vi.fn(),
-    }
-
-    await createSavingsGoal('user-1', { name: 'Headphones', targetAmount: 30000, alreadySaved: 8000 }, deps as never)
-
-    expect(deps.createChest).toHaveBeenCalledWith('user-1', { name: 'Headphones', type: 'AVAILABLE' })
-    expect(deps.createGoal).toHaveBeenCalledWith(
-      'user-1',
-      expect.objectContaining({
-        name: 'Headphones',
-        conditions: [expect.objectContaining({ chestId: 'goal-chest', operator: 'GTE', targetValue: 30000 })],
-      }),
-    )
-    expect(deps.record).toHaveBeenCalledWith(
-      expect.objectContaining({ amount: 8000, destinationChestId: 'goal-chest', relatedGoalId: 'goal-1' }),
-    )
+  const deps = () => ({
+    listChests: vi.fn().mockResolvedValue([{ name: 'Buffer' }]),
+    create: vi.fn().mockResolvedValue({ id: 'goal-1' }),
   })
 
-  it('records no contribution when nothing was saved yet', async () => {
-    const deps = {
-      createChest: vi.fn().mockResolvedValue({ id: 'goal-chest' }),
-      createGoal: vi.fn().mockResolvedValue({ id: 'goal-1' }),
-      record: vi.fn(),
+  it('hands the chest, the goal and the first contribution to one atomic write', async () => {
+    const d = deps()
+
+    await createSavingsGoal('user-1', { name: ' Headphones ', targetAmount: 30000, alreadySaved: 8000 }, d as never)
+
+    expect(d.create).toHaveBeenCalledTimes(1)
+    expect(d.create).toHaveBeenCalledWith('user-1', {
+      name: 'Headphones',
+      targetAmount: 30000,
+      alreadySaved: 8000,
+      unit: 'XOF',
+    })
+  })
+
+  it('treats a missing first contribution as zero', async () => {
+    const d = deps()
+
+    await createSavingsGoal('user-1', { name: 'Headphones', targetAmount: 30000 }, d as never)
+
+    expect(d.create).toHaveBeenCalledWith('user-1', expect.objectContaining({ alreadySaved: 0 }))
+  })
+
+  it('refuses a name already used by a chest, and a target of zero', async () => {
+    const d = deps()
+
+    await expect(
+      createSavingsGoal('user-1', { name: 'buffer', targetAmount: 30000 }, d as never),
+    ).rejects.toMatchObject({ field: 'name' })
+    await expect(
+      createSavingsGoal('user-1', { name: 'Phone', targetAmount: 0 }, d as never),
+    ).rejects.toMatchObject({ field: 'targetAmount' })
+    expect(d.create).not.toHaveBeenCalled()
+  })
+})
+
+describe('createCustomGoal', () => {
+  const deps = () => ({
+    listChests: vi.fn().mockResolvedValue([{ id: 'base' }]),
+    createGoal: vi.fn().mockResolvedValue({ id: 'goal-1' }),
+  })
+
+  it('builds each condition with its unit and period', async () => {
+    const d = deps()
+
+    await createCustomGoal(
+      'user-1',
+      {
+        name: 'Disciplined month',
+        logic: 'ALL',
+        conditions: [
+          { measurement: 'chest_balance', operator: 'GTE', targetValue: 50000, chestId: 'base' },
+          { measurement: 'monthly_deviation_count', operator: 'LTE', targetValue: 3, chestId: 'ignored' },
+        ],
+      },
+      d as never,
+    )
+
+    expect(d.createGoal).toHaveBeenCalledWith('user-1', {
+      name: 'Disciplined month',
+      domain: 'finance',
+      logic: 'ALL',
+      conditions: [
+        { measurement: 'chest_balance', operator: 'GTE', targetValue: 50000, chestId: 'base', unit: 'XOF', period: 'NONE' },
+        {
+          measurement: 'monthly_deviation_count',
+          operator: 'LTE',
+          targetValue: 3,
+          chestId: null,
+          unit: null,
+          period: 'MONTHLY',
+        },
+      ],
+    })
+  })
+
+  it('points at the condition whose chest is missing or not the user\u2019s', async () => {
+    const d = deps()
+    const attempt = (chestId: string | undefined) =>
+      createCustomGoal(
+        'user-1',
+        {
+          name: 'Goal',
+          logic: 'ANY',
+          conditions: [
+            { measurement: 'monthly_deviation_amount', operator: 'LTE', targetValue: 5000 },
+            { measurement: 'chest_balance', operator: 'GTE', targetValue: 1000, chestId },
+          ],
+        },
+        d as never,
+      )
+
+    await expect(attempt(undefined)).rejects.toMatchObject({ field: 'conditions.1.chestId' })
+    await expect(attempt('someone-else')).rejects.toMatchObject({ field: 'conditions.1.chestId' })
+    expect(d.createGoal).not.toHaveBeenCalled()
+  })
+})
+
+describe('deleteChest', () => {
+  const holidays = { id: 'holidays', name: 'Holidays', isSystem: false, balance: 0 }
+  const deps = (chests: (typeof holidays)[], goals: { name: string; conditions: { chestId: string }[] }[] = []) => ({
+    listChests: vi.fn().mockResolvedValue(chests),
+    listGoals: vi.fn().mockResolvedValue(goals),
+    remove: vi.fn(),
+  })
+
+  it('removes an empty chest of the user', async () => {
+    const d = deps([holidays])
+
+    await deleteChest('user-1', 'holidays', d)
+
+    expect(d.remove).toHaveBeenCalledWith('user-1', 'holidays')
+  })
+
+  it('refuses a built-in chest, a chest holding money, and a chest a goal depends on', async () => {
+    const builtIn = { id: 'buffer', name: 'Buffer', isSystem: true, balance: 0 }
+    const funded = { ...holidays, balance: 2500 }
+    const goal = { name: 'Trip', conditions: [{ chestId: 'holidays' }] }
+
+    const system = deps([builtIn])
+    await expect(deleteChest('user-1', 'buffer', system)).rejects.toThrow('Built-in chests cannot be deleted.')
+
+    const withMoney = deps([funded])
+    await expect(deleteChest('user-1', 'holidays', withMoney)).rejects.toThrow('Move the 2,500 out of Holidays first.')
+
+    const withGoal = deps([holidays], [goal])
+    await expect(deleteChest('user-1', 'holidays', withGoal)).rejects.toThrow('Holidays is used by the goal "Trip".')
+
+    const missing = deps([holidays])
+    await expect(deleteChest('user-1', 'someone-else', missing)).rejects.toThrow('This chest no longer exists.')
+
+    for (const d of [system, withMoney, withGoal, missing]) {
+      expect(d.remove).not.toHaveBeenCalled()
     }
-
-    await createSavingsGoal('user-1', { name: 'Headphones', targetAmount: 30000 }, deps as never)
-
-    expect(deps.record).not.toHaveBeenCalled()
   })
 })
 

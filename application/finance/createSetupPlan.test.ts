@@ -7,6 +7,7 @@ const plan = {
   incomeSource: 'Salary',
   incomeAmount: 300000,
   incomeFrequency: 'monthly',
+  incomePayDay: 25,
   allocations: [{ name: 'Rent', amount: 100000, period: 'monthly', category: 'fixed' }],
 }
 
@@ -19,7 +20,7 @@ describe('createSetupPlan', () => {
 
     expect(repository.createInitialPlan).toHaveBeenCalledTimes(1)
     expect(repository.createInitialPlan).toHaveBeenCalledWith('user-1', {
-      income: { source: 'Salary', amount: 300000, frequency: 'monthly' },
+      income: { source: 'Salary', amount: 300000, frequency: 'monthly', payDay: 25 },
       allocations: plan.allocations,
       startDate: today,
     })

@@ -2,12 +2,13 @@
 
 import { revalidatePath } from 'next/cache'
 
+import { createCustomGoal } from '@/application/finance/createCustomGoal'
 import { createSavingsGoal } from '@/application/finance/createSavingsGoal'
 import { fundGoal } from '@/application/finance/fundGoal'
 import { getSignedInUserId } from '@/infrastructure/auth/sessionUser'
 import type { FormState } from '@/lib/forms/formState'
 
-import { fundGoalForm, goalForm } from './schema'
+import { customGoalForm, fundGoalForm, goalForm } from './schema'
 
 const SIGNED_OUT: FormState = {
   status: 'error',
@@ -47,6 +48,24 @@ export async function fundGoalAction(_previousState: FormState, formData: FormDa
   const state = await fundGoalForm.submit(formData, (funding) =>
     fundGoal(userId, funding.goalId, funding.amount, funding.sourceChestId),
   )
+
+  if (state.status === 'success') {
+    revalidatePath('/finance', 'layout')
+  }
+
+  return state
+}
+
+export async function createCustomGoalAction(_previousState: FormState, formData: FormData): Promise<FormState> {
+  const userId = await getSignedInUserId()
+
+  if (!userId) {
+    return SIGNED_OUT
+  }
+
+  const state = await customGoalForm.submit(formData, async (goal) => {
+    await createCustomGoal(userId, goal)
+  })
 
   if (state.status === 'success') {
     revalidatePath('/finance', 'layout')

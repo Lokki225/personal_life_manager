@@ -25,6 +25,9 @@ const repositoryOf = (data: {
   expenses?: unknown[]
   movements?: unknown[]
   exceptions?: unknown[]
+  chests?: unknown[]
+  goals?: unknown[]
+  debts?: unknown[]
 }) =>
   ({
     listIncomes: vi.fn().mockResolvedValue([{ id: 'income-1', amount: 300000 }]),
@@ -36,9 +39,10 @@ const repositoryOf = (data: {
     ),
     listExpenses: vi.fn().mockResolvedValue(data.expenses ?? []),
     listBudgetExceptions: vi.fn().mockResolvedValue(data.exceptions ?? []),
-    listChests: vi.fn().mockResolvedValue(chests),
+    listChests: vi.fn().mockResolvedValue(data.chests ?? chests),
     listMovements: vi.fn().mockResolvedValue(data.movements ?? []),
-    listGoals: vi.fn().mockResolvedValue([]),
+    listGoals: vi.fn().mockResolvedValue(data.goals ?? []),
+    listDebts: vi.fn().mockResolvedValue(data.debts ?? []),
   }) as never
 
 describe('recomputeFinanceState', () => {
@@ -102,6 +106,92 @@ describe('recomputeFinanceState', () => {
 
     expect(state.dailyBudget).toBe(2000)
     expect(state.periodBudget).toBe(60000)
+  })
+
+  it('funds the 31st from the Buffer and Base Chest instead of the plan', async () => {
+    const day31 = new Date(2026, 9, 31, 12)
+    const stateWith = (movements: unknown[], expenses: unknown[] = []) =>
+      recomputeFinanceState({ userId: 'user-1', referenceDate: day31, repository: repositoryOf({ movements, expenses }) })
+
+    const full = await stateWith([
+      movement({ id: 'm-1', destinationChestId: 'buffer', amount: 1500 }),
+      movement({ id: 'm-2', destinationChestId: 'base', amount: 4000 }),
+    ])
+    expect(full.uncoveredDay).toBe(true)
+    expect(full.dailyBudget).toBe(2000)
+    // The money is already in the chests, so there is nothing to save.
+    expect(full.dailySaving).toBe(0)
+
+    const partial = await stateWith([movement({ id: 'm-1', destinationChestId: 'buffer', amount: 700 })])
+    expect(partial.dailyBudget).toBe(700)
+
+    const nothing = await stateWith([])
+    expect(nothing.dailyBudget).toBe(0)
+
+    // 500 spent and drawn from the Buffer: the budget stays, the rest shrinks,
+    // and the month's own budget is not charged.
+    const spent = await stateWith(
+      [
+        movement({ id: 'm-1', destinationChestId: 'buffer', amount: 700 }),
+        movement({ id: 'm-2', type: 'OUT', reason: 'EXPENSE', date: day31, sourceChestId: 'buffer', amount: 500 }),
+      ],
+      [{ id: 'expense-1', amount: 500, category: 'food', description: 'Lunch', date: day31 }],
+    )
+    expect(spent.dailyBudget).toBe(700)
+    expect(spent.dailyRemaining).toBe(200)
+    expect(spent.reserveBudgetLeft).toBe(200)
+    expect(spent.buffer).toBe(200)
+    expect(spent.monthlySpent).toBe(0)
+  })
+
+  it('does not count borrowed money in the Debts Chest as savings', async () => {
+    const state = await recomputeFinanceState({
+      userId: 'user-1',
+      referenceDate: TODAY,
+      repository: repositoryOf({
+        chests: [...chests, { id: 'debts', name: 'Debts Chest', type: 'AVAILABLE', isSystem: true }],
+        movements: [
+          movement({ id: 'm-1', destinationChestId: 'base', amount: 250 }),
+          movement({ id: 'm-2', reason: 'DEBT', destinationChestId: 'debts', amount: 30000 }),
+        ],
+      }),
+    })
+
+    expect(state.actualSavings).toBe(250)
+    expect(state.totalSaved).toBe(250)
+    expect(state.chests.find((chest) => chest.id === 'debts')?.balance).toBe(30000)
+  })
+
+  it('shows how much of a goal was borrowed and is still owed', async () => {
+    const state = await recomputeFinanceState({
+      userId: 'user-1',
+      referenceDate: TODAY,
+      repository: repositoryOf({
+        goals: [
+          {
+            id: 'trip',
+            name: 'Trip',
+            logic: 'ALL',
+            conditions: [{ id: 'c-1', measurement: 'chest_balance', chestId: 'base', operator: 'GTE', targetValue: 30000 }],
+          },
+        ],
+        movements: [movement({ id: 'm-1', destinationChestId: 'base', amount: 30000 })],
+        debts: [
+          {
+            id: 'd-1',
+            goalId: 'trip',
+            direction: 'BORROWED',
+            principal: 20000,
+            interestType: 'PERCENT',
+            interestValue: 10,
+            payments: [{ amount: 5000 }],
+          },
+          { id: 'd-2', goalId: null, direction: 'BORROWED', principal: 9000, interestType: 'NONE', interestValue: 0, payments: [] },
+        ],
+      }),
+    })
+
+    expect(state.goals[0]).toMatchObject({ satisfied: true, borrowed: 20000, owed: 17000 })
   })
 
   it('divides a weekly daily living allocation by seven', async () => {

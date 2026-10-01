@@ -31,6 +31,7 @@ type FinanceSetupInitialData = {
   incomeSource?: string
   incomeAmount?: number
   incomeFrequency?: IncomeFrequency
+  incomePayDay?: number
   allocations?: AllocationDraft[]
 }
 
@@ -193,6 +194,23 @@ export function SetupForm({ initialData }: SetupFormProps = {}) {
                   <NativeSelectOption value="recurring">Recurring</NativeSelectOption>
                 </NativeSelect>
                 <FieldError state={state} name="incomeFrequency" />
+              </div>
+              <div className="grid gap-2 sm:col-span-2">
+                <Label htmlFor="incomePayDay">Pay day (day of the month)</Label>
+                <Input
+                  id="incomePayDay"
+                  type="number"
+                  inputMode="numeric"
+                  min={1}
+                  max={31}
+                  {...fieldAttributes(state, 'incomePayDay')}
+                  defaultValue={initialData?.incomePayDay ?? new Date().getDate()}
+                  className={FIELD_CLASS}
+                />
+                <p className="text-xs text-muted-foreground">
+                  You will be asked to confirm it on that day, starting a month from now.
+                </p>
+                <FieldError state={state} name="incomePayDay" />
               </div>
             </CardContent>
           </Card>

@@ -22,10 +22,12 @@ const SECTIONS: Section[] = [
     href: '/finance/chests',
     label: 'Savings',
     icon: PiggyBank,
-    matches: (pathname) => under(pathname, '/finance/chests') || under(pathname, '/finance/goals'),
+    matches: (pathname) =>
+      under(pathname, '/finance/chests') || under(pathname, '/finance/goals') || under(pathname, '/finance/debts'),
     pages: [
       { href: '/finance/chests', label: 'Chests' },
       { href: '/finance/goals', label: 'Goals' },
+      { href: '/finance/debts', label: 'Debts' },
     ],
   },
   {

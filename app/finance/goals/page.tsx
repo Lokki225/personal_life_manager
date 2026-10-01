@@ -8,22 +8,10 @@ import { formatAmount } from '@/domain/finance/calculations'
 import { getSignedInUserId } from '@/infrastructure/auth/sessionUser'
 import { cn } from '@/lib/utils'
 
+import { measurementLabel, operatorLabel } from '../goal-labels'
 import { Meter, Money } from '../money'
+import { CustomGoalDrawer } from './custom-goal-drawer'
 import { FundGoalDrawer, NewGoalDrawer } from './goal-forms'
-
-const MEASUREMENT_LABELS: Record<string, string> = {
-  chest_balance: 'Chest balance',
-  monthly_deviation_count: 'Exceptions this month',
-  monthly_deviation_amount: 'Overspend this month',
-}
-
-const OPERATOR_LABELS: Record<string, string> = {
-  GTE: 'at least',
-  GT: 'more than',
-  LTE: 'at most',
-  LT: 'less than',
-  EQ: 'exactly',
-}
 
 export default async function FinanceGoalsPage() {
   const userId = await getSignedInUserId()
@@ -56,6 +44,7 @@ export default async function FinanceGoalsPage() {
           chests={state.chests.map((chest) => ({ id: chest.id, name: chest.name, balance: chest.balance }))}
         />
         <NewGoalDrawer />
+        <CustomGoalDrawer chests={state.chests.map((chest) => ({ id: chest.id, name: chest.name }))} />
       </div>
 
       {state.goals.length > 0 ? (
@@ -121,17 +110,31 @@ export default async function FinanceGoalsPage() {
                               )}
                             </span>
                             <span>
-                              {MEASUREMENT_LABELS[result.measurement] ?? result.measurement.replace(/_/g, ' ')}:{' '}
+                              {measurementLabel(result.measurement)}:{' '}
                               <span className="font-medium">{formatAmount(result.actual)}</span>
                               <span className="text-muted-foreground">
                                 {' '}
-                                ({OPERATOR_LABELS[result.operator] ?? result.operator} {formatAmount(result.target)})
+                                ({operatorLabel(result.operator)} {formatAmount(result.target)})
                               </span>
                             </span>
                           </li>
                         ))}
                       </ul>
                     )}
+
+                    {goal.borrowed > 0 ? (
+                      <p className="text-sm text-muted-foreground">
+                        Of which <Money value={goal.borrowed} /> borrowed
+                        {goal.owed > 0 ? (
+                          <>
+                            , <Money value={goal.owed} className="font-medium text-foreground" /> still owed
+                          </>
+                        ) : (
+                          ', fully repaid'
+                        )}
+                        .
+                      </p>
+                    ) : null}
                   </CardContent>
                 </Card>
               </li>

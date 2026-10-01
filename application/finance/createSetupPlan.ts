@@ -8,6 +8,7 @@ export type SetupPlanInput = {
   incomeSource: string
   incomeAmount: number
   incomeFrequency: string
+  incomePayDay: number
   allocations: { name: string; amount: number; period: string; category: string }[]
 }
 
@@ -15,7 +16,7 @@ export type SetupPlanInput = {
 // allocations. A user who already has an income is past it.
 export async function hasSetupPlan(
   userId: string,
-  repository: SetupPlanRepository = financeRepository,
+  repository: Pick<SetupPlanRepository, 'hasIncome' | 'createInitialPlan'> = financeRepository,
 ): Promise<boolean> {
   return repository.hasIncome(userId)
 }
@@ -23,11 +24,16 @@ export async function hasSetupPlan(
 export async function createSetupPlan(
   userId: string,
   plan: SetupPlanInput,
-  repository: SetupPlanRepository = financeRepository,
+  repository: Pick<SetupPlanRepository, 'hasIncome' | 'createInitialPlan'> = financeRepository,
   today: Date = new Date(),
 ): Promise<void> {
   const created = await repository.createInitialPlan(userId, {
-    income: { source: plan.incomeSource, amount: plan.incomeAmount, frequency: plan.incomeFrequency },
+    income: {
+      source: plan.incomeSource,
+      amount: plan.incomeAmount,
+      frequency: plan.incomeFrequency,
+      payDay: plan.incomePayDay,
+    },
     allocations: plan.allocations,
     startDate: today,
   })

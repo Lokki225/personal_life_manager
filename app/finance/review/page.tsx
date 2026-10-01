@@ -1,175 +1,215 @@
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
+import { Check, X } from 'lucide-react'
 
-import { getSignedInUserId } from '@/infrastructure/auth/sessionUser'
+import { Badge } from '@/components/ui/badge'
+import { Card, CardContent } from '@/components/ui/card'
 import { getReview } from '@/application/finance/getReview'
-import { formatCurrency } from '@/domain/finance/calculations'
+import { formatAmount } from '@/domain/finance/calculations'
+import { getSignedInUserId } from '@/infrastructure/auth/sessionUser'
+import { cn } from '@/lib/utils'
+
+import { categoryStyle } from '../categories'
+import { measurementLabel, operatorLabel } from '../goal-labels'
+import { Meter, Money } from '../money'
 
 const PERIOD_OPTIONS = ['day', 'week', 'month', 'year'] as const
 
 type ReviewPeriod = (typeof PERIOD_OPTIONS)[number]
 
-export default async function FinanceReviewPage({
-  searchParams,
+const PERIOD_LABELS: Record<ReviewPeriod, string> = {
+  day: 'Today',
+  week: 'This week',
+  month: 'This month',
+  year: 'This year',
+}
+
+function Breakdown({
+  title,
+  entries,
+  empty,
 }: {
-  searchParams?: Promise<Record<string, string | string[] | undefined>> | Record<string, string | string[] | undefined>
+  title: string
+  entries: { category: string; total: number }[]
+  empty: string
 }) {
+  const largest = Math.max(...entries.map((entry) => entry.total), 1)
+
+  return (
+    <Card className="gap-0 py-5">
+      <CardContent className="space-y-3">
+        <h2 className="text-base font-semibold">{title}</h2>
+        {entries.length > 0 ? (
+          <ul className="space-y-3">
+            {entries.map((entry) => {
+              const { label, icon: Icon } = categoryStyle(entry.category)
+
+              return (
+                <li key={entry.category} className="space-y-1.5">
+                  <div className="flex items-center justify-between gap-3 text-sm">
+                    <span className="flex min-w-0 items-center gap-2">
+                      <Icon className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+                      <span className="truncate">{label}</span>
+                    </span>
+                    <Money value={entry.total} className="font-semibold" />
+                  </div>
+                  <Meter value={(entry.total / largest) * 100} label={`${label} share`} className="h-1.5" />
+                </li>
+              )
+            })}
+          </ul>
+        ) : (
+          <p className="text-sm text-muted-foreground">{empty}</p>
+        )}
+      </CardContent>
+    </Card>
+  )
+}
+
+export default async function FinanceReviewPage({ searchParams }: PageProps<'/finance/review'>) {
   const userId = await getSignedInUserId()
 
   if (!userId) {
     redirect('/login')
   }
 
-  const resolvedSearchParams = searchParams ? await Promise.resolve(searchParams) : {}
-  const period = String(resolvedSearchParams.period ?? 'month')
+  const period = String((await searchParams).period ?? 'month')
   const selectedPeriod: ReviewPeriod = PERIOD_OPTIONS.includes(period as ReviewPeriod)
     ? (period as ReviewPeriod)
     : 'month'
 
   const review = await getReview({ userId, period: selectedPeriod })
+  const isOver = review.remaining < 0
+  const usedShare = review.plannedBudget > 0 ? (review.actualSpent / review.plannedBudget) * 100 : 0
 
   return (
-    <main className="theme-shell px-4 py-6 md:px-6">
-      <div className="mx-auto max-w-6xl space-y-6">
-        <header className="bento-card p-6">
-          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+    <main className="mx-auto w-full max-w-2xl space-y-4 px-4 py-6 sm:px-6">
+      <header>
+        <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">Review</h1>
+        <p className="mt-1 text-sm text-muted-foreground">How the plan held up, and where it did not.</p>
+      </header>
+
+      <Card className="gap-0 py-5">
+        <CardContent className="space-y-3">
+          <h2 className="text-base font-semibold">This month against the plan</h2>
+          <p className={cn('text-2xl font-semibold tracking-tight', isOver && 'text-destructive-strong')}>
+            <Money value={Math.abs(review.remaining)} />
+            <span className="ml-2 text-sm font-normal text-muted-foreground">{isOver ? 'over budget' : 'left'}</span>
+          </p>
+          <Meter value={usedShare} tone={isOver ? 'danger' : 'success'} label="Share of the month's budget spent" />
+          <dl className="grid grid-cols-2 gap-3 text-sm">
             <div>
-              <p className="bento-label">Finance review</p>
-              <h1 className="mt-2 text-3xl font-semibold tracking-[-0.05em] text-[var(--text)]">
-                {selectedPeriod.charAt(0).toUpperCase() + selectedPeriod.slice(1)} review
-              </h1>
+              <dt className="text-muted-foreground">Planned</dt>
+              <dd className="font-semibold">
+                <Money value={review.plannedBudget} />
+              </dd>
             </div>
-            <div className="flex flex-wrap gap-3">
-              <Link href="/finance" className="bento-button-secondary px-4 py-2.5 text-sm font-medium">
-                Overview
-              </Link>
-              <Link href="/finance/history" className="bento-button-secondary px-4 py-2.5 text-sm font-medium">
-                History
-              </Link>
-              <Link href="/finance/goals" className="bento-button-secondary px-4 py-2.5 text-sm font-medium">
-                Goals
-              </Link>
+            <div>
+              <dt className="text-muted-foreground">Spent</dt>
+              <dd className="font-semibold">
+                <Money value={review.actualSpent} />
+              </dd>
             </div>
-          </div>
-        </header>
+            <div>
+              <dt className="text-muted-foreground">Saved in chests</dt>
+              <dd className="font-semibold">
+                <Money value={review.actualSavings + review.buffer} />
+              </dd>
+            </div>
+            <div>
+              <dt className="text-muted-foreground">Exceptions</dt>
+              <dd className="font-semibold">{review.exceptionCount}</dd>
+            </div>
+          </dl>
+        </CardContent>
+      </Card>
 
-        <section className="bento-card p-6">
-          <form method="get" className="flex flex-wrap items-end gap-4">
-            <label className="block text-sm font-medium text-[var(--muted)]">
-              Period
-              <select name="period" defaultValue={selectedPeriod} className="bento-input mt-1 w-40">
-                {PERIOD_OPTIONS.map((option) => (
-                  <option key={option} value={option}>
-                    {option}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <button type="submit" className="bento-button-primary px-4 py-2.5 text-sm font-medium">
-              Apply
-            </button>
-          </form>
-        </section>
-
-        <section className="bento-grid md:grid-cols-2 xl:grid-cols-4">
-          <div className="bento-card p-5">
-            <p className="text-sm text-[var(--muted)]">Planned</p>
-            <p className="mt-2 text-2xl font-semibold tracking-[-0.05em]">{formatCurrency(review.plannedBudget)}</p>
-          </div>
-          <div className="bento-card p-5">
-            <p className="text-sm text-[var(--muted)]">Actual spent</p>
-            <p className="mt-2 text-2xl font-semibold tracking-[-0.05em]">{formatCurrency(review.actualSpent)}</p>
-          </div>
-          <div className="bento-card p-5">
-            <p className="text-sm text-[var(--muted)]">Remaining</p>
-            <p className={`mt-2 text-2xl font-semibold tracking-[-0.05em] ${review.remaining < 0 ? 'text-[var(--danger)]' : ''}`}>{formatCurrency(review.remaining)}</p>
-          </div>
-          <div className="bento-card p-5">
-            <p className="text-sm text-[var(--muted)]">Exceptions</p>
-            <p className="mt-2 text-2xl font-semibold tracking-[-0.05em]">{review.exceptionCount}</p>
-          </div>
-        </section>
-
-        {/* Goals — B.7 */}
-        <section className="bento-card p-6">
-          <h2 className="text-lg font-semibold text-[var(--text)]">Goals this period</h2>
+      <Card className="gap-0 py-5">
+        <CardContent className="space-y-3">
+          <h2 className="text-base font-semibold">Goals</h2>
           {review.goals.length > 0 ? (
-            <div className="mt-4 space-y-3">
+            <ul className="divide-y">
               {review.goals.map((goal) => (
-                <div key={goal.id} className="rounded-2xl border border-[var(--border)] bg-[var(--panel-soft)] p-4">
-                  <div className="flex items-center justify-between">
-                    <p className="font-medium text-[var(--text)]">{goal.name}</p>
-                    <span className={`text-xs font-medium ${goal.satisfied ? 'text-[var(--success)]' : 'text-[var(--muted)]'}`}>
-                      {goal.satisfied ? '✓ On track' : 'Not yet'}
-                    </span>
+                <li key={goal.id} className="space-y-2 py-3 first:pt-0 last:pb-0">
+                  <div className="flex items-start justify-between gap-3">
+                    <p className="min-w-0 text-sm font-medium">
+                      <span className="line-clamp-2">{goal.name}</span>
+                    </p>
+                    <Badge variant={goal.satisfied ? 'default' : 'secondary'} className="shrink-0">
+                      {goal.satisfied ? 'On track' : 'Not yet'}
+                    </Badge>
                   </div>
-                  {!goal.satisfied && (
-                    <ul className="mt-2 space-y-1 text-sm">
-                      {goal.conditionResults
-                        .filter((c) => !c.satisfied)
-                        .map((c, i) => (
-                          <li key={i} className="text-[var(--muted)]">
-                            {c.measurement.replace(/_/g, ' ')}: {formatCurrency(c.actual)} — not met
-                          </li>
-                        ))}
-                    </ul>
-                  )}
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className="mt-4 text-sm text-[var(--muted)]">No goals set up yet.</p>
-          )}
-        </section>
-
-        <div className="grid gap-6 lg:grid-cols-2">
-          <section className="bento-card p-6">
-            <h2 className="text-lg font-semibold text-[var(--text)]">Savings summary</h2>
-            <div className="mt-4 space-y-4 text-sm text-[var(--muted)]">
-              <div className="flex items-center justify-between border-b border-[var(--border)] pb-2">
-                <span>Actual savings</span>
-                <span className="font-semibold text-[var(--text)]">{formatCurrency(review.actualSavings)}</span>
-              </div>
-              <div className="flex items-center justify-between border-b border-[var(--border)] pb-2">
-                <span>Weekly buffer</span>
-                <span className="font-semibold text-[var(--text)]">{formatCurrency(review.buffer)}</span>
-              </div>
-            </div>
-          </section>
-
-          <section className="bento-card p-6">
-            <h2 className="text-lg font-semibold text-[var(--text)]">Category breakdown</h2>
-            {review.categoryBreakdown.length > 0 ? (
-              <ul className="mt-4 space-y-3 text-sm text-[var(--muted)]">
-                {review.categoryBreakdown.map((entry) => (
-                  <li key={entry.category} className="flex items-center justify-between border-b border-[var(--border)] pb-2 last:border-b-0 last:pb-0">
-                    <span>{entry.category}</span>
-                    <span className="font-semibold text-[var(--text)]">{formatCurrency(entry.total)}</span>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p className="mt-4 text-sm text-[var(--muted)]">No expenses in this period yet.</p>
-            )}
-          </section>
-        </div>
-
-        <section className="bento-card p-6">
-          <h2 className="text-lg font-semibold text-[var(--text)]">Deviation by category</h2>
-          {review.exceptionBreakdown.length > 0 ? (
-            <ul className="mt-4 space-y-3 text-sm text-[var(--muted)]">
-              {review.exceptionBreakdown.map((entry) => (
-                <li key={entry.category} className="flex items-center justify-between border-b border-[var(--border)] pb-2 last:border-b-0 last:pb-0">
-                  <span>{entry.category}</span>
-                  <span className="font-semibold text-[var(--text)]">{formatCurrency(entry.total)}</span>
+                  <ul className="space-y-1.5">
+                    {goal.conditionResults.map((result, index) => (
+                      <li key={index} className="flex items-start gap-2 text-sm">
+                        <span
+                          className={cn(
+                            'mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full',
+                            result.satisfied ? 'bg-success/15 text-success' : 'bg-muted text-muted-foreground',
+                          )}
+                        >
+                          {result.satisfied ? (
+                            <Check className="size-3.5" aria-label="Met" />
+                          ) : (
+                            <X className="size-3.5" aria-label="Not met" />
+                          )}
+                        </span>
+                        <span>
+                          {measurementLabel(result.measurement)}:{' '}
+                          <span className="font-medium">{formatAmount(result.actual)}</span>
+                          <span className="text-muted-foreground">
+                            {' '}
+                            ({operatorLabel(result.operator)} {formatAmount(result.target)})
+                          </span>
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
                 </li>
               ))}
             </ul>
           ) : (
-            <p className="mt-4 text-sm text-[var(--muted)]">No exceptions recorded in this period.</p>
+            <p className="text-sm text-muted-foreground">
+              No goals yet.{' '}
+              <Link href="/finance/goals" className="font-medium text-foreground underline underline-offset-4">
+                Create one
+              </Link>
+              .
+            </p>
           )}
-        </section>
+        </CardContent>
+      </Card>
+
+      <div className="space-y-2">
+        <h2 className="px-1 text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">
+          Breakdown for
+        </h2>
+        <ul className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 sm:mx-0 sm:flex-wrap sm:px-0">
+          {PERIOD_OPTIONS.map((option) => (
+            <li key={option} className="shrink-0">
+              <Link
+                href={`/finance/review?period=${option}`}
+                aria-current={selectedPeriod === option ? 'true' : undefined}
+                className={cn(
+                  'flex min-h-11 items-center rounded-full border px-4 text-sm font-medium transition-colors',
+                  selectedPeriod === option
+                    ? 'border-primary bg-primary text-primary-foreground'
+                    : 'border-input text-muted-foreground hover:text-foreground',
+                )}
+              >
+                {PERIOD_LABELS[option]}
+              </Link>
+            </li>
+          ))}
+        </ul>
       </div>
+
+      <Breakdown title="Spending by category" entries={review.categoryBreakdown} empty="No expenses in this period." />
+      <Breakdown
+        title="Overspend by category"
+        entries={review.exceptionBreakdown}
+        empty="No exceptions in this period."
+      />
     </main>
   )
 }

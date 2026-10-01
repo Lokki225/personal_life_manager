@@ -18,11 +18,16 @@ export const saveRemainingSchema = z.object({
   destinationChestId: z.string().trim().optional(),
 })
 
-const chestId = (message: string) => z.string({ error: message }).trim().min(1, message)
+const requiredId = (message: string) => z.string({ error: message }).trim().min(1, message)
 
 export const transferSchema = z.object({
-  sourceChestId: chestId('Choose where the money comes from.'),
-  destinationChestId: chestId('Choose where the money goes.'),
+  sourceChestId: requiredId('Choose where the money comes from.'),
+  destinationChestId: requiredId('Choose where the money goes.'),
+  amount: moneyField,
+})
+
+export const confirmIncomeSchema = z.object({
+  incomeId: requiredId('Choose an income.'),
   amount: moneyField,
 })
 
@@ -37,4 +42,5 @@ export const expenseForm = new FormHandler(expenseSchema, options)
 export const saveRemainingForm = new FormHandler(saveRemainingSchema, options)
 export const exceptionForm = new FormHandler(exceptionSchema, options)
 export const transferForm = new FormHandler(transferSchema, options)
+export const confirmIncomeForm = new FormHandler(confirmIncomeSchema, options)
 export const consolidateForm = new FormHandler(z.object({}), options)

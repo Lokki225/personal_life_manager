@@ -16,4 +16,9 @@ export const chestSchema = z.object({
     .optional(),
 })
 
+export const deleteChestSchema = z.object({
+  chestId: z.string({ error: 'Choose a chest.' }).trim().min(1, 'Choose a chest.'),
+})
+
 export const chestForm = new FormHandler(chestSchema, { isRuleError: isFinanceRuleError })
+export const deleteChestForm = new FormHandler(deleteChestSchema, { isRuleError: isFinanceRuleError })

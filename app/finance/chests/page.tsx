@@ -4,12 +4,13 @@ import { Lock, LockOpen, PiggyBank } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
 import { ensureDefaultChests } from '@/application/finance/ensureDefaultChests'
-import { getChestsWithBalances } from '@/application/finance/getChestsWithBalances'
+import { listChestsForManagement } from '@/application/finance/deleteChest'
 import { getSignedInUserId } from '@/infrastructure/auth/sessionUser'
+import { DEBTS_CHEST_NAME } from '@/domain/finance/chests'
 import { cn } from '@/lib/utils'
 
 import { Money } from '../money'
-import { ConsolidateButton, NewChestDrawer, TransferDrawer } from './chest-forms'
+import { ConsolidateButton, DeleteChestButton, NewChestDrawer, TransferDrawer } from './chest-forms'
 
 const dateFormatter = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
 
@@ -23,9 +24,12 @@ export default async function ChestsPage() {
   // Accounts created before chests existed get their Base Chest and Buffer here.
   await ensureDefaultChests(userId)
 
-  const chests = await getChestsWithBalances(userId)
+  const chests = await listChestsForManagement(userId)
   const now = new Date()
-  const total = chests.reduce((sum, chest) => sum + Math.max(chest.balance, 0), 0)
+  // Borrowed money in the Debts Chest is not savings.
+  const total = chests
+    .filter((chest) => !(chest.isSystem && chest.name === DEBTS_CHEST_NAME))
+    .reduce((sum, chest) => sum + Math.max(chest.balance, 0), 0)
   const buffer = chests.find((chest) => chest.isSystem && chest.name === 'Buffer')
   const options = chests.map((chest) => ({ id: chest.id, name: chest.name, balance: chest.balance }))
 
@@ -81,6 +85,11 @@ export default async function ChestsPage() {
                         'Built-in chest'
                       ) : null}
                     </p>
+                    {chest.deletionBlocker === null ? (
+                      <div className="flex justify-end">
+                        <DeleteChestButton chestId={chest.id} chestName={chest.name} />
+                      </div>
+                    ) : null}
                   </CardContent>
                 </Card>
               </li>

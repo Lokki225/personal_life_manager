@@ -20,6 +20,12 @@ export const setupPlanSchema = z.object({
   incomeSource: requiredText('Enter an income source.'),
   incomeAmount: moneyField,
   incomeFrequency: z.enum(INCOME_FREQUENCIES, { error: 'Choose a frequency.' }),
+  // Day of the month the income usually arrives.
+  incomePayDay: z
+    .string({ error: 'Enter a day from 1 to 31.' })
+    .trim()
+    .regex(/^([1-9]|[12]\d|3[01])$/, 'Enter a day from 1 to 31.')
+    .transform(Number),
   allocations: z
     .array(allocationSchema, { error: 'Add at least one allocation.' })
     .min(1, 'Add at least one allocation.')

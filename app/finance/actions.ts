@@ -4,14 +4,22 @@ import { revalidatePath } from 'next/cache'
 
 import { MovementReason } from '@/app/generated/prisma/enums'
 import { consolidateBuffer } from '@/application/finance/consolidateBuffer'
+import { confirmIncome } from '@/application/finance/confirmIncome'
 import { recordDailyException } from '@/application/finance/recordDailyException'
-import { recordExpense } from '@/application/finance/recordExpense'
+import { recordDailyExpense } from '@/application/finance/recordDailyExpense'
 import { saveDailyRemaining } from '@/application/finance/saveDailyRemaining'
 import { transferBetweenChests } from '@/application/finance/transferBetweenChests'
 import { getSignedInUserId } from '@/infrastructure/auth/sessionUser'
 import type { FormState } from '@/lib/forms/formState'
 
-import { consolidateForm, exceptionForm, expenseForm, saveRemainingForm, transferForm } from './schema'
+import {
+  confirmIncomeForm,
+  consolidateForm,
+  exceptionForm,
+  expenseForm,
+  saveRemainingForm,
+  transferForm,
+} from './schema'
 
 const SIGNED_OUT: FormState = {
   status: 'error',
@@ -30,15 +38,32 @@ export async function addExpense(_previousState: FormState, formData: FormData):
     return SIGNED_OUT
   }
 
-  const state = await expenseForm.submit(formData, async (expense) => {
-    await recordExpense({
+  const state = await expenseForm.submit(formData, (expense) =>
+    recordDailyExpense({
       userId,
       amount: expense.amount,
       category: expense.category,
       description: expense.description || null,
-      date: new Date(),
-    })
-  })
+    }),
+  )
+
+  if (state.status === 'success') {
+    refreshFinance()
+  }
+
+  return state
+}
+
+export async function confirmIncomeAction(_previousState: FormState, formData: FormData): Promise<FormState> {
+  const userId = await getSignedInUserId()
+
+  if (!userId) {
+    return SIGNED_OUT
+  }
+
+  const state = await confirmIncomeForm.submit(formData, (income) =>
+    confirmIncome({ userId, incomeId: income.incomeId, amount: income.amount }),
+  )
 
   if (state.status === 'success') {
     refreshFinance()

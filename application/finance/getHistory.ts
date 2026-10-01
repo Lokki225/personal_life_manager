@@ -126,7 +126,7 @@ export async function getHistory(input: GetHistoryInput): Promise<HistoryEvent[]
       label:
         movement.type === 'TRANSFER'
           ? `Transfer: ${movement.sourceChest?.name ?? '?'} → ${movement.destinationChest?.name ?? '?'}`
-          : sentenceCase(movement.reason),
+          : movement.notes?.trim() || sentenceCase(movement.reason),
       movementType: movement.type,
       sourceChestName: movement.sourceChest?.name ?? null,
       destinationChestName: movement.destinationChest?.name ?? null,
