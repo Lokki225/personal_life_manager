@@ -1,10 +1,12 @@
 import {
+  ChestRepository,
   financeRepository,
+  GoalRepository,
+  MovementRepository,
   type AllocationRepository,
   type BudgetExceptionRepository,
   type ExpenseRepository,
   type IncomeRepository,
-  type SavingRepository,
 } from '../../infrastructure/repositories/financeRepository'
 import { getHistory, type HistoryPeriod } from './getHistory'
 import { recomputeFinanceState } from './recomputeFinanceState'
@@ -14,6 +16,13 @@ export type ReviewCategoryBreakdown = {
   total: number
 }
 
+export type ReviewGoalStatus = {
+  id: string
+  name: string
+  satisfied: boolean
+  conditionResults: Array<{ measurement: string; actual: number; satisfied: boolean }>
+}
+
 export type GetReviewInput = {
   userId: string
   period?: HistoryPeriod
@@ -21,8 +30,10 @@ export type GetReviewInput = {
   repository?: Partial<IncomeRepository> &
     Partial<AllocationRepository> &
     Partial<ExpenseRepository> &
-    Partial<SavingRepository> &
-    Partial<BudgetExceptionRepository>
+    Partial<BudgetExceptionRepository> &
+    Partial<ChestRepository> &
+    Partial<MovementRepository> &
+    Partial<GoalRepository>
 }
 
 export type GetReviewResult = {
@@ -36,24 +47,17 @@ export type GetReviewResult = {
   exceptionCount: number
   categoryBreakdown: ReviewCategoryBreakdown[]
   exceptionBreakdown: ReviewCategoryBreakdown[]
+  goals: ReviewGoalStatus[]
 }
 
-export async function getReview(
-  input: GetReviewInput,
-  repository: GetReviewInput['repository'] = financeRepository,
-): Promise<GetReviewResult> {
-  const {
-    userId,
-    period = 'month',
-    referenceDate = new Date(),
-    repository: resolvedRepository = repository ?? financeRepository,
-  } = input
+export async function getReview(input: GetReviewInput): Promise<GetReviewResult> {
+  const { userId, period = 'month', referenceDate = new Date(), repository = financeRepository } = input
 
-  const readRepository = resolvedRepository as IncomeRepository &
+  const readRepository = repository as IncomeRepository &
     AllocationRepository &
     ExpenseRepository &
-    SavingRepository &
-    BudgetExceptionRepository
+    BudgetExceptionRepository &
+    MovementRepository
 
   const [state, history] = await Promise.all([
     recomputeFinanceState({ userId, referenceDate, repository: readRepository }),
@@ -95,5 +99,6 @@ export async function getReview(
     exceptionCount: Number(state.exceptionCount || 0),
     categoryBreakdown,
     exceptionBreakdown,
+    goals: state.goals,
   }
 }

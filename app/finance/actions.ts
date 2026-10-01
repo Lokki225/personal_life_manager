@@ -1,0 +1,130 @@
+'use server'
+
+import { revalidatePath } from 'next/cache'
+
+import { MovementReason } from '@/app/generated/prisma/enums'
+import { consolidateBuffer } from '@/application/finance/consolidateBuffer'
+import { recordDailyException } from '@/application/finance/recordDailyException'
+import { recordExpense } from '@/application/finance/recordExpense'
+import { saveDailyRemaining } from '@/application/finance/saveDailyRemaining'
+import { transferBetweenChests } from '@/application/finance/transferBetweenChests'
+import { getSignedInUserId } from '@/infrastructure/auth/sessionUser'
+import type { FormState } from '@/lib/forms/formState'
+
+import { consolidateForm, exceptionForm, expenseForm, saveRemainingForm, transferForm } from './schema'
+
+const SIGNED_OUT: FormState = {
+  status: 'error',
+  fieldErrors: {},
+  formErrors: ['Your session has ended. Sign in again to continue.'],
+}
+
+function refreshFinance() {
+  revalidatePath('/finance', 'layout')
+}
+
+export async function addExpense(_previousState: FormState, formData: FormData): Promise<FormState> {
+  const userId = await getSignedInUserId()
+
+  if (!userId) {
+    return SIGNED_OUT
+  }
+
+  const state = await expenseForm.submit(formData, async (expense) => {
+    await recordExpense({
+      userId,
+      amount: expense.amount,
+      category: expense.category,
+      description: expense.description || null,
+      date: new Date(),
+    })
+  })
+
+  if (state.status === 'success') {
+    refreshFinance()
+  }
+
+  return state
+}
+
+export async function saveRemaining(_previousState: FormState, formData: FormData): Promise<FormState> {
+  const userId = await getSignedInUserId()
+
+  if (!userId) {
+    return SIGNED_OUT
+  }
+
+  const state = await saveRemainingForm.submit(formData, (saving) =>
+    saveDailyRemaining({
+      userId,
+      amount: saving.amount,
+      destinationChestId: saving.destinationChestId || null,
+    }),
+  )
+
+  if (state.status === 'success') {
+    refreshFinance()
+  }
+
+  return state
+}
+
+export async function recordException(_previousState: FormState, formData: FormData): Promise<FormState> {
+  const userId = await getSignedInUserId()
+
+  if (!userId) {
+    return SIGNED_OUT
+  }
+
+  const state = await exceptionForm.submit(formData, (exception) =>
+    recordDailyException({ userId, category: exception.category, reason: exception.reason }),
+  )
+
+  if (state.status === 'success') {
+    refreshFinance()
+  }
+
+  return state
+}
+
+export async function transferChests(_previousState: FormState, formData: FormData): Promise<FormState> {
+  const userId = await getSignedInUserId()
+
+  if (!userId) {
+    return SIGNED_OUT
+  }
+
+  const state = await transferForm.submit(formData, (transfer) =>
+    transferBetweenChests(
+      userId,
+      transfer.sourceChestId,
+      transfer.destinationChestId,
+      transfer.amount,
+      MovementReason.WITHDRAWAL,
+    ),
+  )
+
+  if (state.status === 'success') {
+    refreshFinance()
+  }
+
+  return state
+}
+
+export async function consolidateBufferAction(_previousState: FormState, formData: FormData): Promise<FormState> {
+  const userId = await getSignedInUserId()
+
+  if (!userId) {
+    return SIGNED_OUT
+  }
+
+  const state = await consolidateForm.submit(formData, async () => {
+    await consolidateBuffer(userId)
+  })
+
+  if (state.status === 'success') {
+    refreshFinance()
+  }
+
+  return state
+}

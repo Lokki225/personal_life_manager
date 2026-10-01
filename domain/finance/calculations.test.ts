@@ -1,8 +1,13 @@
 import { describe, expect, it } from 'vitest'
 
 import {
+  budgetDaysInPeriod,
   dailyBudget,
+  dailyLivingBudget,
   dailySaving,
+  expectedSpendToDate,
+  formatAmount,
+  monthlyLivingBudget,
   daysInPeriod,
   formatCurrency,
   getDailyFinanceStatus,
@@ -20,6 +25,61 @@ describe('finance calculations', () => {
   it('calculates the daily budget based on the period length', () => {
     expect(dailyBudget(300000, 'monthly', new Date(2026, 1, 1))).toBe(10714.285714285714)
     expect(dailyBudget(7000, 'weekly', new Date(2026, 5, 1))).toBe(1000)
+  })
+
+  it('spreads a monthly budget over at most 30 days', () => {
+    expect(budgetDaysInPeriod('monthly', new Date(2026, 9, 1))).toBe(30)
+    expect(budgetDaysInPeriod('monthly', new Date(2026, 8, 1))).toBe(30)
+    expect(budgetDaysInPeriod('monthly', new Date(2026, 1, 1))).toBe(28)
+    expect(budgetDaysInPeriod('weekly', new Date(2026, 9, 1))).toBe(7)
+
+    expect(dailyBudget(60000, 'monthly', new Date(2026, 9, 1))).toBe(2000)
+    expect(dailyBudget(60000, 'monthly', new Date(2026, 8, 1))).toBe(2000)
+  })
+
+  it('derives the daily budget from daily living allocations only', () => {
+    const allocations = [
+      { amount: 60000, period: 'monthly' as const, category: 'daily_living' },
+      { amount: 100000, period: 'monthly' as const, category: 'fixed' },
+      { amount: 20000, period: 'weekly' as const, category: 'savings' },
+    ]
+
+    expect(dailyLivingBudget(allocations, new Date(2026, 8, 21))).toBe(2000)
+    expect(
+      dailyLivingBudget(
+        [...allocations, { amount: 7000, period: 'weekly' as const, category: 'daily_living' }],
+        new Date(2026, 8, 21),
+      ),
+    ).toBe(3000)
+    expect(dailyLivingBudget([], new Date(2026, 8, 21))).toBe(0)
+  })
+
+  it('rounds the daily budget down to whole units', () => {
+    const allocation = { amount: 50000, period: 'monthly' as const, category: 'daily_living' }
+
+    expect(dailyLivingBudget([allocation], new Date(2026, 8, 21))).toBe(1666)
+  })
+
+  it('gives the month budget of the daily living allocations', () => {
+    const monthly = { amount: 60000, period: 'monthly' as const, category: 'daily_living' }
+    const weekly = { amount: 7000, period: 'weekly' as const, category: 'daily_living' }
+    const rent = { amount: 100000, period: 'monthly' as const, category: 'fixed' }
+
+    expect(monthlyLivingBudget([monthly, rent], new Date(2026, 9, 1))).toBe(60000)
+    expect(monthlyLivingBudget([weekly], new Date(2026, 8, 1))).toBe(30000)
+    expect(monthlyLivingBudget([], new Date(2026, 8, 1))).toBe(0)
+  })
+
+  it('tells how much of the month budget should be used by a given day', () => {
+    expect(expectedSpendToDate(60000, new Date(2026, 8, 15))).toBe(30000)
+    expect(expectedSpendToDate(60000, new Date(2026, 9, 31))).toBe(60000)
+    expect(expectedSpendToDate(56000, new Date(2026, 1, 14))).toBe(28000)
+  })
+
+  it('formats amounts as whole units', () => {
+    expect(formatAmount(60000)).toBe('60,000')
+    expect(formatAmount(1935.48)).toBe('1,935')
+    expect(formatAmount(Number.NaN)).toBe('0')
   })
 
   it('tracks remaining allocation, saving and overspend correctly', () => {

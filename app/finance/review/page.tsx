@@ -1,8 +1,7 @@
 import Link from 'next/link'
-import { getServerSession } from 'next-auth'
 import { redirect } from 'next/navigation'
 
-import { authOptions } from '@/app/api/auth/[...nextauth]/route'
+import { getSignedInUserId } from '@/infrastructure/auth/sessionUser'
 import { getReview } from '@/application/finance/getReview'
 import { formatCurrency } from '@/domain/finance/calculations'
 
@@ -15,8 +14,7 @@ export default async function FinanceReviewPage({
 }: {
   searchParams?: Promise<Record<string, string | string[] | undefined>> | Record<string, string | string[] | undefined>
 }) {
-  const session = await getServerSession(authOptions)
-  const userId = session?.user && 'id' in session.user ? String(session.user.id) : null
+  const userId = await getSignedInUserId()
 
   if (!userId) {
     redirect('/login')
@@ -47,6 +45,9 @@ export default async function FinanceReviewPage({
               </Link>
               <Link href="/finance/history" className="bento-button-secondary px-4 py-2.5 text-sm font-medium">
                 History
+              </Link>
+              <Link href="/finance/goals" className="bento-button-secondary px-4 py-2.5 text-sm font-medium">
+                Goals
               </Link>
             </div>
           </div>
@@ -81,12 +82,44 @@ export default async function FinanceReviewPage({
           </div>
           <div className="bento-card p-5">
             <p className="text-sm text-[var(--muted)]">Remaining</p>
-            <p className="mt-2 text-2xl font-semibold tracking-[-0.05em]">{formatCurrency(review.remaining)}</p>
+            <p className={`mt-2 text-2xl font-semibold tracking-[-0.05em] ${review.remaining < 0 ? 'text-[var(--danger)]' : ''}`}>{formatCurrency(review.remaining)}</p>
           </div>
           <div className="bento-card p-5">
             <p className="text-sm text-[var(--muted)]">Exceptions</p>
             <p className="mt-2 text-2xl font-semibold tracking-[-0.05em]">{review.exceptionCount}</p>
           </div>
+        </section>
+
+        {/* Goals — B.7 */}
+        <section className="bento-card p-6">
+          <h2 className="text-lg font-semibold text-[var(--text)]">Goals this period</h2>
+          {review.goals.length > 0 ? (
+            <div className="mt-4 space-y-3">
+              {review.goals.map((goal) => (
+                <div key={goal.id} className="rounded-2xl border border-[var(--border)] bg-[var(--panel-soft)] p-4">
+                  <div className="flex items-center justify-between">
+                    <p className="font-medium text-[var(--text)]">{goal.name}</p>
+                    <span className={`text-xs font-medium ${goal.satisfied ? 'text-[var(--success)]' : 'text-[var(--muted)]'}`}>
+                      {goal.satisfied ? '✓ On track' : 'Not yet'}
+                    </span>
+                  </div>
+                  {!goal.satisfied && (
+                    <ul className="mt-2 space-y-1 text-sm">
+                      {goal.conditionResults
+                        .filter((c) => !c.satisfied)
+                        .map((c, i) => (
+                          <li key={i} className="text-[var(--muted)]">
+                            {c.measurement.replace(/_/g, ' ')}: {formatCurrency(c.actual)} — not met
+                          </li>
+                        ))}
+                    </ul>
+                  )}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="mt-4 text-sm text-[var(--muted)]">No goals set up yet.</p>
+          )}
         </section>
 
         <div className="grid gap-6 lg:grid-cols-2">

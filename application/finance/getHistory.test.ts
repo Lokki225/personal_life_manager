@@ -15,6 +15,8 @@ describe('getHistory', () => {
       listBudgetExceptions: vi.fn().mockResolvedValue([
         { id: 'x-1', category: 'emergency', difference: 100, reason: 'Late bill', resolution: 'Review', date: new Date('2026-09-17T09:00:00Z') },
       ]),
+      listMovements: vi.fn().mockResolvedValue([]),
+      createMovement: vi.fn(),
       createExpense: vi.fn(),
       updateExpense: vi.fn(),
       deleteExpense: vi.fn(),
@@ -56,6 +58,8 @@ describe('getHistory', () => {
       ]),
       listSavings: vi.fn().mockResolvedValue([]),
       listBudgetExceptions: vi.fn().mockResolvedValue([]),
+      listMovements: vi.fn().mockResolvedValue([]),
+      createMovement: vi.fn(),
       createExpense: vi.fn(),
       updateExpense: vi.fn(),
       deleteExpense: vi.fn(),

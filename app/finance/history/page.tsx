@@ -1,23 +1,13 @@
 import Link from 'next/link'
-import { getServerSession } from 'next-auth'
 import { redirect } from 'next/navigation'
 
 import { getHistory } from '@/application/finance/getHistory'
 import { formatCurrency } from '@/domain/finance/calculations'
-import { authOptions } from '@/app/api/auth/[...nextauth]/route'
+import { getSignedInUserId } from '@/infrastructure/auth/sessionUser'
 
-const CATEGORY_OPTIONS = [
-  'all',
-  'food',
-  'transportation',
-  'housing',
-  'emergency',
-  'other',
-  'savings',
-  'buffer',
-]
+const CATEGORY_OPTIONS = ['all', 'food', 'transportation', 'housing', 'emergency', 'other']
 
-const TYPE_OPTIONS = ['all', 'expense', 'saving', 'exception'] as const
+const TYPE_OPTIONS = ['all', 'expense', 'exception', 'movement'] as const
 const PERIOD_OPTIONS = ['day', 'week', 'month', 'year'] as const
 
 function buildHistoryHref(
@@ -40,8 +30,7 @@ export default async function FinanceHistoryPage({
     | Promise<Record<string, string | string[] | undefined>>
     | Record<string, string | string[] | undefined>
 }) {
-  const session = await getServerSession(authOptions)
-  const userId = session?.user && 'id' in session.user ? String(session.user.id) : null
+  const userId = await getSignedInUserId()
 
   if (!userId) {
     redirect('/login')
@@ -158,9 +147,9 @@ export default async function FinanceHistoryPage({
                       const typeTone =
                         event.type === 'expense'
                           ? 'border-[rgba(239,68,68,0.4)] text-[var(--danger)]'
-                          : event.type === 'saving'
-                            ? 'border-[rgba(22,163,74,0.35)] text-[var(--success)]'
-                            : 'border-[rgba(217,119,6,0.35)] text-[var(--warning)]'
+                          : event.type === 'exception'
+                            ? 'border-[rgba(217,119,6,0.35)] text-[var(--warning)]'
+                            : 'border-[rgba(59,130,246,0.35)] text-[#60a5fa]'
 
                       return (
                         <div key={`${event.type}-${event.id}`} className="relative rounded-2xl border border-[var(--border)] bg-[var(--panel-soft)] p-3">

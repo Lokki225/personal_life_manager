@@ -12,6 +12,106 @@ datasource db {
   provider = "postgresql"
 }
 
+enum ChestType { 
+  AVAILABLE
+  SECURE 
+}
+
+enum MovementType { 
+  IN 
+  OUT 
+  TRANSFER 
+}
+
+enum MovementReason { 
+  DAILY_SAVING 
+  PLANNED_SAVING 
+  BUFFER_CONSOLIDATION 
+  GOAL_FUNDING 
+  WITHDRAWAL 
+  EXPENSE 
+}
+
+enum GoalLogic { 
+  ALL 
+  ANY 
+}
+enum ConditionOperator { 
+  GTE 
+  LTE 
+  EQ 
+  GT 
+  LT 
+}
+enum EvalPeriod { 
+  NONE 
+  DAILY 
+  WEEKLY 
+  MONTHLY 
+  YEARLY 
+}
+
+model Chest {
+  id           String    @id @default(cuid())
+  userId       String
+  user         User      @relation(fields: [userId], references: [id])
+  name         String
+  type         ChestType
+  isSystem     Boolean   @default(false)
+  passwordHash String?
+  lockedUntil  DateTime?
+  createdAt    DateTime  @default(now())
+  movementsOut MoneyMovement[] @relation("SourceChest")
+  movementsIn  MoneyMovement[] @relation("DestinationChest")
+  conditions   GoalCondition[]
+}
+
+model MoneyMovement {
+  id                 String         @id @default(cuid())
+  userId             String
+  user               User           @relation(fields: [userId], references: [id])
+  sourceChestId      String?
+  sourceChest        Chest?         @relation("SourceChest", fields: [sourceChestId], references: [id])
+  destinationChestId String?
+  destinationChest   Chest?         @relation("DestinationChest", fields: [destinationChestId], references: [id])
+  amount             Decimal
+  type               MovementType
+  reason             MovementReason
+  date               DateTime
+  relatedGoalId      String?
+  relatedGoal        Goal?          @relation(fields: [relatedGoalId], references: [id])
+  relatedProjectId   String?
+  relatedProject     Project?       @relation(fields: [relatedProjectId], references: [id])
+  notes              String?
+  createdAt          DateTime       @default(now())
+}
+
+model Goal {
+  id         String          @id @default(cuid())
+  userId     String
+  user       User            @relation(fields: [userId], references: [id])
+  name       String
+  domain     String          @default("finance")
+  logic      GoalLogic       @default(ALL)
+  conditions GoalCondition[]
+  movements  MoneyMovement[]
+  createdAt  DateTime        @default(now())
+}
+
+model GoalCondition {
+  id          String            @id @default(cuid())
+  goalId      String
+  goal        Goal              @relation(fields: [goalId], references: [id])
+  measurement String
+  chestId     String?
+  chest       Chest?            @relation(fields: [chestId], references: [id])
+  operator    ConditionOperator
+  targetValue Decimal
+  unit        String?
+  period      EvalPeriod        @default(NONE)
+}
+
+
 
 model User {
   id            String   @id @default(cuid())
@@ -21,10 +121,11 @@ model User {
 
   incomes           Income[]
   allocations       Allocation[]
+  moneyMovements    MoneyMovement[]
   expenses          Expense[]
-  savings           Saving[]
+  chests            Chest[]
   budgetExceptions  BudgetException[]
-  financialGoals    FinancialGoal[]
+  goals             Goal[]
   projects          Project[]
 }
 
@@ -76,17 +177,6 @@ model Expense {
   createdAt     DateTime   @default(now())
 }
 
-model Saving {
-  id           String   @id @default(cuid())
-  userId       String
-  user         User     @relation(fields: [userId], references: [id])
-  amount       Decimal
-  date         DateTime
-  source       String   // planned | underspending
-  destination  String   // savings | buffer
-  notes        String?
-  createdAt    DateTime @default(now())
-}
 
 model BudgetException {
   id              String   @id @default(cuid())
@@ -103,15 +193,6 @@ model BudgetException {
   createdAt       DateTime @default(now())
 }
 
-model FinancialGoal {
-  id            String   @id @default(cuid())
-  userId        String
-  user          User     @relation(fields: [userId], references: [id])
-  name          String
-  targetAmount  Decimal
-  currentAmount Decimal  @default(0)
-  createdAt     DateTime @default(now())
-}
 
 model Project {
   id        String    @id @default(cuid())
@@ -121,5 +202,6 @@ model Project {
   notes     String?
   incomes   Income[]
   expenses  Expense[]
+  movements  MoneyMovement[]
   createdAt DateTime  @default(now())
 }

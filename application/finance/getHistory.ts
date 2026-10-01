@@ -2,24 +2,26 @@ import {
   financeRepository,
   type BudgetExceptionRepository,
   type ExpenseRepository,
-  type SavingRepository,
+  type MovementRepository,
 } from '../../infrastructure/repositories/financeRepository'
 
 export type HistoryPeriod = 'day' | 'week' | 'month' | 'year'
-export type HistoryTypeFilter = 'all' | 'expense' | 'saving' | 'exception'
+export type HistoryTypeFilter = 'all' | 'expense' | 'exception' | 'movement'
 
 export type HistoryEvent = {
   id: string
-  type: 'expense' | 'saving' | 'exception'
+  type: 'expense' | 'exception' | 'movement'
   date: Date
   amount: number
   label: string
   category?: string
   description?: string | null
-  destination?: string
   reason?: string | null
   resolution?: string | null
   projectName?: string | null
+  movementType?: 'IN' | 'OUT' | 'TRANSFER'
+  sourceChestName?: string | null
+  destinationChestName?: string | null
 }
 
 export type GetHistoryInput = {
@@ -28,26 +30,29 @@ export type GetHistoryInput = {
   type?: HistoryTypeFilter
   category?: string | null
   referenceDate?: Date
-  repository?: ExpenseRepository & SavingRepository & BudgetExceptionRepository
+  repository?: ExpenseRepository & BudgetExceptionRepository & MovementRepository
 }
 
-export async function getHistory(
-  input: GetHistoryInput,
-  repository: GetHistoryInput['repository'] = financeRepository,
-): Promise<HistoryEvent[]> {
+// "DAILY_SAVING" reads as "Daily saving".
+const sentenceCase = (code: string) => {
+  const words = code.replace(/_/g, ' ').toLowerCase()
+  return words.charAt(0).toUpperCase() + words.slice(1)
+}
+
+export async function getHistory(input: GetHistoryInput): Promise<HistoryEvent[]> {
   const {
     userId,
     period = 'month',
     type = 'all',
     category = 'all',
     referenceDate = new Date(),
-    repository: resolvedRepository = repository ?? financeRepository,
+    repository = financeRepository,
   } = input
 
-  const [expenses, savings, budgetExceptions] = await Promise.all([
-    resolvedRepository.listExpenses(userId),
-    resolvedRepository.listSavings(userId),
-    resolvedRepository.listBudgetExceptions(userId),
+  const [expenses, budgetExceptions, movements] = await Promise.all([
+    repository.listExpenses(userId),
+    repository.listBudgetExceptions(userId),
+    repository.listMovements(userId),
   ])
 
   const start = new Date(referenceDate)
@@ -92,22 +97,6 @@ export async function getHistory(
       projectName: expense.project?.name ?? null,
     }))
 
-  const savingEvents = savings
-    .filter((saving) => {
-      const date = new Date(saving.date ?? new Date())
-      return date >= start && date <= end
-    })
-    .map((saving) => ({
-      id: String(saving.id),
-      type: 'saving' as const,
-      date: new Date(saving.date ?? new Date()),
-      amount: Number(saving.amount || 0),
-      label: `Saved to ${saving.destination ?? 'savings'}`,
-      category: saving.destination ?? 'savings',
-      destination: saving.destination,
-      description: saving.notes,
-    }))
-
   const exceptionEvents = budgetExceptions
     .filter((exception) => {
       const date = new Date(exception.date ?? new Date())
@@ -124,16 +113,31 @@ export async function getHistory(
       resolution: exception.resolution,
     }))
 
-  return [...expenseEvents, ...savingEvents, ...exceptionEvents]
+  const movementEvents = movements
+    .filter((movement) => {
+      const date = new Date(movement.date)
+      return date >= start && date <= end
+    })
+    .map((movement) => ({
+      id: String(movement.id),
+      type: 'movement' as const,
+      date: new Date(movement.date),
+      amount: Number(movement.amount || 0),
+      label:
+        movement.type === 'TRANSFER'
+          ? `Transfer: ${movement.sourceChest?.name ?? '?'} → ${movement.destinationChest?.name ?? '?'}`
+          : sentenceCase(movement.reason),
+      movementType: movement.type,
+      sourceChestName: movement.sourceChest?.name ?? null,
+      destinationChestName: movement.destinationChest?.name ?? null,
+    }))
+
+    const allEvents: HistoryEvent[] = [...expenseEvents, ...exceptionEvents, ...movementEvents]
+
+  return allEvents
     .filter((event) => {
-      if (type !== 'all' && event.type !== type) {
-        return false
-      }
-
-      if (!category || category === 'all') {
-        return true
-      }
-
+      if (type !== 'all' && event.type !== type) return false
+      if (!category || category === 'all') return true
       return event.category === category
     })
     .sort((left, right) => right.date.getTime() - left.date.getTime())

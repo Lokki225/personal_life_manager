@@ -1,103 +1,97 @@
-'use client'
+import type { Metadata } from 'next'
+import { redirect } from 'next/navigation'
+import { CalendarCheck, PiggyBank, ShieldCheck, Wallet } from 'lucide-react'
 
-import { useRouter } from 'next/navigation'
-import { useState } from 'react'
+import { getSignedInUserId } from '@/infrastructure/auth/sessionUser'
 
-export default function LoginPage() {
-  const router = useRouter()
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [error, setError] = useState('')
-  const [isSubmitting, setIsSubmitting] = useState(false)
+import { safeCallbackUrl } from './callbackUrl'
+import { LoginForm } from './login-form'
 
-  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault()
-    setError('')
-    setIsSubmitting(true)
+export const metadata: Metadata = {
+  title: 'Sign in | Personal Life Manager',
+}
 
-    try {
-      const csrfResponse = await fetch('/api/auth/csrf')
-      const csrfData = await csrfResponse.json()
-      const csrfToken = csrfData.csrfToken
+const HIGHLIGHTS = [
+  {
+    icon: CalendarCheck,
+    title: 'A daily budget you can trust',
+    text: 'Derived from your income and allocations, so you know what today can afford.',
+  },
+  {
+    icon: PiggyBank,
+    title: 'Savings with a purpose',
+    text: 'Move what you keep into chests and track the goals they fund.',
+  },
+  {
+    icon: ShieldCheck,
+    title: 'Every deviation explained',
+    text: 'Record what went off plan and why, then adjust the next cycle.',
+  },
+]
 
-      const formData = new URLSearchParams({
-        email,
-        password,
-        csrfToken,
-        callbackUrl: 'http://localhost:3000/finance/setup',
-      })
+export default async function LoginPage({ searchParams }: PageProps<'/login'>) {
+  const callbackUrl = safeCallbackUrl((await searchParams).callbackUrl)
 
-      const response = await fetch('/api/auth/callback/credentials', {
-        method: 'POST',
-        credentials: 'same-origin',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body: formData.toString(),
-      })
-
-      if (!response.ok) {
-        throw new Error('Invalid credentials')
-      }
-
-      router.push('/finance/setup')
-    } catch {
-      setError('Invalid email or password.')
-    } finally {
-      setIsSubmitting(false)
-    }
+  if (await getSignedInUserId()) {
+    redirect(callbackUrl)
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-slate-100 p-6">
-      <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-8 shadow-sm">
-        <h1 className="mb-2 text-2xl font-semibold text-slate-900">Sign in</h1>
-        <p className="mb-6 text-sm text-slate-600">
-          Access your Personal Life Manager dashboard.
+    <main className="grid min-h-dvh lg:grid-cols-2">
+      <section className="relative hidden overflow-hidden border-r bg-card lg:flex lg:flex-col lg:justify-between lg:p-12">
+        <div
+          className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,var(--accent-soft),transparent_55%)]"
+          aria-hidden="true"
+        />
+
+        <div className="relative flex items-center gap-3">
+          <span className="flex size-10 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+            <Wallet className="size-5" aria-hidden="true" />
+          </span>
+          <span className="text-sm font-semibold tracking-tight">Personal Life Manager</span>
+        </div>
+
+        <div className="relative max-w-md">
+          <p className="text-3xl font-semibold tracking-tight xl:text-4xl">Know what you can spend today.</p>
+          <p className="mt-4 text-muted-foreground">
+            Plan your income once, then let every day start with a clear number.
+          </p>
+
+          <ul className="mt-10 space-y-6">
+            {HIGHLIGHTS.map(({ icon: Icon, title, text }) => (
+              <li key={title} className="flex gap-4">
+                <span className="flex size-10 shrink-0 items-center justify-center rounded-lg border bg-background">
+                  <Icon className="size-5 text-muted-foreground" aria-hidden="true" />
+                </span>
+                <div>
+                  <p className="font-medium">{title}</p>
+                  <p className="mt-1 text-sm text-muted-foreground">{text}</p>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <p className="relative text-xs text-muted-foreground">
+          &copy; {new Date().getFullYear()} Personal Life Manager
         </p>
+      </section>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <label className="block text-sm font-medium text-slate-700">
-            Email
-            <input
-              type="email"
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-              className="mt-1 w-full rounded-lg border border-slate-300 bg-slate-50 px-3 py-2 outline-none transition focus:border-slate-500"
-              placeholder="you@example.com"
-              autoComplete="email"
-              required
-            />
-          </label>
+      <section className="flex flex-col justify-center px-4 py-10 sm:px-6 lg:px-12">
+        <div className="mx-auto w-full max-w-sm">
+          <div className="mb-8 flex items-center gap-3 lg:hidden">
+            <span className="flex size-10 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+              <Wallet className="size-5" aria-hidden="true" />
+            </span>
+            <span className="text-sm font-semibold tracking-tight">Personal Life Manager</span>
+          </div>
 
-          <label className="block text-sm font-medium text-slate-700">
-            Password
-            <input
-              type="password"
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-              className="mt-1 w-full rounded-lg border border-slate-300 bg-slate-50 px-3 py-2 outline-none transition focus:border-slate-500"
-              placeholder="••••••••"
-              autoComplete="current-password"
-              required
-            />
-          </label>
+          <h1 className="text-2xl font-semibold tracking-tight">Welcome back</h1>
+          <p className="mt-2 text-sm text-muted-foreground">Sign in to see today&apos;s budget.</p>
 
-          {error ? (
-            <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-              {error}
-            </p>
-          ) : null}
-
-          <button
-            type="submit"
-            disabled={isSubmitting}
-            className="w-full rounded-lg bg-slate-900 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            {isSubmitting ? 'Signing in...' : 'Sign in'}
-          </button>
-        </form>
-      </div>
+          <LoginForm callbackUrl={callbackUrl} />
+        </div>
+      </section>
     </main>
   )
 }

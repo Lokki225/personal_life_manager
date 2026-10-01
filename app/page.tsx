@@ -1,19 +1,17 @@
 import Link from 'next/link'
-import { getServerSession } from 'next-auth'
 
-import { authOptions } from '@/app/api/auth/[...nextauth]/route'
+import { getSignedInUserId } from '@/infrastructure/auth/sessionUser'
 import { recomputeFinanceState } from '@/application/finance/recomputeFinanceState'
 import { formatCurrency } from '@/domain/finance/calculations'
 import { financeRepository } from '@/infrastructure/repositories/financeRepository'
 
 export default async function Home() {
-  const session = await getServerSession(authOptions)
-  const userId = session?.user && 'id' in session.user ? String(session.user.id) : null
+  const userId = await getSignedInUserId()
 
   const [state, goals, projects] = userId
     ? await Promise.all([
         recomputeFinanceState({ userId }),
-        financeRepository.listFinancialGoals(userId),
+        financeRepository.listGoals(userId),
         financeRepository.listProjects(userId),
       ])
     : [null, [], []] as const

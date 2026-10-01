@@ -2,6 +2,7 @@ import { prisma } from '../prisma/client'
 
 export type IncomeRecord = NonNullable<Awaited<ReturnType<typeof prisma.income.findFirst>>>
 export type AllocationRecord = NonNullable<Awaited<ReturnType<typeof prisma.allocation.findFirst>>>
+export type GoalRecord = NonNullable<Awaited<ReturnType<typeof prisma.goal.findFirst>>>
 export type ExpenseRecord = NonNullable<Awaited<ReturnType<typeof prisma.expense.findFirst>>>
 export type ExpenseRecordWithProject = ExpenseRecord & {
   project?: {
@@ -9,7 +10,17 @@ export type ExpenseRecordWithProject = ExpenseRecord & {
     name: string
   } | null
 }
-export type SavingRecord = NonNullable<Awaited<ReturnType<typeof prisma.saving.findFirst>>>
+export type MoneyMovementRecordWithChests = MoneyMovementRecord & {
+  sourceChest?: { id: string; name: string } | null
+  destinationChest?: { id: string; name: string } | null
+}
+
+export type ChestRecord = NonNullable<Awaited<ReturnType<typeof prisma.chest.findFirst>>>
+export type MoneyMovementRecord = NonNullable<Awaited<ReturnType<typeof prisma.moneyMovement.findFirst>>>
+export type GoalConditionRecord = NonNullable<Awaited<ReturnType<typeof prisma.goalCondition.findFirst>>>
+export type GoalRecordWithConditions = GoalRecord & {
+  conditions: (GoalConditionRecord & { chest?: { id: string; name: string } | null })[]
+}
 export type BudgetExceptionRecord = NonNullable<Awaited<ReturnType<typeof prisma.budgetException.findFirst>>>
 
 export type CreateIncomeData = {
@@ -50,6 +61,19 @@ export type CreateExpenseData = {
 
 export type UpdateExpenseData = Partial<CreateExpenseData>
 
+export type InitialPlanData = {
+  income: { source: string; amount: number; frequency: string }
+  allocations: { name: string; amount: number; period: string; category: string }[]
+  startDate: Date
+}
+
+export interface SetupPlanRepository {
+  hasIncome: (userId: string) => Promise<boolean>
+  // Writes the income and allocations together, or nothing at all.
+  // Resolves to false, without writing, when the user already has an income.
+  createInitialPlan: (userId: string, plan: InitialPlanData) => Promise<boolean>
+}
+
 export interface IncomeRepository {
   createIncome: (userId: string, data: CreateIncomeData) => Promise<IncomeRecord>
   listIncomes: (userId: string) => Promise<IncomeRecord[]>
@@ -71,22 +95,6 @@ export interface ExpenseRepository {
   deleteExpense: (id: string) => Promise<ExpenseRecord>
 }
 
-export type CreateSavingData = {
-  amount: number | string
-  date: Date | string
-  source: string
-  destination: string
-  notes?: string | null
-}
-
-export type UpdateSavingData = Partial<CreateSavingData>
-
-export interface SavingRepository {
-  createSaving: (userId: string, data: CreateSavingData) => Promise<SavingRecord>
-  listSavings: (userId: string) => Promise<SavingRecord[]>
-  updateSaving: (id: string, data: UpdateSavingData) => Promise<SavingRecord>
-  deleteSaving: (id: string) => Promise<SavingRecord>
-}
 
 export type CreateBudgetExceptionData = {
   date: Date | string
@@ -108,23 +116,7 @@ export interface BudgetExceptionRepository {
   deleteBudgetException: (id: string) => Promise<BudgetExceptionRecord>
 }
 
-export type FinancialGoalRecord = NonNullable<Awaited<ReturnType<typeof prisma.financialGoal.findFirst>>>
 export type ProjectRecord = NonNullable<Awaited<ReturnType<typeof prisma.project.findFirst>>>
-
-export type CreateFinancialGoalData = {
-  name: string
-  targetAmount: number | string
-  currentAmount?: number | string
-}
-
-export type UpdateFinancialGoalData = Partial<CreateFinancialGoalData>
-
-export interface FinancialGoalRepository {
-  createFinancialGoal: (userId: string, data: CreateFinancialGoalData) => Promise<FinancialGoalRecord>
-  listFinancialGoals: (userId: string) => Promise<FinancialGoalRecord[]>
-  updateFinancialGoal: (id: string, data: UpdateFinancialGoalData) => Promise<FinancialGoalRecord>
-  deleteFinancialGoal: (id: string) => Promise<FinancialGoalRecord>
-}
 
 export type CreateProjectData = {
   name: string
@@ -133,6 +125,64 @@ export type CreateProjectData = {
 
 export type UpdateProjectData = Partial<CreateProjectData>
 
+export type CreateChestData = {
+  name: string
+  type: 'AVAILABLE' | 'SECURE'
+  isSystem?: boolean
+  passwordHash?: string | null
+  lockedUntil?: Date | string | null
+}
+
+export type UpdateChestData = Partial<Omit<CreateChestData, 'isSystem'>>
+
+export type CreateMovementData = {
+  amount: number | string
+  type: 'IN' | 'OUT' | 'TRANSFER'
+  reason: 'DAILY_SAVING' | 'PLANNED_SAVING' | 'BUFFER_CONSOLIDATION' | 'GOAL_FUNDING' | 'WITHDRAWAL' | 'EXPENSE'
+  date: Date | string
+  sourceChestId?: string | null
+  destinationChestId?: string | null
+  relatedGoalId?: string | null
+  relatedProjectId?: string | null
+  notes?: string | null
+}
+
+export type CreateGoalConditionData = {
+  measurement: string
+  chestId?: string | null
+  operator: 'GTE' | 'LTE' | 'EQ' | 'GT' | 'LT'
+  targetValue: number | string
+  unit?: string | null
+  period?: 'NONE' | 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'YEARLY'
+}
+
+export type CreateGoalData = {
+  name: string
+  domain?: string
+  logic?: 'ALL' | 'ANY'
+  conditions: CreateGoalConditionData[]
+}
+
+export interface ChestRepository {
+  createChest: (userId: string, data: CreateChestData) => Promise<ChestRecord>
+  listChests: (userId: string) => Promise<ChestRecord[]>
+  getChest: (id: string) => Promise<ChestRecord | null>
+  updateChest: (id: string, data: UpdateChestData) => Promise<ChestRecord>
+  deleteChest: (id: string) => Promise<ChestRecord>
+}
+
+export interface MovementRepository {
+  createMovement: (userId: string, data: CreateMovementData) => Promise<MoneyMovementRecord>
+  listMovements: (userId: string) => Promise<MoneyMovementRecordWithChests[]>
+}
+
+export interface GoalRepository {
+  createGoal: (userId: string, data: CreateGoalData) => Promise<GoalRecordWithConditions>
+  listGoals: (userId: string) => Promise<GoalRecordWithConditions[]>
+  getGoal: (id: string) => Promise<GoalRecordWithConditions | null>
+  deleteGoal: (id: string) => Promise<GoalRecord>
+}
+
 export interface ProjectRepository {
   createProject: (userId: string, data: CreateProjectData) => Promise<ProjectRecord>
   listProjects: (userId: string) => Promise<ProjectRecord[]>
@@ -140,13 +190,63 @@ export interface ProjectRepository {
   deleteProject: (id: string) => Promise<ProjectRecord>
 }
 
-export const financeRepository: IncomeRepository &
+
+
+const MAX_WRITE_ATTEMPTS = 3
+
+// A transaction that lost a race against a concurrent one. Prisma reports it
+// as P2034 on a query, but as a raw driver error when it happens on COMMIT.
+function isWriteConflict(error: unknown): boolean {
+  if (typeof error !== 'object' || error === null) {
+    return false
+  }
+
+  const { code, cause } = error as { code?: unknown; cause?: { kind?: unknown; originalCode?: unknown } }
+
+  return code === 'P2034' || cause?.kind === 'TransactionWriteConflict' || cause?.originalCode === '40001'
+}
+
+export const financeRepository: SetupPlanRepository &
+  IncomeRepository &
   AllocationRepository &
   ExpenseRepository &
-  SavingRepository &
   BudgetExceptionRepository &
-  FinancialGoalRepository &
-  ProjectRepository = {
+  ProjectRepository &
+  ChestRepository &
+  MovementRepository &
+  GoalRepository = {
+  hasIncome: async (userId: string) => {
+    return (await prisma.income.count({ where: { userId } })) > 0
+  },
+
+  createInitialPlan: async (userId: string, plan: InitialPlanData) => {
+    // Serializable so two saves racing each other cannot both pass the check.
+    // The loser of a race is retried: its second attempt sees the real state.
+    for (let attempt = 1; ; attempt += 1) {
+      try {
+        return await prisma.$transaction(
+          async (tx) => {
+            if ((await tx.income.count({ where: { userId } })) > 0) {
+              return false
+            }
+
+            await tx.income.create({ data: { userId, status: 'expected', ...plan.income } })
+            await tx.allocation.createMany({
+              data: plan.allocations.map((allocation) => ({ userId, startDate: plan.startDate, ...allocation })),
+            })
+
+            return true
+          },
+          { isolationLevel: 'Serializable' },
+        )
+      } catch (error) {
+        if (!isWriteConflict(error) || attempt >= MAX_WRITE_ATTEMPTS) {
+          throw error
+        }
+      }
+    }
+  },
+
   createIncome: async (userId: string, data: CreateIncomeData) => {
     const createData: Record<string, unknown> = {
       source: data.source,
@@ -310,47 +410,6 @@ export const financeRepository: IncomeRepository &
     return prisma.expense.delete({ where: { id } })
   },
 
-  createSaving: async (userId: string, data: CreateSavingData) => {
-    const createData: Record<string, unknown> = {
-      amount: Number(data.amount),
-      date: data.date,
-      source: data.source,
-      destination: data.destination,
-      user: { connect: { id: userId } },
-    }
-
-    if (data.notes !== undefined && data.notes !== null) {
-      createData.notes = data.notes
-    }
-
-    return prisma.saving.create({
-      data: createData as Parameters<typeof prisma.saving.create>[0]['data'],
-    })
-  },
-
-  listSavings: async (userId: string) => {
-    return prisma.saving.findMany({
-      where: { userId },
-      orderBy: { createdAt: 'desc' },
-    })
-  },
-
-  updateSaving: async (id: string, data: UpdateSavingData) => {
-    const updateData: Record<string, unknown> = { ...data }
-
-    if (data.amount !== undefined) {
-      updateData.amount = Number(data.amount)
-    }
-
-    return prisma.saving.update({
-      where: { id },
-      data: updateData as Parameters<typeof prisma.saving.update>[0]['data'],
-    })
-  },
-
-  deleteSaving: async (id: string) => {
-    return prisma.saving.delete({ where: { id } })
-  },
 
   createBudgetException: async (userId: string, data: CreateBudgetExceptionData) => {
     const createData: Record<string, unknown> = {
@@ -411,46 +470,6 @@ export const financeRepository: IncomeRepository &
     return prisma.budgetException.delete({ where: { id } })
   },
 
-  createFinancialGoal: async (userId: string, data: CreateFinancialGoalData) => {
-    const createData: Record<string, unknown> = {
-      name: data.name,
-      targetAmount: Number(data.targetAmount),
-      currentAmount: Number(data.currentAmount ?? 0),
-      user: { connect: { id: userId } },
-    }
-
-    return prisma.financialGoal.create({
-      data: createData as Parameters<typeof prisma.financialGoal.create>[0]['data'],
-    })
-  },
-
-  listFinancialGoals: async (userId: string) => {
-    return prisma.financialGoal.findMany({
-      where: { userId },
-      orderBy: { createdAt: 'desc' },
-    })
-  },
-
-  updateFinancialGoal: async (id: string, data: UpdateFinancialGoalData) => {
-    const updateData: Record<string, unknown> = { ...data }
-
-    if (data.targetAmount !== undefined) {
-      updateData.targetAmount = Number(data.targetAmount)
-    }
-
-    if (data.currentAmount !== undefined) {
-      updateData.currentAmount = Number(data.currentAmount)
-    }
-
-    return prisma.financialGoal.update({
-      where: { id },
-      data: updateData as Parameters<typeof prisma.financialGoal.update>[0]['data'],
-    })
-  },
-
-  deleteFinancialGoal: async (id: string) => {
-    return prisma.financialGoal.delete({ where: { id } })
-  },
 
   createProject: async (userId: string, data: CreateProjectData) => {
     const createData: Record<string, unknown> = {
@@ -485,5 +504,118 @@ export const financeRepository: IncomeRepository &
 
   deleteProject: async (id: string) => {
     return prisma.project.delete({ where: { id } })
+  },
+
+    createChest: async (userId: string, data: CreateChestData) => {
+    const createData: Record<string, unknown> = {
+      name: data.name,
+      type: data.type,
+      isSystem: data.isSystem ?? false,
+      user: { connect: { id: userId } },
+    }
+    if (data.passwordHash !== undefined && data.passwordHash !== null) {
+      createData.passwordHash = data.passwordHash
+    }
+    if (data.lockedUntil !== undefined && data.lockedUntil !== null) {
+      createData.lockedUntil = data.lockedUntil
+    }
+    return prisma.chest.create({
+      data: createData as Parameters<typeof prisma.chest.create>[0]['data'],
+    })
+  },
+
+  listChests: async (userId: string) => {
+    return prisma.chest.findMany({
+      where: { userId },
+      orderBy: { createdAt: 'asc' },
+    })
+  },
+
+  getChest: async (id: string) => {
+    return prisma.chest.findUnique({ where: { id } })
+  },
+
+  updateChest: async (id: string, data: UpdateChestData) => {
+    return prisma.chest.update({
+      where: { id },
+      data: data as Parameters<typeof prisma.chest.update>[0]['data'],
+    })
+  },
+
+  deleteChest: async (id: string) => {
+    // NOTE: this does not check isSystem — that guard belongs in the
+    // use-case layer (application/finance/deleteChest.ts), not here.
+    return prisma.chest.delete({ where: { id } })
+  },
+
+  createMovement: async (userId: string, data: CreateMovementData) => {
+    const createData: Record<string, unknown> = {
+      amount: Number(data.amount),
+      type: data.type,
+      reason: data.reason,
+      date: data.date,
+      user: { connect: { id: userId } },
+    }
+    if (data.sourceChestId) createData.sourceChest = { connect: { id: data.sourceChestId } }
+    if (data.destinationChestId) createData.destinationChest = { connect: { id: data.destinationChestId } }
+    if (data.relatedGoalId) createData.relatedGoal = { connect: { id: data.relatedGoalId } }
+    if (data.relatedProjectId) createData.relatedProject = { connect: { id: data.relatedProjectId } }
+    if (data.notes !== undefined && data.notes !== null) createData.notes = data.notes
+
+    return prisma.moneyMovement.create({
+      data: createData as Parameters<typeof prisma.moneyMovement.create>[0]['data'],
+    })
+  },
+
+  listMovements: async (userId: string) => {
+    return prisma.moneyMovement.findMany({
+      where: { userId },
+      orderBy: { date: 'desc' },
+      include: {
+        sourceChest: { select: { id: true, name: true } },
+        destinationChest: { select: { id: true, name: true } },
+      },
+    })
+  },
+
+  createGoal: async (userId: string, data: CreateGoalData) => {
+    return prisma.goal.create({
+      data: {
+        name: data.name,
+        domain: data.domain ?? 'finance',
+        logic: data.logic ?? 'ALL',
+        user: { connect: { id: userId } },
+        conditions: {
+          create: data.conditions.map((c) => ({
+            measurement: c.measurement,
+            operator: c.operator,
+            targetValue: Number(c.targetValue),
+            unit: c.unit ?? null,
+            period: c.period ?? 'NONE',
+            ...(c.chestId ? { chest: { connect: { id: c.chestId } } } : {}),
+          })),
+        },
+      },
+      include: { conditions: { include: { chest: { select: { id: true, name: true } } } } },
+    })
+  },
+
+  listGoals: async (userId: string) => {
+    return prisma.goal.findMany({
+      where: { userId },
+      include: { conditions: { include: { chest: { select: { id: true, name: true } } } } },
+      orderBy: { createdAt: 'desc' },
+    })
+  },
+
+  getGoal: async (id: string) => {
+    return prisma.goal.findUnique({
+      where: { id },
+      include: { conditions: { include: { chest: { select: { id: true, name: true } } } } },
+    })
+  },
+
+  deleteGoal: async (id: string) => {
+    return prisma.goal.delete({ where: { id } })
   },
 }

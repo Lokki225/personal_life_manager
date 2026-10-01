@@ -5,6 +5,11 @@
   "scripts": {
     "dev": "next dev",
     "build": "prisma generate && next build",
+    "vercel-build": "prisma generate && prisma migrate deploy && next build",
+    "db:migrate": "prisma migrate dev",
+    "db:deploy": "prisma migrate deploy",
+    "db:status": "prisma migrate status",
+    "db:create-user": "tsx prisma/create-user.ts",
     "start": "next start",
     "lint": "eslint",
     "test": "vitest run",
@@ -15,11 +20,18 @@
     "@prisma/adapter-pg": "^7.10.0",
     "@prisma/client": "^7.10.0",
     "bcryptjs": "^3.0.3",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "lucide-react": "^1.49.0",
     "next": "16.3.5",
     "next-auth": "^4.24.15",
     "prisma": "^7.10.0",
+    "radix-ui": "^1.6.7",
     "react": "19.2.8",
-    "react-dom": "19.2.8"
+    "react-dom": "19.2.8",
+    "tailwind-merge": "^3.7.0",
+    "vaul": "^1.1.2",
+    "zod": "^4.6.5"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
@@ -29,6 +41,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.3.5",
     "tailwindcss": "^4",
+    "tsx": "^4.23.15",
     "typescript": "^5",
     "vitest": "^3.2.4"
   },

@@ -19,25 +19,21 @@ export const metadata: Metadata = {
   description: 'Finance-first personal life manager MVP',
 }
 
+const themeScript = `(function(){var t;try{t=localStorage.getItem("theme")}catch(e){}if(t!=="light"&&t!=="dark"){t=window.matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light"}document.documentElement.setAttribute("data-theme",t)})()`
+
 export default function RootLayout({ children }: LayoutProps<'/'>) {
   return (
     <html
       lang="en"
+      data-theme="light"
       suppressHydrationWarning
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col bg-[var(--bg)] text-[var(--text)] selection:bg-[var(--accent-soft)] selection:text-[var(--text)]">
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
-              try {
-                const savedTheme = localStorage.getItem('theme');
-                const preferredTheme = savedTheme || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
-                document.documentElement.dataset.theme = preferredTheme;
-              } catch (_) {}
-            `,
-          }}
-        />
+      <head>
+        {/* Apply the saved (or system) theme before first paint to avoid a flash */}
+        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+      </head>
+      <body className="min-h-full flex flex-col bg-background text-foreground selection:bg-[var(--accent-soft)] selection:text-foreground">
         <ThemeToggle />
         {children}
       </body>
