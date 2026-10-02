@@ -16,6 +16,9 @@ export const expenseSchema = z.object({
   amount: moneyField,
   category: z.enum(EXPENSE_CATEGORIES, { error: 'Choose a category.' }),
   description: optionalText(80),
+  // Asked when the expense is larger than what is left of the day.
+  cause: z.enum(EXCEPTION_CATEGORIES, { error: 'Choose a category.' }).optional(),
+  reason: optionalText(160),
 })
 
 export const saveRemainingSchema = z.object({

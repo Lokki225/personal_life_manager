@@ -230,7 +230,7 @@ export default async function FinanceTodayPage() {
               )}
 
               <div className="grid gap-2 sm:grid-cols-2 sm:[&>*:only-child]:col-span-2">
-                <AddExpenseDrawer />
+                <AddExpenseDrawer left={Math.floor(state.dailyRemaining)} hasBudget={hasDailyBudget} />
                 {isOver && !state.overspendExplained ? <ExceptionDrawer overspend={state.dailyOverspend} /> : null}
                 {!isOver && availableToSave >= 1 ? (
                   <SaveRemainingDrawer

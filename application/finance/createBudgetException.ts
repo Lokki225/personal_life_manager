@@ -15,6 +15,8 @@ export type CreateBudgetExceptionInput = {
   reason?: string | null
   context?: string | null
   resolution?: string | null
+  // The expense that caused it, when there is one.
+  expenseId?: string | null
 }
 
 export async function createBudgetException(
@@ -35,6 +37,7 @@ export async function createBudgetException(
     reason: rest.reason ?? undefined,
     context: rest.context ?? undefined,
     resolution: rest.resolution ?? undefined,
+    expenseId: rest.expenseId ?? undefined,
   }
 
   return repository.createBudgetException(userId, payload)

@@ -1,7 +1,15 @@
 'use client'
 
 import { startTransition, useActionState, useState, type FormEvent, type ReactNode } from 'react'
-import { BanknoteArrowDown, CircleAlert, Loader2, MessageSquareWarning, PiggyBank, Plus } from 'lucide-react'
+import {
+  BanknoteArrowDown,
+  CircleAlert,
+  Loader2,
+  MessageSquareWarning,
+  PiggyBank,
+  Plus,
+  TriangleAlert,
+} from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import {
@@ -116,6 +124,7 @@ export function AmountField({
   label,
   defaultValue,
   autoFocus = true,
+  onValueChange,
 }: {
   state: FormState
   scope: string
@@ -124,6 +133,8 @@ export function AmountField({
   label?: string
   defaultValue?: number
   autoFocus?: boolean
+  // Told the amount as it is typed.
+  onValueChange?: (value: number) => void
 }) {
   const t = useT()
 
@@ -137,6 +148,7 @@ export function AmountField({
         inputMode="numeric"
         min={1}
         defaultValue={defaultValue}
+        onChange={onValueChange ? (event) => onValueChange(Number(event.target.value) || 0) : undefined}
         placeholder="0"
         autoFocus={autoFocus}
         className={`${FIELD_CLASS} text-lg font-semibold`}
@@ -147,7 +159,15 @@ export function AmountField({
 }
 
 // Category choices as large tap targets instead of a dropdown.
-function CategoryChips({ categories, legend }: { categories: readonly string[]; legend: string }) {
+function CategoryChips({
+  categories,
+  legend,
+  name = 'category',
+}: {
+  categories: readonly string[]
+  legend: string
+  name?: string
+}) {
   const t = useT()
 
   return (
@@ -161,7 +181,7 @@ function CategoryChips({ categories, legend }: { categories: readonly string[]; 
             <label key={category} className="cursor-pointer">
               <input
                 type="radio"
-                name="category"
+                name={name}
                 value={category}
                 defaultChecked={index === 0}
                 className="peer sr-only"
@@ -178,9 +198,62 @@ function CategoryChips({ categories, legend }: { categories: readonly string[]; 
   )
 }
 
-export function AddExpenseDrawer() {
+// The fields of an expense. When the amount is larger than what is left of
+// the day, the expense is an exception, and its cause is asked right here.
+function ExpenseFields({ state, left, hasBudget }: { state: FormState; left: number; hasBudget: boolean }) {
   const t = useT()
   const scope = 'expense'
+  const [amount, setAmount] = useState(0)
+  const over = hasBudget ? Math.max(amount - left, 0) : 0
+
+  return (
+    <>
+      <AmountField state={state} scope={scope} onValueChange={setAmount} />
+      <CategoryChips categories={EXPENSE_CATEGORIES} legend={t('Category')} />
+      <div className="grid gap-2">
+        <Label htmlFor="expense-description">{t('Note (optional)')}</Label>
+        <Input
+          id="expense-description"
+          {...fieldAttributes(state, 'description', scope)}
+          placeholder={t('Lunch, taxi...')}
+          maxLength={80}
+          className={FIELD_CLASS}
+        />
+        <FieldError state={state} name="description" scope={scope} />
+      </div>
+
+      {over > 0 ? (
+        <div className="space-y-4 rounded-lg border border-warning/40 bg-warning/10 p-3">
+          <p className="flex items-start gap-2 text-sm">
+            <TriangleAlert className="mt-0.5 size-4 shrink-0 text-warning" aria-hidden="true" />
+            {t('This is {amount} {currency} more than what is left today. It will be recorded as an exception.', {
+              amount: over,
+              currency: CURRENCY_CODE,
+            })}
+          </p>
+          <CategoryChips categories={EXCEPTION_CATEGORIES} legend={t('What caused it?')} name="cause" />
+          <FieldError state={state} name="cause" scope={scope} />
+          <div className="grid gap-2">
+            <Label htmlFor="expense-reason">{t('Reason (optional)')}</Label>
+            <Input
+              id="expense-reason"
+              {...fieldAttributes(state, 'reason', scope)}
+              placeholder={t('Unexpected bill, guests...')}
+              maxLength={160}
+              className={FIELD_CLASS}
+            />
+            <FieldError state={state} name="reason" scope={scope} />
+          </div>
+        </div>
+      ) : null}
+    </>
+  )
+}
+
+// `left` is what remains of today's budget. `hasBudget` is false when the plan
+// gives no daily budget, in which case nothing can go over.
+export function AddExpenseDrawer({ left, hasBudget }: { left: number; hasBudget: boolean }) {
+  const t = useT()
 
   return (
     <ActionDrawer
@@ -195,23 +268,7 @@ export function AddExpenseDrawer() {
     >
       {(close) => (
         <ActionForm action={addExpense} submitLabel={t('Add expense')} onDone={close}>
-          {(state) => (
-            <>
-              <AmountField state={state} scope={scope} />
-              <CategoryChips categories={EXPENSE_CATEGORIES} legend={t('Category')} />
-              <div className="grid gap-2">
-                <Label htmlFor="expense-description">{t('Note (optional)')}</Label>
-                <Input
-                  id="expense-description"
-                  {...fieldAttributes(state, 'description', scope)}
-                  placeholder={t('Lunch, taxi...')}
-                  maxLength={80}
-                  className={FIELD_CLASS}
-                />
-                <FieldError state={state} name="description" scope={scope} />
-              </div>
-            </>
-          )}
+          {(state) => <ExpenseFields state={state} left={left} hasBudget={hasBudget} />}
         </ActionForm>
       )}
     </ActionDrawer>

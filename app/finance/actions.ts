@@ -43,6 +43,8 @@ export async function addExpense(_previousState: FormState, formData: FormData):
       amount: expense.amount,
       category: expense.category,
       description: expense.description || null,
+      cause: expense.cause ?? null,
+      reason: expense.reason || null,
     }),
   )
 

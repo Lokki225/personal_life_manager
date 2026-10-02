@@ -138,8 +138,10 @@ html[data-theme='dark'] {
   }
 
   body {
-    /* Text someone typed without spaces still wraps instead of overflowing. */
-    overflow-wrap: anywhere;
+    /* Text someone typed without spaces still wraps instead of overflowing.
+       Not "anywhere": that lets a label with no room break between every
+       letter. */
+    overflow-wrap: break-word;
     /* Last resort: nothing can make the page scroll sideways. */
     overflow-x: clip;
   }

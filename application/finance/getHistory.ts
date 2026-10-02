@@ -123,7 +123,7 @@ export async function getHistory(input: GetHistoryInput): Promise<HistoryEvent[]
       id: String(exception.id),
       type: 'exception' as const,
       date: new Date(exception.date ?? new Date()),
-      amount: Number(exception.difference || 0),
+      amount: Math.max(Number(exception.difference || 0), 0),
       label: `Exception: ${exception.category ?? 'budget'}`,
       category: exception.category,
       reason: exception.reason,

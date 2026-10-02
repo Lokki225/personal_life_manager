@@ -74,6 +74,7 @@ describe('recordDailyException', () => {
       date: today,
       plannedAmount: 2000,
       actualAmount: 2600,
+      difference: 600,
       category: 'food',
       reason: 'Dinner out',
       resolution: 'Review next cycle',
