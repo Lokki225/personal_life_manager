@@ -1,6 +1,7 @@
 import { FinanceRuleError } from '../../domain/finance/errors'
 import { createBudgetException } from './createBudgetException'
 import { recomputeFinanceState } from './recomputeFinanceState'
+import { now as clockNow } from '../../lib/clock'
 
 type RecordDailyExceptionDeps = {
   getToday: (userId: string) => Promise<{
@@ -22,7 +23,7 @@ const defaultDeps: RecordDailyExceptionDeps = {
 export async function recordDailyException(
   input: { userId: string; category: string; reason?: string | null },
   deps: RecordDailyExceptionDeps = defaultDeps,
-  today: Date = new Date(),
+  today: Date = clockNow(),
 ): Promise<void> {
   const state = await deps.getToday(input.userId)
 

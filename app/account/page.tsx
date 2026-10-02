@@ -71,6 +71,7 @@ export default async function AccountPage() {
               country: profile.country ?? '',
               city: profile.city ?? '',
               birthDate: dateInputValue(profile.birthDate),
+              timeZone: profile.timeZone ?? '',
               picture: profile.picture,
             }}
           />

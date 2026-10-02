@@ -11,6 +11,7 @@ import { recomputeFinanceState } from '@/application/finance/recomputeFinanceSta
 import { expectedSpendToDate, getDailyFinanceStatus } from '@/domain/finance/calculations'
 import { getSignedInUser } from '@/infrastructure/auth/sessionUser'
 import { greetingFor, shortName } from '@/lib/greeting'
+import { now as clockNow, setClockZone } from '@/lib/clock'
 import { getT } from '@/lib/i18n/server'
 import { m } from '@/lib/i18n/translate'
 import { cn } from '@/lib/utils'
@@ -19,7 +20,7 @@ import { LogoTile } from '../logo'
 import { categoryStyle, eventStyle } from './categories'
 import { CoverFromBufferButton, EditExpenseDrawer } from './expense-forms'
 import { Meter, Money } from './money'
-import { AddAllocationDrawer, EditAllocationDrawer, EditIncomeDrawer } from './plan-forms'
+import { AddAllocationDrawer, AddIncomeDrawer, EditAllocationDrawer, EditIncomeDrawer } from './plan-forms'
 import { AddExpenseDrawer, ConfirmIncomeDrawer, ExceptionDrawer, SaveRemainingDrawer } from './today-actions'
 import { ensureDaysSettled } from './settle'
 
@@ -52,16 +53,18 @@ function SectionHeading({ title, href, linkLabel }: { title: string; href?: stri
 export default async function FinanceTodayPage() {
   const [user, t] = await Promise.all([getSignedInUser(), getT()])
 
-  // The days that ended since the last visit are closed before anything is shown.
-  await ensureDaysSettled()
-
   if (!user) {
     redirect('/login')
   }
 
   const userId = user.id
+  // Days are counted on this person's clock from here on.
+  setClockZone(user.timeZone)
 
-  const now = new Date()
+  // The days that ended since the last visit are closed before anything is shown.
+  await ensureDaysSettled()
+
+  const now = clockNow()
   // Loaded together with the setup check: one trip to the database, not two.
   const [isSetUp, state, monthEvents, pendingIncomes, setupMonthIncomes] = await Promise.all([
     hasSetupPlan(userId),
@@ -541,7 +544,7 @@ export default async function FinanceTodayPage() {
                       </span>
                     </span>
                     <Money value={income.amount} className="shrink-0 font-semibold" />
-                    <EditIncomeDrawer income={income} />
+                    <EditIncomeDrawer income={income} canDelete={state.incomes.length > 1} />
                   </li>
                 ))}
               </ul>
@@ -578,7 +581,10 @@ export default async function FinanceTodayPage() {
               ) : (
                 <p className="text-sm text-muted-foreground">{t('No allocations recorded yet.')}</p>
               )}
-              <AddAllocationDrawer />
+              <div className="grid gap-2 sm:grid-cols-2">
+                <AddAllocationDrawer />
+                <AddIncomeDrawer />
+              </div>
             </div>
           </details>
         </div>

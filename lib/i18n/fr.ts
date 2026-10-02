@@ -832,6 +832,22 @@ export const FR: Messages = {
       'Le changement compte à partir de la prochaine confirmation de ce revenu.',
     'Income, expected on the {day} of each month': 'Revenu, attendu le {day} de chaque mois',
 
+    // --- Incomes and time zone ---------------------------------------------------
+    'New income': 'Nouveau revenu',
+    'Add income': 'Ajouter un revenu',
+    'It counts as received this month, and you confirm it from next month.':
+      'Il compte comme reçu ce mois-ci, et vous le confirmez à partir du mois prochain.',
+    'Salary, rent received, side work...': 'Salaire, loyer perçu, activité annexe...',
+    'Delete this income': 'Supprimer ce revenu',
+    'Delete this income? Money it already put in your chests stays there.':
+      "Supprimer ce revenu ? L'argent qu'il a déjà placé dans vos coffres y reste.",
+    'Your plan needs at least one income.': 'Votre plan a besoin d\'au moins un revenu.',
+    'Time zone': 'Fuseau horaire',
+    'Your days start and end at midnight in this time zone.':
+      'Vos journées commencent et finissent à minuit dans ce fuseau horaire.',
+    'Not set': 'Non défini',
+    'Choose a time zone from the list.': 'Choisissez un fuseau horaire dans la liste.',
+
     // --- Amounts ---------------------------------------------------------------
     'Enter an amount.': 'Saisissez un montant.',
     'Use digits only, for example 60000.': 'Utilisez uniquement des chiffres, par exemple 60000.',

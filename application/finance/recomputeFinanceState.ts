@@ -21,6 +21,7 @@ import {
   type MovementRepository,
   type GoalRepository,
 } from '../../infrastructure/repositories/financeRepository'
+import { now as clockNow } from '../../lib/clock'
 
 export type RecomputeFinanceStateInput = {
   userId: string
@@ -88,7 +89,7 @@ export async function recomputeFinanceState(input: RecomputeFinanceStateInput): 
     conditionResults: Array<{ measurement: string; operator: string; target: number; actual: number; satisfied: boolean }>
   }>
 }> {
-  const { userId, referenceDate = new Date(), repository = financeRepository } = input
+  const { userId, referenceDate = clockNow(), repository = financeRepository } = input
 
   const listIncomes = repository.listIncomes ?? financeRepository.listIncomes
   const listAllocations = repository.listAllocations ?? financeRepository.listAllocations

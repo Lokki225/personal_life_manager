@@ -5,7 +5,8 @@ import { Check, X } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
 import { getReview } from '@/application/finance/getReview'
-import { getSignedInUserId } from '@/infrastructure/auth/sessionUser'
+import { getSignedInUser } from '@/infrastructure/auth/sessionUser'
+import { setClockZone } from '@/lib/clock'
 import { getT } from '@/lib/i18n/server'
 import { m, type Translator } from '@/lib/i18n/translate'
 import { cn } from '@/lib/utils'
@@ -99,7 +100,10 @@ function Breakdown({
 }
 
 export default async function FinanceReviewPage({ searchParams }: PageProps<'/finance/review'>) {
-  const [userId, t] = await Promise.all([getSignedInUserId(), getT()])
+  const [user, t] = await Promise.all([getSignedInUser(), getT()])
+  const userId = user?.id
+  // Days are counted on this person's clock from here on.
+  setClockZone(user?.timeZone)
 
   // The days that ended since the last visit are closed before anything is shown.
   await ensureDaysSettled()

@@ -12,7 +12,7 @@ import { CURRENCY_CODE } from '@/domain/finance/calculations'
 import { fieldAttributes, initialFormState } from '@/lib/forms/formState'
 import { useT } from '@/lib/i18n/client'
 
-import { deleteAllocationAction, saveAllocationAction, updateIncomeAction } from './actions'
+import { deleteAllocationAction, deleteIncomeAction, saveAllocationAction, saveIncomeAction } from './actions'
 import { ActionDrawer, ActionForm, AmountField, FIELD_CLASS } from './today-actions'
 
 export type PlanAllocation = { id: string; name: string; amount: number; period: string; category: string }
@@ -187,14 +187,155 @@ export function EditAllocationDrawer({ allocation }: { allocation: PlanAllocatio
 
 export type PlanIncome = { id: string; source: string; amount: number; payDay: number }
 
-export function EditIncomeDrawer({ income }: { income: PlanIncome }) {
+// Removing asks once more in place, like deleting an allocation.
+function DeleteIncome({ id, onDone }: { id: string; onDone: () => void }) {
   const t = useT()
-  const scope = `income-${income.id}`
+  const [confirming, setConfirming] = useState(false)
+  const [state, formAction, isPending] = useActionState(async (previous: typeof initialFormState, formData: FormData) => {
+    const next = await deleteIncomeAction(previous, formData)
+
+    if (next.status === 'success') {
+      onDone()
+    }
+
+    return next
+  }, initialFormState)
+
+  const submit = () => {
+    const formData = new FormData()
+    formData.set('id', id)
+    startTransition(() => formAction(formData))
+  }
+
+  return (
+    <div className="space-y-2 border-t px-4 pt-4 pb-6">
+      {confirming ? (
+        <>
+          <p className="text-sm">{t('Delete this income? Money it already put in your chests stays there.')}</p>
+          <div className="flex gap-2">
+            <Button type="button" variant="destructive" disabled={isPending} onClick={submit} className="h-11 flex-1">
+              {isPending ? <Loader2 className="animate-spin" aria-hidden="true" /> : <Trash2 aria-hidden="true" />}
+              {t('Delete')}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              disabled={isPending}
+              onClick={() => setConfirming(false)}
+              className="h-11 flex-1"
+            >
+              {t('Keep')}
+            </Button>
+          </div>
+        </>
+      ) : (
+        <Button
+          type="button"
+          variant="ghost"
+          onClick={() => setConfirming(true)}
+          className="h-11 w-full text-muted-foreground hover:text-destructive-strong"
+        >
+          <Trash2 aria-hidden="true" />
+          {t('Delete this income')}
+        </Button>
+      )}
+      {state.formErrors.length > 0 ? (
+        <p role="alert" className="text-sm text-destructive-strong">
+          {state.formErrors[0]}
+        </p>
+      ) : null}
+    </div>
+  )
+}
+
+// Adds an income, or edits the one given. `canDelete` is false for the last
+// income of a plan, which has to stay.
+function IncomeDrawer({ income, canDelete = false, trigger }: { income?: PlanIncome; canDelete?: boolean; trigger: ReactNode }) {
+  const t = useT()
+  const scope = income ? `income-${income.id}` : 'income-new'
 
   return (
     <ActionDrawer
-      title={t('Edit income')}
-      description={t('It counts from the next time this income is confirmed.')}
+      title={income ? t('Edit income') : t('New income')}
+      description={
+        income
+          ? t('It counts from the next time this income is confirmed.')
+          : t('It counts as received this month, and you confirm it from next month.')
+      }
+      trigger={trigger}
+    >
+      {(close) => (
+        <>
+          <ActionForm action={saveIncomeAction} submitLabel={t('Save')} onDone={close}>
+            {(state) => (
+              <>
+                {income ? <input type="hidden" name="id" value={income.id} /> : null}
+                <div className="grid gap-2">
+                  <Label htmlFor={`${scope}-source`}>{t('Source')}</Label>
+                  <Input
+                    id={`${scope}-source`}
+                    {...fieldAttributes(state, 'source', scope)}
+                    defaultValue={income?.source}
+                    placeholder={t('Salary, rent received, side work...')}
+                    maxLength={60}
+                    autoFocus={!income}
+                    className={FIELD_CLASS}
+                  />
+                  <FieldError state={state} name="source" scope={scope} />
+                </div>
+                <AmountField
+                  state={state}
+                  scope={scope}
+                  label={t('Amount ({currency})', { currency: CURRENCY_CODE })}
+                  defaultValue={income?.amount}
+                  autoFocus={false}
+                />
+                <div className="grid gap-2">
+                  <Label htmlFor={`${scope}-payDay`}>{t('Pay day (day of the month)')}</Label>
+                  <Input
+                    id={`${scope}-payDay`}
+                    {...fieldAttributes(state, 'payDay', scope)}
+                    type="number"
+                    inputMode="numeric"
+                    min={1}
+                    max={31}
+                    defaultValue={income?.payDay ?? 1}
+                    className={FIELD_CLASS}
+                  />
+                  <FieldError state={state} name="payDay" scope={scope} />
+                </div>
+              </>
+            )}
+          </ActionForm>
+          {income && canDelete ? <DeleteIncome id={income.id} onDone={close} /> : null}
+        </>
+      )}
+    </ActionDrawer>
+  )
+}
+
+export function AddIncomeDrawer() {
+  const t = useT()
+
+  return (
+    <IncomeDrawer
+      trigger={
+        <Button variant="outline" className="h-11 w-full">
+          <Plus aria-hidden="true" />
+          {t('Add income')}
+        </Button>
+      }
+    />
+  )
+}
+
+export function EditIncomeDrawer({ income, canDelete }: { income: PlanIncome; canDelete: boolean }) {
+  const t = useT()
+
+  return (
+    <IncomeDrawer
+      income={income}
+      canDelete={canDelete}
       trigger={
         <Button
           variant="ghost"
@@ -205,48 +346,6 @@ export function EditIncomeDrawer({ income }: { income: PlanIncome }) {
           <Pencil aria-hidden="true" />
         </Button>
       }
-    >
-      {(close) => (
-        <ActionForm action={updateIncomeAction} submitLabel={t('Save')} onDone={close}>
-          {(state) => (
-            <>
-              <input type="hidden" name="id" value={income.id} />
-              <div className="grid gap-2">
-                <Label htmlFor={`${scope}-source`}>{t('Source')}</Label>
-                <Input
-                  id={`${scope}-source`}
-                  {...fieldAttributes(state, 'source', scope)}
-                  defaultValue={income.source}
-                  maxLength={60}
-                  className={FIELD_CLASS}
-                />
-                <FieldError state={state} name="source" scope={scope} />
-              </div>
-              <AmountField
-                state={state}
-                scope={scope}
-                label={t('Amount ({currency})', { currency: CURRENCY_CODE })}
-                defaultValue={income.amount}
-                autoFocus={false}
-              />
-              <div className="grid gap-2">
-                <Label htmlFor={`${scope}-payDay`}>{t('Pay day (day of the month)')}</Label>
-                <Input
-                  id={`${scope}-payDay`}
-                  {...fieldAttributes(state, 'payDay', scope)}
-                  type="number"
-                  inputMode="numeric"
-                  min={1}
-                  max={31}
-                  defaultValue={income.payDay}
-                  className={FIELD_CLASS}
-                />
-                <FieldError state={state} name="payDay" scope={scope} />
-              </div>
-            </>
-          )}
-        </ActionForm>
-      )}
-    </ActionDrawer>
+    />
   )
 }

@@ -12,6 +12,7 @@ import { Label } from '@/components/ui/label'
 import { fieldAttributes, initialFormState, type FormState } from '@/lib/forms/formState'
 import { useT } from '@/lib/i18n/client'
 
+import { deviceTimeZone } from '../time-zone'
 import { signUpAction } from './actions'
 
 // 44px touch targets and 16px text on phones (avoids iOS zoom on focus).
@@ -51,6 +52,7 @@ export function SignUpForm() {
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     const formData = new FormData(event.currentTarget)
+    formData.set('timeZone', deviceTimeZone())
     startTransition(() => formAction(formData))
   }
 

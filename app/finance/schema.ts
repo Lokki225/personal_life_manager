@@ -57,10 +57,15 @@ export const deleteExpenseSchema = z.object({
 })
 
 export const incomeSchema = z.object({
-  id: requiredId('Choose an income.'),
+  // Empty for a new income.
+  id: z.string().trim().optional(),
   source: requiredText('Enter an income source.', 60),
   amount: moneyField,
   payDay: payDayField,
+})
+
+export const deleteIncomeSchema = z.object({
+  id: requiredId('Choose an income.'),
 })
 
 export const planAllocationSchema = z.object({
@@ -92,6 +97,7 @@ export const planAllocationForm = new FormHandler(planAllocationSchema, options)
 export const editExpenseForm = new FormHandler(editExpenseSchema, options)
 export const deleteExpenseForm = new FormHandler(deleteExpenseSchema, options)
 export const incomeForm = new FormHandler(incomeSchema, options)
+export const deleteIncomeForm = new FormHandler(deleteIncomeSchema, options)
 export const coverForm = new FormHandler(z.object({}), options)
 export const deleteAllocationForm = new FormHandler(deleteAllocationSchema, options)
 export const consolidateForm = new FormHandler(z.object({}), options)

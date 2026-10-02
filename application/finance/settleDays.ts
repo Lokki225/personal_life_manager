@@ -3,6 +3,7 @@ import { settlementActions } from '../../domain/finance/settlement'
 import { financeRepository } from '../../infrastructure/repositories/financeRepository'
 import { userRepository } from '../../infrastructure/repositories/userRepository'
 import { getChestsWithBalances } from './getChestsWithBalances'
+import { now as clockNow } from '../../lib/clock'
 
 // How far back days are settled when someone has been away for long.
 const MAX_DAYS = 62
@@ -46,7 +47,7 @@ export function isSettled(settledThrough: Date | null, now: Date): boolean {
 // done the next time the person opens the app, dated as if it had been.
 export async function settleDays(
   user: { id: string; settledThrough: Date | null; bufferSweepDay: number },
-  now: Date = new Date(),
+  now: Date = clockNow(),
   deps: SettleDeps = defaultDeps,
 ): Promise<void> {
   if (isSettled(user.settledThrough, now)) {

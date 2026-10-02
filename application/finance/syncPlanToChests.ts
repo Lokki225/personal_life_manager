@@ -2,6 +2,7 @@ import { planChestMoves, planDeposits, type BudgetPeriod } from '../../domain/fi
 import { financeRepository } from '../../infrastructure/repositories/financeRepository'
 import { getChestsWithBalances } from './getChestsWithBalances'
 import { recordMovement } from './recordMovement'
+import { now as clockNow } from '../../lib/clock'
 
 type SyncDeps = {
   listAllocations: (userId: string) => Promise<{ amount: unknown; period: string; category: string }[]>
@@ -35,7 +36,7 @@ const NOTE = 'Plan change'
 // it again when nothing changed moves nothing.
 export async function syncPlanToChests(
   userId: string,
-  now: Date = new Date(),
+  now: Date = clockNow(),
   deps: SyncDeps = defaultDeps,
 ): Promise<void> {
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)

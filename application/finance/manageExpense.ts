@@ -3,6 +3,7 @@ import { FinanceRuleError } from '../../domain/finance/errors'
 import { financeRepository } from '../../infrastructure/repositories/financeRepository'
 import { createBudgetException } from './createBudgetException'
 import { recomputeFinanceState } from './recomputeFinanceState'
+import { now as clockNow } from '../../lib/clock'
 
 type ExpenseRow = { id: string; amount: unknown; date: Date; createdAt: Date }
 type ExceptionRow = { id: string; expenseId: string | null }
@@ -116,7 +117,7 @@ export async function editExpense(
   userId: string,
   expense: { id: string; amount: number; category: string; description?: string | null },
   deps: ManageExpenseDeps = defaultDeps,
-  today: Date = new Date(),
+  today: Date = clockNow(),
 ): Promise<void> {
   const state = await changeableExpense(userId, expense.id, deps, today)
 
@@ -132,7 +133,7 @@ export async function removeExpense(
   userId: string,
   id: string,
   deps: ManageExpenseDeps = defaultDeps,
-  today: Date = new Date(),
+  today: Date = clockNow(),
 ): Promise<void> {
   const state = await changeableExpense(userId, id, deps, today)
   const exceptions = await deps.listExceptions(userId)

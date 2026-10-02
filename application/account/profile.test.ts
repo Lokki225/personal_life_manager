@@ -19,6 +19,7 @@ describe('updateProfile', () => {
     country: null,
     city: null,
     birthDate: null,
+    timeZone: null,
   }
 
   it('trims the names, stores empty optional fields as nothing, and passes the picture as given', async () => {
@@ -61,6 +62,21 @@ describe('updateProfile', () => {
     }
 
     await updateProfile('user-1', { ...names, birthDate: new Date(1998, 4, 12) }, repository, today)
+    expect(repository.updateProfile).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe('updateProfile time zone', () => {
+  it('saves a real time zone and refuses anything else', async () => {
+    const repository = { updateProfile: vi.fn() }
+    const names = { firstName: 'Awa', lastName: 'Koné' }
+
+    await updateProfile('user-1', { ...names, timeZone: 'Africa/Abidjan' }, repository)
+    expect(repository.updateProfile).toHaveBeenCalledWith('user-1', expect.objectContaining({ timeZone: 'Africa/Abidjan' }))
+
+    await expect(updateProfile('user-1', { ...names, timeZone: 'Mars/Olympus' }, repository)).rejects.toMatchObject({
+      field: 'timeZone',
+    })
     expect(repository.updateProfile).toHaveBeenCalledTimes(1)
   })
 })

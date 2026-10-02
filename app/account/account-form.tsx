@@ -1,12 +1,22 @@
 'use client'
 
-import { startTransition, useActionState, useRef, useState, type ChangeEvent, type FormEvent, type ReactNode } from 'react'
+import {
+  startTransition,
+  useActionState,
+  useRef,
+  useState,
+  useSyncExternalStore,
+  type ChangeEvent,
+  type FormEvent,
+  type ReactNode,
+} from 'react'
 import { Check, CircleAlert, ImagePlus, Loader2, Save, Trash2 } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import { FieldError } from '@/components/ui/field-error'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select'
 import { fieldAttributes, initialFormState, type FormState } from '@/lib/forms/formState'
 import { useT } from '@/lib/i18n/client'
 
@@ -128,8 +138,17 @@ export type ProfileValues = {
   city: string
   // "1998-05-12", or empty.
   birthDate: string
+  timeZone: string
   picture: string | null
 }
+
+// The list of time zones is the browser's, so it is only known once the page
+// runs there. Until then the saved zone is the one choice.
+const noZones: string[] = []
+const subscribeToNothing = () => () => {}
+let browserZones: string[] | null = null
+const readBrowserZones = () => (browserZones ??= Intl.supportedValuesOf('timeZone'))
+const readNoZones = () => noZones
 
 export function ProfileForm({ profile }: { profile: ProfileValues }) {
   const t = useT()
@@ -139,6 +158,9 @@ export function ProfileForm({ profile }: { profile: ProfileValues }) {
   const [pictureChange, setPictureChange] = useState('')
   const [pictureError, setPictureError] = useState<string | null>(null)
   const { state, isPending, onSubmit } = useForm(updateProfileAction)
+
+  const zones = useSyncExternalStore(subscribeToNothing, readBrowserZones, readNoZones)
+  const zoneChoices = profile.timeZone && !zones.includes(profile.timeZone) ? [profile.timeZone, ...zones] : zones
 
   const shownPicture = pictureChange === REMOVE_PICTURE ? null : pictureChange || profile.picture
   const optional = (label: string) => `${label} (${t('optional')})`
@@ -305,6 +327,29 @@ export function ProfileForm({ profile }: { profile: ProfileValues }) {
               maxLength={60}
               className={FIELD_CLASS}
             />
+          </Field>
+          <Field
+            state={state}
+            name="timeZone"
+            label={t('Time zone')}
+            hint={t('Your days start and end at midnight in this time zone.')}
+            className="sm:col-span-2"
+          >
+            <NativeSelect
+              id="timeZone"
+              // Remounted once the list is known, so the saved zone is selected.
+              key={zoneChoices.length}
+              {...fieldAttributes(state, 'timeZone')}
+              defaultValue={profile.timeZone}
+              className={FIELD_CLASS}
+            >
+              {profile.timeZone ? null : <NativeSelectOption value="">{t('Not set')}</NativeSelectOption>}
+              {zoneChoices.map((zone) => (
+                <NativeSelectOption key={zone} value={zone}>
+                  {zone.replace(/_/g, ' ')}
+                </NativeSelectOption>
+              ))}
+            </NativeSelect>
           </Field>
         </div>
       </fieldset>

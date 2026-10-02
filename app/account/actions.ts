@@ -3,8 +3,10 @@
 import { revalidatePath } from 'next/cache'
 
 import { changeCredentials, updateProfile } from '@/application/account/profile'
-import { getSignedInUserId } from '@/infrastructure/auth/sessionUser'
+import { getSignedInUser } from '@/infrastructure/auth/sessionUser'
+import { userRepository } from '@/infrastructure/repositories/userRepository'
 import { signedOutState, translateFormState, type FormState } from '@/lib/forms/formState'
+import { isValidTimeZone, setClockZone } from '@/lib/clock'
 import { getT } from '@/lib/i18n/server'
 
 import { credentialsForm, profileForm, REMOVE_PICTURE } from './schema'
@@ -18,7 +20,10 @@ const withoutValues = (state: FormState): FormState => ({
 })
 
 export async function updateProfileAction(_previousState: FormState, formData: FormData): Promise<FormState> {
-  const [userId, t] = await Promise.all([getSignedInUserId(), getT()])
+  const [user, t] = await Promise.all([getSignedInUser(), getT()])
+  const userId = user?.id
+  // Days are counted on this person's clock from here on.
+  setClockZone(user?.timeZone)
 
   if (!userId) {
     return signedOutState(t)
@@ -42,7 +47,10 @@ export async function updateProfileAction(_previousState: FormState, formData: F
 }
 
 export async function changeCredentialsAction(_previousState: FormState, formData: FormData): Promise<FormState> {
-  const [userId, t] = await Promise.all([getSignedInUserId(), getT()])
+  const [user, t] = await Promise.all([getSignedInUser(), getT()])
+  const userId = user?.id
+  // Days are counted on this person's clock from here on.
+  setClockZone(user?.timeZone)
 
   if (!userId) {
     return signedOutState(t)
@@ -61,4 +69,15 @@ export async function changeCredentialsAction(_previousState: FormState, formDat
   }
 
   return translateFormState(withoutValues(state), t)
+}
+
+// Called by the page itself, not by a form: the device says which time zone it
+// is in, and an account that has none yet takes it.
+export async function reportTimeZoneAction(timeZone: string): Promise<void> {
+  const user = await getSignedInUser()
+
+  if (user && !user.timeZone && isValidTimeZone(timeZone)) {
+    await userRepository.setTimeZoneIfMissing(user.id, timeZone)
+    revalidatePath('/', 'layout')
+  }
 }

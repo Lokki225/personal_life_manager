@@ -1,4 +1,5 @@
 import { dailyBudget } from '../../domain/finance/calculations'
+import { now as clockNow } from '../../lib/clock'
 
 export type SetupPeriod = 'monthly' | 'weekly'
 
@@ -13,7 +14,7 @@ export function summarizeSetupPlan({
   incomeAmount,
   allocationAmount,
   allocationPeriod,
-  referenceDate = new Date(),
+  referenceDate = clockNow(),
 }: SetupPlanSummaryInput) {
   const normalizedIncome = Number(incomeAmount)
   const normalizedAllocation = Number(allocationAmount)

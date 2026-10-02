@@ -4,6 +4,7 @@ import { FinanceRuleError } from '@/domain/finance/errors'
 
 import { getChestsWithBalances } from './getChestsWithBalances'
 import { recordMovement } from './recordMovement'
+import { now as clockNow } from '../../lib/clock'
 
 type TransferDeps = {
   listChests: typeof getChestsWithBalances
@@ -19,7 +20,7 @@ export async function transferBetweenChests(
   amount: number,
   reason: MovementReason,
   deps: TransferDeps = defaultDeps,
-  today: Date = new Date(),
+  today: Date = clockNow(),
 ) {
   if (sourceChestId === destinationChestId) {
     throw new FinanceRuleError('Choose two different chests.', 'destinationChestId')

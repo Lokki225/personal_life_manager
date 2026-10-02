@@ -152,6 +152,8 @@ model User {
   // The last day the person opened the app, and the language it was shown in.
   lastSeenAt    DateTime?
   locale        String?
+  // Where the person's days begin and end, e.g. "Africa/Abidjan".
+  timeZone      String?
   // The last day whose leftover was moved to the Buffer.
   settledThrough DateTime?
   // The weekday the Buffer is emptied into the Base Chest. 0 is Sunday.

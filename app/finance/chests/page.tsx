@@ -5,8 +5,9 @@ import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
 import { ensureDefaultChests } from '@/application/finance/ensureDefaultChests'
 import { listChestsForManagement } from '@/application/finance/deleteChest'
-import { getSignedInUser, getSignedInUserId } from '@/infrastructure/auth/sessionUser'
+import { getSignedInUser } from '@/infrastructure/auth/sessionUser'
 import { DEBTS_CHEST_NAME } from '@/domain/finance/chests'
+import { now as clockNow, setClockZone } from '@/lib/clock'
 import { getT } from '@/lib/i18n/server'
 import { cn } from '@/lib/utils'
 
@@ -16,7 +17,10 @@ import { SweepDaySelect } from './sweep-day'
 import { ensureDaysSettled } from '../settle'
 
 export default async function ChestsPage() {
-  const [userId, t] = await Promise.all([getSignedInUserId(), getT()])
+  const [user, t] = await Promise.all([getSignedInUser(), getT()])
+  const userId = user?.id
+  // Days are counted on this person's clock from here on.
+  setClockZone(user?.timeZone)
 
   // The days that ended since the last visit are closed before anything is shown.
   await ensureDaysSettled()
@@ -28,9 +32,9 @@ export default async function ChestsPage() {
   // Accounts created before chests existed get their Base Chest and Buffer here.
   await ensureDefaultChests(userId)
 
-  const [chests, user] = await Promise.all([listChestsForManagement(userId), getSignedInUser()])
+  const chests = await listChestsForManagement(userId)
   const dateFormatter = new Intl.DateTimeFormat(t.intl, { day: 'numeric', month: 'short', year: 'numeric' })
-  const now = new Date()
+  const now = clockNow()
   // Borrowed money in the Debts Chest is not savings.
   const total = chests
     .filter((chest) => !(chest.isSystem && chest.name === DEBTS_CHEST_NAME))

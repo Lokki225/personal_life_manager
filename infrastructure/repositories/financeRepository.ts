@@ -1,3 +1,4 @@
+import { now as clockNow } from '../../lib/clock'
 import { prisma } from '../prisma/client'
 
 export type IncomeRecord = NonNullable<Awaited<ReturnType<typeof prisma.income.findFirst>>>
@@ -144,6 +145,9 @@ export interface IncomeRepository {
   listIncomes: (userId: string) => Promise<IncomeRecord[]>
   updateIncome: (id: string, data: UpdateIncomeData) => Promise<IncomeRecord>
   deleteIncome: (id: string) => Promise<IncomeRecord>
+  // Deletes one of the user's incomes along with its confirmations. Money
+  // those confirmations already placed in chests stays there.
+  removeIncome: (userId: string, id: string) => Promise<void>
 }
 
 export interface AllocationRepository {
@@ -506,6 +510,10 @@ export const financeRepository: SetupPlanRepository &
       user: { connect: { id: userId } },
     }
 
+    if (data.payDay !== undefined) {
+      createData.payDay = data.payDay
+    }
+
     if (data.expectedDate !== undefined && data.expectedDate !== null) {
       createData.expectedDate = data.expectedDate
     }
@@ -546,6 +554,13 @@ export const financeRepository: SetupPlanRepository &
 
   deleteIncome: async (id: string) => {
     return prisma.income.delete({ where: { id } })
+  },
+
+  removeIncome: async (userId: string, id: string) => {
+    await prisma.$transaction([
+      prisma.incomeReceipt.deleteMany({ where: { userId, incomeId: id } }),
+      prisma.income.deleteMany({ where: { id, userId } }),
+    ])
   },
 
   createAllocation: async (userId: string, data: CreateAllocationData) => {
@@ -903,7 +918,7 @@ export const financeRepository: SetupPlanRepository &
             amount: data.alreadySaved,
             type: 'IN',
             reason: 'GOAL_FUNDING',
-            date: new Date(),
+            date: clockNow(),
             destinationChestId: chest.id,
             relatedGoalId: goal.id,
           },

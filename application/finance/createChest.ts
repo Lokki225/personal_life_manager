@@ -4,6 +4,7 @@ import {
   type ChestRecord,
   type ChestRepository,
 } from '../../infrastructure/repositories/financeRepository'
+import { now as clockNow } from '../../lib/clock'
 
 export type CreateChestInput = {
   name: string
@@ -16,7 +17,7 @@ export async function createChest(
   userId: string,
   input: CreateChestInput,
   repository: Pick<ChestRepository, 'listChests' | 'createChest'> = financeRepository,
-  today: Date = new Date(),
+  today: Date = clockNow(),
 ): Promise<ChestRecord> {
   const name = input.name.trim()
 
