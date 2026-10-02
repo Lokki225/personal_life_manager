@@ -33,11 +33,11 @@ export function SignUpForm() {
       return nextState
     }
 
-    // The account exists: sign in with it and start the finance setup.
+    // The account exists: sign in with it and show the guide first.
     const result = await signIn('credentials', { email, password, redirect: false }).catch(() => null)
 
     if (result?.ok && !result.error) {
-      router.push('/finance/setup')
+      router.push('/learn')
       router.refresh()
       return nextState
     }

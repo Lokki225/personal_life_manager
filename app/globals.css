@@ -131,6 +131,17 @@ html[data-theme='dark'] {
 @layer base {
   * {
     border-color: var(--border);
+    /* A flex or grid child may always shrink to the space it is given. Without
+       this, one long word or name makes its whole row, then the page, wider
+       than the screen. */
+    min-width: 0;
+  }
+
+  body {
+    /* Text someone typed without spaces still wraps instead of overflowing. */
+    overflow-wrap: anywhere;
+    /* Last resort: nothing can make the page scroll sideways. */
+    overflow-x: clip;
   }
 }
 

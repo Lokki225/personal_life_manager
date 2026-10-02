@@ -133,7 +133,7 @@ export default async function FinanceTodayPage() {
         </Link>
       ) : null}
 
-      <div className="grid items-start gap-4 lg:grid-cols-2">
+      <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-2">
         <div className="space-y-4">
           {pendingIncomes.map((income) => (
             <div

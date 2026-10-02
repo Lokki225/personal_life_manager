@@ -147,7 +147,7 @@ export function SetupForm({ initialData }: SetupFormProps = {}) {
         </p>
       </header>
 
-      <div className="grid items-start gap-6 lg:grid-cols-[1.2fr_0.8fr]">
+      <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)]">
         <form onSubmit={handleSubmit} className="space-y-6">
           <Card>
             <CardHeader>
@@ -381,7 +381,7 @@ export function SetupForm({ initialData }: SetupFormProps = {}) {
             <h2 className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">{t('Income')}</h2>
             <div className="mt-1 flex items-center justify-between gap-3">
               <div className="flex min-w-0 items-center gap-2">
-                <span className="truncate font-semibold">{incomeSource || t('Untitled')}</span>
+                <span className="line-clamp-2 font-semibold">{incomeSource || t('Untitled')}</span>
                 <Badge className="bg-category-income/15 text-category-income first-letter:uppercase">
                   {t(incomeFrequency)}
                 </Badge>
@@ -413,7 +413,7 @@ export function SetupForm({ initialData }: SetupFormProps = {}) {
                         return (
                           <li key={allocation.id} className="flex items-center justify-between gap-3 py-2.5">
                             <div className="flex min-w-0 items-center gap-2">
-                              <span className="truncate font-semibold">{allocation.name || t('Untitled')}</span>
+                              <span className="line-clamp-2 font-semibold">{allocation.name || t('Untitled')}</span>
                               <Badge className={badge.className}>
                                 {allocation.category === 'daily_living' ? <Lock aria-hidden="true" /> : null}
                                 {t(badge.label)}

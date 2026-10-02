@@ -14,7 +14,7 @@ export const metadata: Metadata = {
 
 export default async function SignUpPage() {
   if (await getSignedInUserId()) {
-    redirect('/finance')
+    redirect('/learn')
   }
 
   const t = await getT()
