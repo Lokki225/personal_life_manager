@@ -172,6 +172,26 @@ model User {
   incomeReceipts    IncomeReceipt[]
   passwordResets    PasswordResetToken[]
   pushSubscriptions PushSubscription[]
+  apiTokens         ApiToken[]
+}
+
+enum ApiScope {
+  READ
+  WRITE
+}
+
+// A key that lets a program (an assistant, a script) use the API as its
+// owner. Only a hash is kept: the key itself is shown once, when created.
+model ApiToken {
+  id         String    @id @default(cuid())
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name       String
+  tokenHash  String    @unique
+  // READ can only look. WRITE can also record and send notifications.
+  scope      ApiScope  @default(READ)
+  lastUsedAt DateTime?
+  createdAt  DateTime  @default(now())
 }
 
 // One device that agreed to receive notifications. The browser gives the

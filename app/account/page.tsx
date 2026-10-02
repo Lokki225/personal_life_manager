@@ -7,12 +7,14 @@ import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
 import { getSignedInUser } from '@/infrastructure/auth/sessionUser'
 import { pushPublicKey } from '@/infrastructure/push/sendPush'
+import { apiTokenRepository } from '@/infrastructure/repositories/apiTokenRepository'
 import { userRepository } from '@/infrastructure/repositories/userRepository'
 import { getT } from '@/lib/i18n/server'
 
 import { SignOutButton } from '../sign-out-button'
 import { SignedInMenu } from '../signed-in-menu'
 import { CredentialsForm, ProfileForm } from './account-form'
+import { ApiKeys } from './api-keys'
 import { NotificationSettings } from './notifications'
 
 export const metadata: Metadata = {
@@ -32,7 +34,11 @@ export default async function AccountPage() {
     redirect('/login?callbackUrl=/account')
   }
 
-  const profile = await userRepository.getProfile(user.id)
+  const [profile, apiTokens] = await Promise.all([
+    userRepository.getProfile(user.id),
+    apiTokenRepository.listTokens(user.id),
+  ])
+  const dayFormatter = new Intl.DateTimeFormat(t.intl, { day: 'numeric', month: 'short', year: 'numeric' })
 
   if (!profile) {
     redirect('/login?callbackUrl=/account')
@@ -101,6 +107,28 @@ export default async function AccountPage() {
             </p>
           </div>
           <NotificationSettings publicKey={pushPublicKey()} />
+        </CardContent>
+      </Card>
+
+      <Card className="gap-0 py-5">
+        <CardContent className="space-y-3">
+          <div>
+            <h2 className="text-base font-semibold">{t('API keys')}</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {t(
+                'A key lets a program, such as an assistant, use the app as you. Give one only to something you trust, and delete it when you stop using it.',
+              )}
+            </p>
+          </div>
+          <ApiKeys
+            keys={apiTokens.map((token) => ({
+              id: token.id,
+              name: token.name,
+              canRecord: token.scope === 'WRITE',
+              created: dayFormatter.format(token.createdAt),
+              lastUsed: token.lastUsedAt ? dayFormatter.format(token.lastUsedAt) : null,
+            }))}
+          />
         </CardContent>
       </Card>
 
