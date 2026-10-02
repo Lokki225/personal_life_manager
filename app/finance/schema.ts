@@ -1,9 +1,14 @@
 import { z } from 'zod'
 
 import { isFinanceRuleError } from '@/domain/finance/errors'
-import { EXCEPTION_CATEGORIES, EXPENSE_CATEGORIES } from '@/domain/finance/options'
+import {
+  ALLOCATION_CATEGORIES,
+  ALLOCATION_PERIODS,
+  EXCEPTION_CATEGORIES,
+  EXPENSE_CATEGORIES,
+} from '@/domain/finance/options'
 import { FormHandler } from '@/lib/forms/FormHandler'
-import { moneyField } from '@/lib/forms/fields'
+import { moneyField, requiredText } from '@/lib/forms/fields'
 
 const optionalText = (max: number) => z.string().trim().max(max, `Keep it under ${max} characters.`).optional()
 
@@ -31,6 +36,19 @@ export const confirmIncomeSchema = z.object({
   amount: moneyField,
 })
 
+export const planAllocationSchema = z.object({
+  // Empty for a new allocation.
+  id: z.string().trim().optional(),
+  name: requiredText('Enter an allocation name.', 60),
+  amount: moneyField,
+  period: z.enum(ALLOCATION_PERIODS, { error: 'Choose a period.' }),
+  category: z.enum(ALLOCATION_CATEGORIES, { error: 'Choose a category.' }),
+})
+
+export const deleteAllocationSchema = z.object({
+  id: requiredId('Choose an allocation.'),
+})
+
 export const exceptionSchema = z.object({
   category: z.enum(EXCEPTION_CATEGORIES, { error: 'Choose a category.' }),
   reason: optionalText(160),
@@ -43,4 +61,6 @@ export const saveRemainingForm = new FormHandler(saveRemainingSchema, options)
 export const exceptionForm = new FormHandler(exceptionSchema, options)
 export const transferForm = new FormHandler(transferSchema, options)
 export const confirmIncomeForm = new FormHandler(confirmIncomeSchema, options)
+export const planAllocationForm = new FormHandler(planAllocationSchema, options)
+export const deleteAllocationForm = new FormHandler(deleteAllocationSchema, options)
 export const consolidateForm = new FormHandler(z.object({}), options)

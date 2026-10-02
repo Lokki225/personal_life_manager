@@ -73,7 +73,7 @@ export async function recomputeFinanceState(input: RecomputeFinanceStateInput): 
     description?: string | null
     projectName?: string | null
   }>
-  allocationBreakdown: Array<{ name: string; amount: number; category: string; period: string }>
+  allocationBreakdown: Array<{ id: string; name: string; amount: number; category: string; period: string }>
   chests: Array<{ id: string; name: string; type: string; isSystem: boolean; balance: number }>
   goals: Array<{
     id: string
@@ -254,6 +254,7 @@ export async function recomputeFinanceState(input: RecomputeFinanceStateInput): 
   const monthlyOverspend = Math.max(monthlySpent - periodBudget, 0)
 
   const allocationBreakdown = allocations.map((allocation) => ({
+    id: String(allocation.id),
     name: allocation.name,
     amount: Number(allocation.amount || 0),
     category: allocation.category,

@@ -4,7 +4,7 @@ import { BookOpen, ChevronDown, ChevronRight, Lock, Target, TriangleAlert, Walle
 
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
-import { listPendingIncomes } from '@/application/finance/confirmIncome'
+import { depositSetupMonth, listPendingIncomes, listSetupMonthIncomes } from '@/application/finance/confirmIncome'
 import { hasSetupPlan } from '@/application/finance/createSetupPlan'
 import { getHistory } from '@/application/finance/getHistory'
 import { recomputeFinanceState } from '@/application/finance/recomputeFinanceState'
@@ -17,6 +17,7 @@ import { cn } from '@/lib/utils'
 
 import { categoryStyle, eventStyle } from './categories'
 import { Meter, Money } from './money'
+import { AddAllocationDrawer, EditAllocationDrawer } from './plan-forms'
 import { AddExpenseDrawer, ConfirmIncomeDrawer, ExceptionDrawer, SaveRemainingDrawer } from './today-actions'
 
 const STATUS_STYLES = {
@@ -56,15 +57,22 @@ export default async function FinanceTodayPage() {
 
   const now = new Date()
   // Loaded together with the setup check: one trip to the database, not two.
-  const [isSetUp, state, monthEvents, pendingIncomes] = await Promise.all([
+  const [isSetUp, state, monthEvents, pendingIncomes, setupMonthIncomes] = await Promise.all([
     hasSetupPlan(userId),
     recomputeFinanceState({ userId, referenceDate: now }),
     getHistory({ userId, period: 'month', referenceDate: now }),
     listPendingIncomes(userId, now),
+    listSetupMonthIncomes(userId, now),
   ])
 
   if (!isSetUp) {
     redirect('/finance/setup')
+  }
+
+  // A plan made before the setup month's income was placed in the chests:
+  // place it once, then show the page with it.
+  if (setupMonthIncomes.length > 0 && (await depositSetupMonth(userId, now)) > 0) {
+    redirect('/finance')
   }
 
   const dayFormatter = new Intl.DateTimeFormat(t.intl, { weekday: 'long', day: 'numeric', month: 'long' })
@@ -499,23 +507,37 @@ export default async function FinanceTodayPage() {
               {state.allocationBreakdown.length > 0 ? (
                 <ul className="divide-y">
                   {state.allocationBreakdown.map((allocation) => (
-                    <li
-                      key={`${allocation.name}-${allocation.category}-${allocation.period}`}
-                      className="flex items-center justify-between gap-3 py-2.5 text-sm"
-                    >
-                      <span className="min-w-0">
-                        <span className="block truncate font-medium">{allocation.name}</span>
-                        <span className="text-xs text-muted-foreground first-letter:uppercase">
+                    <li key={allocation.id} className="flex items-center gap-3 py-1.5 text-sm">
+                      <span className="min-w-0 flex-1">
+                        <span className="block font-medium">
+                          <span className="line-clamp-2">{allocation.name}</span>
+                        </span>
+                        <span className="inline-block text-xs text-muted-foreground first-letter:uppercase">
                           {t(allocation.category.replace(/_/g, ' '))} · {t(allocation.period)}
                         </span>
                       </span>
-                      <Money value={allocation.amount} className="font-semibold" />
+                      <Money value={allocation.amount} className="shrink-0 font-semibold" />
+                      <EditAllocationDrawer allocation={allocation} />
                     </li>
                   ))}
+                  {unallocated > 0 ? (
+                    <li className="flex items-center gap-3 py-2.5 text-sm">
+                      <span className="min-w-0 flex-1">
+                        <span className="block font-medium">{t('Not allocated')}</span>
+                        <span className="text-xs text-muted-foreground">
+                          {t('It goes to your Base Chest each time your income is confirmed.')}
+                        </span>
+                      </span>
+                      <Money value={unallocated} className="shrink-0 font-semibold" />
+                      {/* Lines up with the rows that have an edit button. */}
+                      <span className="-mr-2 size-11 shrink-0" aria-hidden="true" />
+                    </li>
+                  ) : null}
                 </ul>
               ) : (
                 <p className="text-sm text-muted-foreground">{t('No allocations recorded yet.')}</p>
               )}
+              <AddAllocationDrawer />
             </div>
           </details>
         </div>

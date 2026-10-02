@@ -1,0 +1,185 @@
+'use client'
+
+import { startTransition, useActionState, useState, type ReactNode } from 'react'
+import { Loader2, Pencil, Plus, Trash2 } from 'lucide-react'
+
+import { Button } from '@/components/ui/button'
+import { FieldError } from '@/components/ui/field-error'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select'
+import { fieldAttributes, initialFormState } from '@/lib/forms/formState'
+import { useT } from '@/lib/i18n/client'
+
+import { deleteAllocationAction, saveAllocationAction } from './actions'
+import { ActionDrawer, ActionForm, AmountField, FIELD_CLASS } from './today-actions'
+
+export type PlanAllocation = { id: string; name: string; amount: number; period: string; category: string }
+
+// Removing asks once more in place, like deleting a chest.
+function DeleteAllocation({ id, onDone }: { id: string; onDone: () => void }) {
+  const t = useT()
+  const [confirming, setConfirming] = useState(false)
+  const [state, formAction, isPending] = useActionState(async (previous: typeof initialFormState, formData: FormData) => {
+    const next = await deleteAllocationAction(previous, formData)
+
+    if (next.status === 'success') {
+      onDone()
+    }
+
+    return next
+  }, initialFormState)
+
+  const submit = () => {
+    const formData = new FormData()
+    formData.set('id', id)
+    startTransition(() => formAction(formData))
+  }
+
+  return (
+    <div className="space-y-2 border-t px-4 pt-4 pb-6">
+      {confirming ? (
+        <>
+          <p className="text-sm">{t('Delete this allocation? Your past expenses are kept.')}</p>
+          <div className="flex gap-2">
+            <Button type="button" variant="destructive" disabled={isPending} onClick={submit} className="h-11 flex-1">
+              {isPending ? <Loader2 className="animate-spin" aria-hidden="true" /> : <Trash2 aria-hidden="true" />}
+              {t('Delete')}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              disabled={isPending}
+              onClick={() => setConfirming(false)}
+              className="h-11 flex-1"
+            >
+              {t('Keep')}
+            </Button>
+          </div>
+        </>
+      ) : (
+        <Button
+          type="button"
+          variant="ghost"
+          onClick={() => setConfirming(true)}
+          className="h-11 w-full text-muted-foreground hover:text-destructive-strong"
+        >
+          <Trash2 aria-hidden="true" />
+          {t('Delete this allocation')}
+        </Button>
+      )}
+      {state.formErrors.length > 0 ? (
+        <p role="alert" className="text-sm text-destructive-strong">
+          {state.formErrors[0]}
+        </p>
+      ) : null}
+    </div>
+  )
+}
+
+// Adds an allocation, or edits and deletes the one given.
+function AllocationDrawer({ allocation, trigger }: { allocation?: PlanAllocation; trigger: ReactNode }) {
+  const t = useT()
+  const scope = allocation ? `allocation-${allocation.id}` : 'allocation-new'
+
+  return (
+    <ActionDrawer
+      title={allocation ? t('Edit allocation') : t('New allocation')}
+      description={t('Changes apply from today. Money already placed in your chests this month stays where it is.')}
+      trigger={trigger}
+    >
+      {(close) => (
+        <>
+          <ActionForm action={saveAllocationAction} submitLabel={t('Save')} onDone={close}>
+            {(state) => (
+              <>
+                {allocation ? <input type="hidden" name="id" value={allocation.id} /> : null}
+                <div className="grid gap-2">
+                  <Label htmlFor={`${scope}-name`}>{t('Name')}</Label>
+                  <Input
+                    id={`${scope}-name`}
+                    {...fieldAttributes(state, 'name', scope)}
+                    defaultValue={allocation?.name}
+                    placeholder={t('Rent, internet, savings...')}
+                    maxLength={60}
+                    autoFocus={!allocation}
+                    className={FIELD_CLASS}
+                  />
+                  <FieldError state={state} name="name" scope={scope} />
+                </div>
+                <AmountField state={state} scope={scope} defaultValue={allocation?.amount} autoFocus={false} />
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="grid gap-2">
+                    <Label htmlFor={`${scope}-period`}>{t('Period')}</Label>
+                    <NativeSelect
+                      id={`${scope}-period`}
+                      {...fieldAttributes(state, 'period', scope)}
+                      defaultValue={allocation?.period === 'weekly' ? 'weekly' : 'monthly'}
+                      className={FIELD_CLASS}
+                    >
+                      <NativeSelectOption value="monthly">{t('Monthly')}</NativeSelectOption>
+                      <NativeSelectOption value="weekly">{t('Weekly')}</NativeSelectOption>
+                    </NativeSelect>
+                    <FieldError state={state} name="period" scope={scope} />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor={`${scope}-category`}>{t('Category')}</Label>
+                    <NativeSelect
+                      id={`${scope}-category`}
+                      {...fieldAttributes(state, 'category', scope)}
+                      defaultValue={allocation?.category ?? 'fixed'}
+                      className={FIELD_CLASS}
+                    >
+                      <NativeSelectOption value="fixed">{t('Fixed')}</NativeSelectOption>
+                      <NativeSelectOption value="subscription">{t('Subscription')}</NativeSelectOption>
+                      <NativeSelectOption value="daily_living">{t('Daily living')}</NativeSelectOption>
+                      <NativeSelectOption value="savings">{t('Savings')}</NativeSelectOption>
+                      <NativeSelectOption value="custom">{t('Custom')}</NativeSelectOption>
+                    </NativeSelect>
+                    <FieldError state={state} name="category" scope={scope} />
+                  </div>
+                </div>
+              </>
+            )}
+          </ActionForm>
+          {allocation ? <DeleteAllocation id={allocation.id} onDone={close} /> : null}
+        </>
+      )}
+    </ActionDrawer>
+  )
+}
+
+export function AddAllocationDrawer() {
+  const t = useT()
+
+  return (
+    <AllocationDrawer
+      trigger={
+        <Button variant="outline" className="h-11 w-full">
+          <Plus aria-hidden="true" />
+          {t('Add allocation')}
+        </Button>
+      }
+    />
+  )
+}
+
+export function EditAllocationDrawer({ allocation }: { allocation: PlanAllocation }) {
+  const t = useT()
+
+  return (
+    <AllocationDrawer
+      allocation={allocation}
+      trigger={
+        <Button
+          variant="ghost"
+          size="icon"
+          className="-mr-2 size-11 shrink-0 text-muted-foreground"
+          aria-label={t('Edit {name}', { name: allocation.name })}
+        >
+          <Pencil aria-hidden="true" />
+        </Button>
+      }
+    />
+  )
+}
