@@ -5,16 +5,21 @@ import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
 import { ensureDefaultChests } from '@/application/finance/ensureDefaultChests'
 import { listChestsForManagement } from '@/application/finance/deleteChest'
-import { getSignedInUserId } from '@/infrastructure/auth/sessionUser'
+import { getSignedInUser, getSignedInUserId } from '@/infrastructure/auth/sessionUser'
 import { DEBTS_CHEST_NAME } from '@/domain/finance/chests'
 import { getT } from '@/lib/i18n/server'
 import { cn } from '@/lib/utils'
 
 import { Money } from '../money'
 import { ConsolidateButton, DeleteChestButton, NewChestDrawer, TransferDrawer } from './chest-forms'
+import { SweepDaySelect } from './sweep-day'
+import { ensureDaysSettled } from '../settle'
 
 export default async function ChestsPage() {
   const [userId, t] = await Promise.all([getSignedInUserId(), getT()])
+
+  // The days that ended since the last visit are closed before anything is shown.
+  await ensureDaysSettled()
 
   if (!userId) {
     redirect('/login')
@@ -23,7 +28,7 @@ export default async function ChestsPage() {
   // Accounts created before chests existed get their Base Chest and Buffer here.
   await ensureDefaultChests(userId)
 
-  const chests = await listChestsForManagement(userId)
+  const [chests, user] = await Promise.all([listChestsForManagement(userId), getSignedInUser()])
   const dateFormatter = new Intl.DateTimeFormat(t.intl, { day: 'numeric', month: 'short', year: 'numeric' })
   const now = new Date()
   // Borrowed money in the Debts Chest is not savings.
@@ -47,6 +52,8 @@ export default async function ChestsPage() {
         <NewChestDrawer />
         {chests.length > 1 ? <TransferDrawer chests={options} /> : null}
       </div>
+
+      <SweepDaySelect day={user?.bufferSweepDay ?? 0} />
 
       {buffer && buffer.balance >= 1 ? <ConsolidateButton bufferBalance={Math.floor(buffer.balance)} /> : null}
 

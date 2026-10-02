@@ -152,6 +152,10 @@ model User {
   // The last day the person opened the app, and the language it was shown in.
   lastSeenAt    DateTime?
   locale        String?
+  // The last day whose leftover was moved to the Buffer.
+  settledThrough DateTime?
+  // The weekday the Buffer is emptied into the Base Chest. 0 is Sunday.
+  bufferSweepDay Int      @default(0)
   createdAt     DateTime @default(now())
 
   incomes           Income[]

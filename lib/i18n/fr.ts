@@ -680,10 +680,10 @@ export const FR: Messages = {
       "Ce que vous ne dépensez pas est gardé dans des coffres : l'argent a ainsi une place et un but.",
     'A place to keep money. You can create as many as you need, one per purpose.':
       "Un endroit où garder de l'argent. Créez-en autant que nécessaire, un par usage.",
-    'The chest for what is left at the end of a day. It absorbs small surprises.':
-      'Le coffre de ce qui reste en fin de journée. Il absorbe les petites surprises.',
-    'Your main chest. Income that no allocation claims lands here, and you can empty the Buffer into it.':
-      "Votre coffre principal. Le revenu qu'aucun poste ne réclame y arrive, et vous pouvez y vider la réserve.",
+    'Where what is left of each day goes, on its own. Once a week it is emptied into your Base Chest.':
+      'Là où va, tout seul, ce qui reste de chaque journée. Une fois par semaine, elle est vidée dans votre coffre principal.',
+    'Your main chest. Income that no allocation claims lands here, and so does the Buffer every week.':
+      "Votre coffre principal. Le revenu qu'aucun poste ne réclame y arrive, ainsi que la réserve chaque semaine.",
     'A chest you can lock until a date, so the money stays out of reach until then.':
       "Un coffre verrouillable jusqu'à une date, pour que l'argent reste hors de portée d'ici là.",
     'A target for a chest, such as a phone or an emergency fund. It is reached when the chest holds the target.':
@@ -764,6 +764,12 @@ export const FR: Messages = {
 
     'This is {amount} {currency} more than what is left today. It will be recorded as an exception.':
       "C'est {amount} {currency} de plus que ce qu'il reste aujourd'hui. La dépense sera enregistrée comme un imprévu.",
+
+    'Your Buffer fills and empties on its own': 'Votre réserve se remplit et se vide toute seule',
+    'What is left of each day goes into the Buffer. Once a week it is emptied into your Base Chest.':
+      'Ce qui reste de chaque journée va dans la réserve. Une fois par semaine, elle est vidée dans votre coffre principal.',
+    'Emptied every': 'Vidée chaque',
+    'Choose a day.': 'Choisissez un jour.',
 
     // --- Amounts ---------------------------------------------------------------
     'Enter an amount.': 'Saisissez un montant.',
