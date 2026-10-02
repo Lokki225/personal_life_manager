@@ -39,6 +39,7 @@ export async function recordDailyException(
     date: today,
     plannedAmount: state.dailyBudget,
     actualAmount: state.dailySpent,
+    difference: state.dailyOverspend,
     category: input.category,
     reason: input.reason || 'Unplanned spending',
     resolution: 'Review next cycle',

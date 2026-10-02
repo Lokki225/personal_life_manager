@@ -79,7 +79,7 @@ function Frame({
             className="pointer-events-none absolute inset-x-0 border-t border-border"
             style={{ bottom: `${share * 100}%` }}
           >
-            <span className="absolute right-full mr-2 -translate-y-1/2 text-[10px] tabular-nums text-muted-foreground">
+            <span className="absolute right-full mr-2 -translate-y-1/2 text-[10px] whitespace-nowrap tabular-nums text-muted-foreground">
               {compactFormatter.format(max * share)}
             </span>
           </div>

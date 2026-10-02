@@ -263,6 +263,8 @@ model Expense {
   project       Project?   @relation(fields: [projectId], references: [id])
   description   String?
   notes         String?
+  // The exception this expense caused by going over the day's budget.
+  exceptions    BudgetException[]
   createdAt     DateTime   @default(now())
 }
 
@@ -279,6 +281,9 @@ model BudgetException {
   reason          String?
   context         String?
   resolution      String?
+  // The expense that went over, when the exception comes from one.
+  expenseId       String?
+  expense         Expense? @relation(fields: [expenseId], references: [id], onDelete: SetNull)
   createdAt       DateTime @default(now())
 }
 

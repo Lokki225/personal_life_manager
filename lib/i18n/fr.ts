@@ -762,6 +762,9 @@ export const FR: Messages = {
     'Administrators can see your name, your email, when you use the app and which features you use. They never see your amounts, what you write, or the rest of your profile.':
       "Les administrateurs peuvent voir votre nom, votre e-mail, quand vous utilisez l'application et quelles fonctions vous utilisez. Ils ne voient jamais vos montants, ce que vous écrivez, ni le reste de votre profil.",
 
+    'This is {amount} {currency} more than what is left today. It will be recorded as an exception.':
+      "C'est {amount} {currency} de plus que ce qu'il reste aujourd'hui. La dépense sera enregistrée comme un imprévu.",
+
     // --- Amounts ---------------------------------------------------------------
     'Enter an amount.': 'Saisissez un montant.',
     'Use digits only, for example 60000.': 'Utilisez uniquement des chiffres, par exemple 60000.',

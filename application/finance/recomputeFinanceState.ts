@@ -267,7 +267,7 @@ export async function recomputeFinanceState(input: RecomputeFinanceStateInput): 
       const date = new Date(exception.date ?? referenceDate)
       return date >= startOfPeriod && date <= endOfPeriod
     })
-    .map((exception) => Number(exception.difference || 0))
+    .map((exception) => Math.max(Number(exception.difference || 0), 0))
 
   const goalResults = goals.map((goal) => {
     const result = evaluateGoal(goal, { movements, monthExceptionAmounts })

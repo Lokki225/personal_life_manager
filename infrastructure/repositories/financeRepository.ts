@@ -169,6 +169,7 @@ export type CreateBudgetExceptionData = {
   reason?: string | null
   context?: string | null
   resolution?: string | null
+  expenseId?: string | null
 }
 
 export type UpdateBudgetExceptionData = Partial<CreateBudgetExceptionData>
@@ -667,6 +668,10 @@ export const financeRepository: SetupPlanRepository &
       difference: Number(data.difference),
       category: data.category,
       user: { connect: { id: userId } },
+    }
+
+    if (data.expenseId) {
+      createData.expense = { connect: { id: data.expenseId } }
     }
 
     if (data.reason !== undefined && data.reason !== null) {
