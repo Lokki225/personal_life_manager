@@ -20,7 +20,6 @@ const FIELD_CLASS = 'h-11 text-base sm:text-sm'
 export function SignUpForm() {
   const t = useT()
   const router = useRouter()
-  const [username, setUsername] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
@@ -57,13 +56,38 @@ export function SignUpForm() {
 
   return (
     <form onSubmit={handleSubmit} className="mt-8 space-y-5" noValidate>
+      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 sm:gap-3">
+        <div className="grid content-start gap-2">
+          <Label htmlFor="firstName">{t('First name')}</Label>
+          <Input
+            id="firstName"
+            {...fieldAttributes(state, 'firstName')}
+            autoComplete="given-name"
+            maxLength={40}
+            className={FIELD_CLASS}
+          />
+          <FieldError state={state} name="firstName" />
+        </div>
+        <div className="grid content-start gap-2">
+          <Label htmlFor="lastName">{t('Last name')}</Label>
+          <Input
+            id="lastName"
+            {...fieldAttributes(state, 'lastName')}
+            autoComplete="family-name"
+            maxLength={40}
+            className={FIELD_CLASS}
+          />
+          <FieldError state={state} name="lastName" />
+        </div>
+      </div>
+
       <div className="grid gap-2">
-        <Label htmlFor="username">{t('Name')}</Label>
+        <Label htmlFor="username">
+          {t('Username')} ({t('optional')})
+        </Label>
         <Input
           id="username"
           {...fieldAttributes(state, 'username')}
-          value={username}
-          onChange={(event) => setUsername(event.target.value)}
           placeholder={t('How the app should call you')}
           autoComplete="nickname"
           maxLength={30}

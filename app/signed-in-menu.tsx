@@ -1,6 +1,6 @@
 import { recordVisit } from '@/application/account/adminDashboard'
 import { getSignedInUser } from '@/infrastructure/auth/sessionUser'
-import { displayNameFromEmail } from '@/lib/greeting'
+import { fullName } from '@/lib/greeting'
 import { getLocale } from '@/lib/i18n/server'
 
 import { UserMenu } from './user-menu'
@@ -19,7 +19,7 @@ export async function SignedInMenu() {
   return (
     <UserMenu
       user={{
-        name: user.username || displayNameFromEmail(user.email) || user.email,
+        name: fullName(user),
         email: user.email,
         picture: user.picture,
         isAdmin: user.role === 'ADMIN',

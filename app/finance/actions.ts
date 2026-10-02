@@ -9,6 +9,7 @@ import { removeAllocation, saveAllocation } from '@/application/finance/managePl
 import { recordDailyException } from '@/application/finance/recordDailyException'
 import { recordDailyExpense } from '@/application/finance/recordDailyExpense'
 import { saveDailyRemaining } from '@/application/finance/saveDailyRemaining'
+import { syncPlanToChests } from '@/application/finance/syncPlanToChests'
 import { transferBetweenChests } from '@/application/finance/transferBetweenChests'
 import { getSignedInUserId } from '@/infrastructure/auth/sessionUser'
 import { signedOutState, translateFormState, type FormState } from '@/lib/forms/formState'
@@ -159,7 +160,11 @@ export async function saveAllocationAction(_previousState: FormState, formData: 
     return signedOutState(t)
   }
 
-  const state = await planAllocationForm.submit(formData, (allocation) => saveAllocation(userId, allocation))
+  const state = await planAllocationForm.submit(formData, async (allocation) => {
+    await saveAllocation(userId, allocation)
+    // The chests follow the plan: a new allocation takes its money from the Base Chest.
+    await syncPlanToChests(userId)
+  })
 
   if (state.status === 'success') {
     refreshFinance()
@@ -175,7 +180,10 @@ export async function deleteAllocationAction(_previousState: FormState, formData
     return signedOutState(t)
   }
 
-  const state = await deleteAllocationForm.submit(formData, ({ id }) => removeAllocation(userId, id))
+  const state = await deleteAllocationForm.submit(formData, async ({ id }) => {
+    await removeAllocation(userId, id)
+    await syncPlanToChests(userId)
+  })
 
   if (state.status === 'success') {
     refreshFinance()

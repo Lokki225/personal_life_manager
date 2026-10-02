@@ -30,8 +30,8 @@ async function ownAllocation(userId: string, id: string, deps: ManagePlanDeps) {
 }
 
 // Adds an allocation to the plan, or changes one when `id` is given. The
-// daily budget follows from today. Money already placed in chests this month
-// stays where it is: deposits follow the plan at the next income confirmation.
+// daily budget follows from today. The caller then brings the chests in line
+// with the new plan (see syncPlanToChests).
 export async function saveAllocation(
   userId: string,
   allocation: { id?: string | null; name: string; amount: number; period: string; category: string },

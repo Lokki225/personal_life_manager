@@ -10,7 +10,7 @@ import { getHistory } from '@/application/finance/getHistory'
 import { recomputeFinanceState } from '@/application/finance/recomputeFinanceState'
 import { expectedSpendToDate, getDailyFinanceStatus } from '@/domain/finance/calculations'
 import { getSignedInUser } from '@/infrastructure/auth/sessionUser'
-import { displayNameFromEmail, greetingFor } from '@/lib/greeting'
+import { greetingFor, shortName } from '@/lib/greeting'
 import { getT } from '@/lib/i18n/server'
 import { m } from '@/lib/i18n/translate'
 import { cn } from '@/lib/utils'
@@ -80,7 +80,7 @@ export default async function FinanceTodayPage() {
   const today = dayFormatter.format(now)
 
   const greeting = greetingFor(now, t)
-  const displayName = user.username || displayNameFromEmail(user.email)
+  const displayName = shortName(user)
 
   const hasDailyBudget = state.dailyBudget > 0
   const isOver = state.dailyOverspend > 0
@@ -357,7 +357,7 @@ export default async function FinanceTodayPage() {
               <SectionHeading title={t('Savings')} href="/finance/chests" linkLabel={t('Manage')} />
               <dl className="grid gap-3 min-[400px]:grid-cols-2">
                 <div className="flex items-baseline justify-between gap-3 rounded-lg bg-muted px-3 py-2.5 min-[400px]:block">
-                  <dt className="text-xs text-muted-foreground">{t('Total saved')}</dt>
+                  <dt className="text-xs text-muted-foreground">{t('In your chests')}</dt>
                   <dd className="text-lg font-semibold min-[400px]:mt-0.5">
                     <Money value={state.totalSaved} />
                   </dd>
@@ -525,7 +525,7 @@ export default async function FinanceTodayPage() {
                       <span className="min-w-0 flex-1">
                         <span className="block font-medium">{t('Not allocated')}</span>
                         <span className="text-xs text-muted-foreground">
-                          {t('It goes to your Base Chest each time your income is confirmed.')}
+                          {t('It is kept in your Base Chest.')}
                         </span>
                       </span>
                       <Money value={unallocated} className="shrink-0 font-semibold" />

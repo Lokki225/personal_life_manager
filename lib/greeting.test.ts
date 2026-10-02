@@ -1,6 +1,23 @@
 import { describe, expect, it } from 'vitest'
 
-import { displayNameFromEmail, greetingFor } from './greeting'
+import { displayNameFromEmail, fullName, greetingFor, shortName } from './greeting'
+
+describe('names', () => {
+  const email = 'awa.kone@example.com'
+
+  it('greets with the nickname, then the first name, then a guess from the email', () => {
+    expect(shortName({ email, firstName: 'Awa', lastName: 'Koné', username: 'Wawa' })).toBe('Wawa')
+    expect(shortName({ email, firstName: 'Awa', lastName: 'Koné', username: ' ' })).toBe('Awa')
+    expect(shortName({ email })).toBe('Awa')
+  })
+
+  it('lists people under their first and last name when known', () => {
+    expect(fullName({ email, firstName: 'Awa', lastName: 'Koné', username: 'Wawa' })).toBe('Awa Koné')
+    expect(fullName({ email, firstName: 'Awa' })).toBe('Awa')
+    expect(fullName({ email, username: 'Wawa' })).toBe('Wawa')
+    expect(fullName({ email: '2001@example.com' })).toBe('2001@example.com')
+  })
+})
 
 describe('greetingFor', () => {
   it('follows the time of day', () => {

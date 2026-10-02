@@ -46,3 +46,23 @@ export function displayNameFromEmail(email: string | null | undefined): string |
 
   return first ? first.charAt(0).toUpperCase() + first.slice(1).toLowerCase() : null
 }
+
+type Named = {
+  email: string
+  firstName?: string | null
+  lastName?: string | null
+  username?: string | null
+}
+
+// The name to greet someone with: their nickname if they chose one, else
+// their first name, else a guess from their email.
+export function shortName(person: Named): string | null {
+  return person.username?.trim() || person.firstName?.trim() || displayNameFromEmail(person.email)
+}
+
+// The name to list someone under: first and last name when known.
+export function fullName(person: Named): string {
+  const names = [person.firstName, person.lastName].map((name) => name?.trim()).filter(Boolean)
+
+  return names.length > 0 ? names.join(' ') : shortName(person) || person.email
+}

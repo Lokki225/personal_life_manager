@@ -12,18 +12,22 @@ describe('registerUser', () => {
   it('creates the account with a trimmed, lower-case email', async () => {
     const repository = repositoryOf(false)
 
-    await expect(registerUser({ email: '  Awa@Example.com ', password: 'long-enough', username: ' Awa ' }, repository)).resolves.toEqual({
+    await expect(registerUser({ email: '  Awa@Example.com ', password: 'long-enough', firstName: ' Awa ', lastName: 'Koné ', username: ' ' }, repository)).resolves.toEqual({
       id: 'user-1',
       email: 'awa@example.com',
     })
     expect(repository.emailExists).toHaveBeenCalledWith('awa@example.com')
-    expect(repository.createUser).toHaveBeenCalledWith('awa@example.com', 'long-enough', 'Awa')
+    expect(repository.createUser).toHaveBeenCalledWith('awa@example.com', 'long-enough', {
+      firstName: 'Awa',
+      lastName: 'Koné',
+      username: null,
+    })
   })
 
   it('refuses an email that is already used, on the email field', async () => {
     const repository = repositoryOf(true)
 
-    await expect(registerUser({ email: 'awa@example.com', password: 'long-enough', username: 'Awa' }, repository)).rejects.toMatchObject({
+    await expect(registerUser({ email: 'awa@example.com', password: 'long-enough', firstName: 'Awa', lastName: 'Koné' }, repository)).rejects.toMatchObject({
       message: 'An account already exists for this email. Sign in instead.',
       field: 'email',
     })
@@ -34,7 +38,7 @@ describe('registerUser', () => {
     const repository = repositoryOf(false)
     repository.createUser.mockResolvedValue(null)
 
-    await expect(registerUser({ email: 'awa@example.com', password: 'long-enough', username: 'Awa' }, repository)).rejects.toThrow(
+    await expect(registerUser({ email: 'awa@example.com', password: 'long-enough', firstName: 'Awa', lastName: 'Koné' }, repository)).rejects.toThrow(
       AccountRuleError,
     )
   })

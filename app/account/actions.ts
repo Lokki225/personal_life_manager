@@ -2,12 +2,20 @@
 
 import { revalidatePath } from 'next/cache'
 
-import { updateProfile } from '@/application/account/profile'
+import { changeCredentials, updateProfile } from '@/application/account/profile'
 import { getSignedInUserId } from '@/infrastructure/auth/sessionUser'
 import { signedOutState, translateFormState, type FormState } from '@/lib/forms/formState'
 import { getT } from '@/lib/i18n/server'
 
-import { profileForm, REMOVE_PICTURE } from './schema'
+import { credentialsForm, profileForm, REMOVE_PICTURE } from './schema'
+
+// What was typed stays in the form itself, so it is never sent back: not a
+// picture, and above all not a password.
+const withoutValues = (state: FormState): FormState => ({
+  status: state.status,
+  fieldErrors: state.fieldErrors,
+  formErrors: state.formErrors,
+})
 
 export async function updateProfileAction(_previousState: FormState, formData: FormData): Promise<FormState> {
   const [userId, t] = await Promise.all([getSignedInUserId(), getT()])
@@ -16,10 +24,12 @@ export async function updateProfileAction(_previousState: FormState, formData: F
     return signedOutState(t)
   }
 
-  const state = await profileForm.submit(formData, (profile) =>
+  const state = await profileForm.submit(formData, ({ picture, birthDate, ...profile }) =>
     updateProfile(userId, {
-      username: profile.username,
-      picture: profile.picture === REMOVE_PICTURE ? null : profile.picture || undefined,
+      ...profile,
+      // Midday, so the date is the same day in every time zone.
+      birthDate: birthDate ? new Date(`${birthDate}T12:00:00`) : null,
+      picture: picture === REMOVE_PICTURE ? null : picture || undefined,
     }),
   )
 
@@ -28,6 +38,27 @@ export async function updateProfileAction(_previousState: FormState, formData: F
     revalidatePath('/', 'layout')
   }
 
-  // The form keeps what was typed itself, so the picture is not sent back.
-  return translateFormState({ status: state.status, fieldErrors: state.fieldErrors, formErrors: state.formErrors }, t)
+  return translateFormState(withoutValues(state), t)
+}
+
+export async function changeCredentialsAction(_previousState: FormState, formData: FormData): Promise<FormState> {
+  const [userId, t] = await Promise.all([getSignedInUserId(), getT()])
+
+  if (!userId) {
+    return signedOutState(t)
+  }
+
+  const state = await credentialsForm.submit(formData, (credentials) =>
+    changeCredentials(userId, {
+      currentPassword: credentials.currentPassword,
+      email: credentials.email,
+      newPassword: credentials.newPassword || null,
+    }),
+  )
+
+  if (state.status === 'success') {
+    revalidatePath('/', 'layout')
+  }
+
+  return translateFormState(withoutValues(state), t)
 }
