@@ -3,10 +3,15 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
 // Pages a visitor can open without an account.
-const PUBLIC_PATHS = ['/', '/login', '/signup', '/learn', '/favicon.ico']
+const PUBLIC_PATHS = ['/', '/login', '/signup', '/learn', '/icon.svg', '/apple-icon']
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
+
+  // Browsers ask for this address on their own. They get the app's icon.
+  if (pathname === '/favicon.ico') {
+    return NextResponse.rewrite(new URL('/icon.svg', request.url))
+  }
 
   if (pathname.startsWith('/api/auth') || pathname.startsWith('/_next') || PUBLIC_PATHS.includes(pathname)) {
     return NextResponse.next()
@@ -27,5 +32,5 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/((?!api|_next|login|signup|favicon.ico).*)'],
+  matcher: ['/((?!api|_next|login|signup|icon.svg|apple-icon).*)'],
 }

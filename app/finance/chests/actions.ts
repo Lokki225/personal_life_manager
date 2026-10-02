@@ -5,10 +5,11 @@ import { revalidatePath } from 'next/cache'
 import { createChest } from '@/application/finance/createChest'
 import { deleteChest } from '@/application/finance/deleteChest'
 import { getSignedInUserId } from '@/infrastructure/auth/sessionUser'
+import { userRepository } from '@/infrastructure/repositories/userRepository'
 import { signedOutState, translateFormState, type FormState } from '@/lib/forms/formState'
 import { getT } from '@/lib/i18n/server'
 
-import { chestForm, deleteChestForm } from './schema'
+import { chestForm, deleteChestForm, sweepDayForm } from './schema'
 
 export async function createChestAction(_previousState: FormState, formData: FormData): Promise<FormState> {
   const [userId, t] = await Promise.all([getSignedInUserId(), getT()])
@@ -41,6 +42,22 @@ export async function deleteChestAction(_previousState: FormState, formData: For
   }
 
   const state = await deleteChestForm.submit(formData, ({ chestId }) => deleteChest(userId, chestId))
+
+  if (state.status === 'success') {
+    revalidatePath('/finance', 'layout')
+  }
+
+  return translateFormState(state, t)
+}
+
+export async function setSweepDayAction(_previousState: FormState, formData: FormData): Promise<FormState> {
+  const [userId, t] = await Promise.all([getSignedInUserId(), getT()])
+
+  if (!userId) {
+    return signedOutState(t)
+  }
+
+  const state = await sweepDayForm.submit(formData, ({ day }) => userRepository.setBufferSweepDay(userId, day))
 
   if (state.status === 'success') {
     revalidatePath('/finance', 'layout')

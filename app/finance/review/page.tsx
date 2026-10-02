@@ -15,6 +15,7 @@ import { chartPoints } from '../chart-data'
 import { ColumnChart, LineChart } from '../charts'
 import { measurementLabel, operatorLabel } from '../goal-labels'
 import { Meter, Money } from '../money'
+import { ensureDaysSettled } from '../settle'
 
 const PERIOD_OPTIONS = ['day', 'week', 'month', 'year'] as const
 
@@ -99,6 +100,9 @@ function Breakdown({
 
 export default async function FinanceReviewPage({ searchParams }: PageProps<'/finance/review'>) {
   const [userId, t] = await Promise.all([getSignedInUserId(), getT()])
+
+  // The days that ended since the last visit are closed before anything is shown.
+  await ensureDaysSettled()
 
   if (!userId) {
     redirect('/login')

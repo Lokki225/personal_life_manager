@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
-import { BookOpen, ChevronDown, ChevronRight, Lock, Target, TriangleAlert, Wallet } from 'lucide-react'
+import { BookOpen, ChevronDown, ChevronRight, Lock, Target, TriangleAlert } from 'lucide-react'
 
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
@@ -15,10 +15,12 @@ import { getT } from '@/lib/i18n/server'
 import { m } from '@/lib/i18n/translate'
 import { cn } from '@/lib/utils'
 
+import { LogoTile } from '../logo'
 import { categoryStyle, eventStyle } from './categories'
 import { Meter, Money } from './money'
 import { AddAllocationDrawer, EditAllocationDrawer } from './plan-forms'
 import { AddExpenseDrawer, ConfirmIncomeDrawer, ExceptionDrawer, SaveRemainingDrawer } from './today-actions'
+import { ensureDaysSettled } from './settle'
 
 const STATUS_STYLES = {
   emerald: { dot: 'bg-success', meter: 'success' },
@@ -48,6 +50,9 @@ function SectionHeading({ title, href, linkLabel }: { title: string; href?: stri
 
 export default async function FinanceTodayPage() {
   const [user, t] = await Promise.all([getSignedInUser(), getT()])
+
+  // The days that ended since the last visit are closed before anything is shown.
+  await ensureDaysSettled()
 
   if (!user) {
     redirect('/login')
@@ -110,9 +115,7 @@ export default async function FinanceTodayPage() {
       {/* Right margin keeps the brand clear of the account and theme buttons */}
       <header className="space-y-4 [&>a]:mr-28">
         <Link href="/" className="inline-flex min-h-11 items-center gap-2.5">
-          <span className="flex size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-            <Wallet className="size-4" aria-hidden="true" />
-          </span>
+          <LogoTile className="size-8" />
           <span className="text-sm font-semibold tracking-tight">Personal Life Manager</span>
         </Link>
         <div>

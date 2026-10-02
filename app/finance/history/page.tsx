@@ -14,6 +14,7 @@ import { categoryStyle, eventStyle } from '../categories'
 import { chartPoints } from '../chart-data'
 import { ColumnChart } from '../charts'
 import { Money } from '../money'
+import { ensureDaysSettled } from '../settle'
 
 const CATEGORY_OPTIONS = ['all', ...new Set<string>([...EXPENSE_CATEGORIES, ...EXCEPTION_CATEGORIES])]
 const TYPE_OPTIONS = ['all', 'expense', 'exception', 'movement'] as const
@@ -89,6 +90,9 @@ function FilterRow({
 
 export default async function FinanceHistoryPage({ searchParams }: PageProps<'/finance/history'>) {
   const [userId, t] = await Promise.all([getSignedInUserId(), getT()])
+
+  // The days that ended since the last visit are closed before anything is shown.
+  await ensureDaysSettled()
 
   if (!userId) {
     redirect('/login')

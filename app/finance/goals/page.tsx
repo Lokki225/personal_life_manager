@@ -12,9 +12,13 @@ import { measurementLabel, operatorLabel } from '../goal-labels'
 import { Meter, Money } from '../money'
 import { CustomGoalDrawer } from './custom-goal-drawer'
 import { FundGoalDrawer, NewGoalDrawer } from './goal-forms'
+import { ensureDaysSettled } from '../settle'
 
 export default async function FinanceGoalsPage() {
   const [userId, t] = await Promise.all([getSignedInUserId(), getT()])
+
+  // The days that ended since the last visit are closed before anything is shown.
+  await ensureDaysSettled()
 
   if (!userId) {
     redirect('/login')

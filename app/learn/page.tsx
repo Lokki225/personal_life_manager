@@ -82,11 +82,11 @@ const SECTIONS: { icon: LucideIcon; title: string; lead: string; words: Word[] }
       { term: m('Chest'), text: m('A place to keep money. You can create as many as you need, one per purpose.') },
       {
         term: m('Buffer'),
-        text: m('The chest for what is left at the end of a day. It absorbs small surprises.'),
+        text: m('Where what is left of each day goes, on its own. Once a week it is emptied into your Base Chest.'),
       },
       {
         term: m('Base Chest'),
-        text: m('Your main chest. Income that no allocation claims lands here, and you can empty the Buffer into it.'),
+        text: m('Your main chest. Income that no allocation claims lands here, and so does the Buffer every week.'),
       },
       {
         term: m('Secure chest'),

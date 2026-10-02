@@ -1,11 +1,12 @@
 import type { ReactNode } from 'react'
 import Link from 'next/link'
-import { CalendarCheck, PiggyBank, ShieldCheck, Wallet } from 'lucide-react'
+import { CalendarCheck, PiggyBank, ShieldCheck } from 'lucide-react'
 
 import { getT } from '@/lib/i18n/server'
 import { m } from '@/lib/i18n/translate'
 
 import { LanguageCornerButton } from './language'
+import { LogoTile } from './logo'
 
 const HIGHLIGHTS = [
   {
@@ -28,9 +29,7 @@ const HIGHLIGHTS = [
 export function Brand({ className }: { className?: string }) {
   return (
     <Link href="/" className={`flex min-h-11 items-center gap-3 ${className ?? ''}`}>
-      <span className="flex size-10 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-        <Wallet className="size-5" aria-hidden="true" />
-      </span>
+      <LogoTile />
       <span className="text-sm font-semibold tracking-tight">Personal Life Manager</span>
     </Link>
   )
