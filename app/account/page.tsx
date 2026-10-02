@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
-import { ChevronLeft } from 'lucide-react'
+import { ChevronLeft, Download } from 'lucide-react'
 
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
@@ -84,6 +84,26 @@ export default async function AccountPage() {
             <p className="mt-1 text-sm text-muted-foreground">{t('The email and password you sign in with.')}</p>
           </div>
           <CredentialsForm email={profile.email} />
+        </CardContent>
+      </Card>
+
+      <Card className="gap-0 py-5">
+        <CardContent className="space-y-3">
+          <div>
+            <h2 className="text-base font-semibold">{t('Your data')}</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {t('Download everything you recorded as one file: your own backup, yours to keep.')}
+            </p>
+          </div>
+          {/* A plain link: the browser downloads the file the address returns. */}
+          <a
+            href="/account/export"
+            download
+            className="inline-flex h-11 items-center gap-2 rounded-md border px-4 text-sm font-medium hover:bg-accent"
+          >
+            <Download className="size-4" aria-hidden="true" />
+            {t('Export my data')}
+          </a>
         </CardContent>
       </Card>
 

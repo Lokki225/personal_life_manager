@@ -771,6 +771,45 @@ export const FR: Messages = {
     'Emptied every': 'Vidée chaque',
     'Choose a day.': 'Choisissez un jour.',
 
+    // --- Password reset, limits and export -------------------------------------
+    'Forgot password?': 'Mot de passe oublié ?',
+    'Forgot your password?': 'Mot de passe oublié ?',
+    'Enter the email of your account to receive a link to choose a new one.':
+      "Saisissez l'e-mail de votre compte pour recevoir un lien et en choisir un nouveau.",
+    'Back to sign in': 'Retour à la connexion',
+    'Reset links are not sent by email yet. Ask an administrator of the app: they can create a reset link for you.':
+      "Les liens de réinitialisation ne sont pas encore envoyés par e-mail. Demandez à un administrateur de l'application : il peut créer un lien pour vous.",
+    'If an account uses this email, a link to choose a new password is on its way. It works for one hour.':
+      "Si un compte utilise cet e-mail, un lien pour choisir un nouveau mot de passe est en route. Il est valable une heure.",
+    'Sending...': 'Envoi...',
+    'Send me a link': "M'envoyer un lien",
+    'Choose a new password': 'Choisissez un nouveau mot de passe',
+    'It replaces the old one as soon as you save.': "Il remplace l'ancien dès l'enregistrement.",
+    'Your password is changed. You can sign in with it now.':
+      'Votre mot de passe est modifié. Vous pouvez vous connecter avec.',
+    'Change my password': 'Changer mon mot de passe',
+    'This link is not valid.': "Ce lien n'est pas valide.",
+    'Ask for a new one': 'En demander un nouveau',
+    'This link has expired or was already used. Ask for a new one.':
+      'Ce lien a expiré ou a déjà été utilisé. Demandez-en un nouveau.',
+    'Too many attempts. Wait a while and try again.': 'Trop de tentatives. Patientez un moment puis réessayez.',
+    'Hello {name},': 'Bonjour {name},',
+    'Hello,': 'Bonjour,',
+    'Someone asked to reset the password of your Personal Life Manager account. To choose a new one, open this link within the hour:':
+      "Une demande de réinitialisation du mot de passe de votre compte Personal Life Manager a été faite. Pour en choisir un nouveau, ouvrez ce lien dans l'heure :",
+    'If it was not you, ignore this message: your password stays the same.':
+      "Si ce n'était pas vous, ignorez ce message : votre mot de passe reste le même.",
+    'Password reset link': 'Lien de réinitialisation',
+    'Create a password reset link for {name}': 'Créer un lien de réinitialisation du mot de passe pour {name}',
+    'Send this link to {name}. It works once, for 24 hours, and will not be shown again.':
+      "Envoyez ce lien à {name}. Il fonctionne une seule fois, pendant 24 heures, et ne sera plus affiché.",
+    'Copy the link': 'Copier le lien',
+    Copied: 'Copié',
+    'Your data': 'Vos données',
+    'Download everything you recorded as one file: your own backup, yours to keep.':
+      'Téléchargez tout ce que vous avez enregistré en un seul fichier : votre propre sauvegarde, à conserver.',
+    'Export my data': 'Exporter mes données',
+
     // --- Amounts ---------------------------------------------------------------
     'Enter an amount.': 'Saisissez un montant.',
     'Use digits only, for example 60000.': 'Utilisez uniquement des chiffres, par exemple 60000.',

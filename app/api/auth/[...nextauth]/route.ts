@@ -4,6 +4,11 @@ import type { NextAuthOptions } from 'next-auth'
 import bcrypt from 'bcryptjs'
 
 import { prisma } from '@/infrastructure/prisma/client'
+import { securityRepository } from '@/infrastructure/repositories/securityRepository'
+
+// Wrong passwords allowed for one email before sign-in pauses for it.
+const SIGN_IN_LIMIT = 10
+const SIGN_IN_WINDOW = 15 * 60 * 1000
 
 export const authOptions: NextAuthOptions = {
   session: {
@@ -21,13 +26,19 @@ export const authOptions: NextAuthOptions = {
           return null
         }
 
-        const user = await prisma.user.findUnique({
-          where: {
-            email: credentials.email.toLowerCase(),
-          },
-        })
+        const email = credentials.email.trim().toLowerCase()
+        const attempts = `signIn:${email}`
+
+        // Guessing a password is slowed down: after too many wrong ones, even
+        // the right one waits. The message name is read by the sign-in form.
+        if (await securityRepository.isLimited(attempts, SIGN_IN_LIMIT, SIGN_IN_WINDOW)) {
+          throw new Error('TooManyAttempts')
+        }
+
+        const user = await prisma.user.findUnique({ where: { email } })
 
         if (!user) {
+          await securityRepository.recordAttempt(attempts)
           return null
         }
 
@@ -37,6 +48,7 @@ export const authOptions: NextAuthOptions = {
         )
 
         if (!isValidPassword) {
+          await securityRepository.recordAttempt(attempts)
           return null
         }
 

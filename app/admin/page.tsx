@@ -17,6 +17,7 @@ import { ColumnChart } from '../finance/charts'
 import { Meter } from '../finance/money'
 import { LANGUAGE_NAMES } from '../language-names'
 import { SignedInMenu } from '../signed-in-menu'
+import { ResetLinkButton } from './reset-link'
 import { RoleSelect } from './role-select'
 
 export const metadata: Metadata = {
@@ -227,6 +228,7 @@ export default async function AdminPage() {
                       <RoleSelect userId={user.id} name={name} role={user.role} />
                     )}
                   </div>
+                  <ResetLinkButton userId={user.id} name={name} />
                 </li>
               )
             })}
