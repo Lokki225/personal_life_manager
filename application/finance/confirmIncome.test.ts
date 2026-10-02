@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 
-import { confirmIncome, listPendingIncomes } from './confirmIncome'
+import { confirmIncome, depositSetupMonth, listPendingIncomes } from './confirmIncome'
 
 const today = new Date(2026, 8, 15, 10)
 
@@ -39,6 +39,21 @@ describe('listPendingIncomes', () => {
     const pending = await listPendingIncomes('user-1', today, depsOf([{ incomeId: 'side' }]))
 
     expect(pending.map((income) => income.id)).toEqual(['salary'])
+  })
+})
+
+describe('depositSetupMonth', () => {
+  it('counts the income set up this month as received, and nothing older or already done', async () => {
+    const deps = depsOf()
+
+    // Only "Bonus" was set up in September.
+    await expect(depositSetupMonth('user-1', today, deps)).resolves.toBe(1)
+    expect(deps.confirm).toHaveBeenCalledTimes(1)
+    expect(deps.confirm).toHaveBeenCalledWith('user-1', expect.objectContaining({ incomeId: 'new', amount: 9000 }))
+
+    const done = depsOf([{ incomeId: 'new' }])
+    await expect(depositSetupMonth('user-1', today, done)).resolves.toBe(0)
+    expect(done.confirm).not.toHaveBeenCalled()
   })
 })
 

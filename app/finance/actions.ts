@@ -5,6 +5,7 @@ import { revalidatePath } from 'next/cache'
 import { MovementReason } from '@/app/generated/prisma/enums'
 import { consolidateBuffer } from '@/application/finance/consolidateBuffer'
 import { confirmIncome } from '@/application/finance/confirmIncome'
+import { removeAllocation, saveAllocation } from '@/application/finance/managePlan'
 import { recordDailyException } from '@/application/finance/recordDailyException'
 import { recordDailyExpense } from '@/application/finance/recordDailyExpense'
 import { saveDailyRemaining } from '@/application/finance/saveDailyRemaining'
@@ -15,6 +16,8 @@ import { getT } from '@/lib/i18n/server'
 
 import {
   confirmIncomeForm,
+  deleteAllocationForm,
+  planAllocationForm,
   consolidateForm,
   exceptionForm,
   expenseForm,
@@ -141,6 +144,38 @@ export async function consolidateBufferAction(_previousState: FormState, formDat
   const state = await consolidateForm.submit(formData, async () => {
     await consolidateBuffer(userId)
   })
+
+  if (state.status === 'success') {
+    refreshFinance()
+  }
+
+  return translateFormState(state, t)
+}
+
+export async function saveAllocationAction(_previousState: FormState, formData: FormData): Promise<FormState> {
+  const [userId, t] = await Promise.all([getSignedInUserId(), getT()])
+
+  if (!userId) {
+    return signedOutState(t)
+  }
+
+  const state = await planAllocationForm.submit(formData, (allocation) => saveAllocation(userId, allocation))
+
+  if (state.status === 'success') {
+    refreshFinance()
+  }
+
+  return translateFormState(state, t)
+}
+
+export async function deleteAllocationAction(_previousState: FormState, formData: FormData): Promise<FormState> {
+  const [userId, t] = await Promise.all([getSignedInUserId(), getT()])
+
+  if (!userId) {
+    return signedOutState(t)
+  }
+
+  const state = await deleteAllocationForm.submit(formData, ({ id }) => removeAllocation(userId, id))
 
   if (state.status === 'success') {
     refreshFinance()

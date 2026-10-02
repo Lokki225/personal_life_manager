@@ -712,6 +712,22 @@ export const FR: Messages = {
       "Rien n'est relié à votre banque. L'application ne connaît que ce que vous enregistrez.",
     'That is all you need to start.': "C'est tout ce qu'il faut pour commencer.",
 
+    // --- Editing the plan ------------------------------------------------------
+    'Add allocation': 'Ajouter un poste',
+    'New allocation': 'Nouveau poste',
+    'Edit allocation': 'Modifier le poste',
+    'Edit {name}': 'Modifier {name}',
+    'Changes apply from today. Money already placed in your chests this month stays where it is.':
+      "Les changements s'appliquent dès aujourd'hui. L'argent déjà placé dans vos coffres ce mois-ci reste où il est.",
+    'Rent, internet, savings...': 'Loyer, internet, épargne...',
+    'Delete this allocation': 'Supprimer ce poste',
+    'Delete this allocation? Your past expenses are kept.': 'Supprimer ce poste ? Vos dépenses passées sont conservées.',
+    'Not allocated': 'Non réparti',
+    'It goes to your Base Chest each time your income is confirmed.':
+      'Ce montant va dans votre coffre principal à chaque confirmation de revenu.',
+    'This allocation no longer exists.': "Ce poste n'existe plus.",
+    'Choose an allocation.': 'Choisissez un poste.',
+
     // --- Amounts ---------------------------------------------------------------
     'Enter an amount.': 'Saisissez un montant.',
     'Use digits only, for example 60000.': 'Utilisez uniquement des chiffres, par exemple 60000.',
