@@ -168,6 +168,29 @@ model User {
   projects          Project[]
   debts             Debt[]
   incomeReceipts    IncomeReceipt[]
+  passwordResets    PasswordResetToken[]
+}
+
+// A one-time link to choose a new password. Only a hash of the link's secret
+// is kept, so the table alone cannot be used to take over an account.
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+}
+
+// One attempt at something that is limited: signing up, signing in, asking
+// for a reset. `key` names the action and who tried, e.g. "signup:1.2.3.4".
+model RateLimitHit {
+  id        String   @id @default(cuid())
+  key       String
+  createdAt DateTime @default(now())
+
+  @@index([key, createdAt])
 }
 
 model Income {

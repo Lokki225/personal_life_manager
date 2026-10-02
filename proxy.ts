@@ -3,7 +3,16 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
 // Pages a visitor can open without an account.
-const PUBLIC_PATHS = ['/', '/login', '/signup', '/learn', '/icon.svg', '/apple-icon']
+const PUBLIC_PATHS = [
+  '/',
+  '/login',
+  '/signup',
+  '/forgot-password',
+  '/reset-password',
+  '/learn',
+  '/icon.svg',
+  '/apple-icon',
+]
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl

@@ -56,6 +56,9 @@ export function SignUpForm() {
 
   return (
     <form onSubmit={handleSubmit} className="mt-8 space-y-5" noValidate>
+      {/* Not for people: see signUpAction. Hidden from sight, keyboard and screen readers. */}
+      <input type="text" name="website" tabIndex={-1} autoComplete="off" aria-hidden="true" className="hidden" />
+
       <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 sm:gap-3">
         <div className="grid content-start gap-2">
           <Label htmlFor="firstName">{t('First name')}</Label>

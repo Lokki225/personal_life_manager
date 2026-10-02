@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, type FormEvent } from 'react'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { signIn } from 'next-auth/react'
 import { CircleAlert, Eye, EyeOff, Loader2, LogIn } from 'lucide-react'
@@ -18,6 +19,10 @@ const ERROR_ID = 'login-error'
 type LoginError = { kind: 'credentials' | 'server'; message: string }
 
 const INVALID_CREDENTIALS: LoginError = { kind: 'credentials', message: m('Invalid email or password.') }
+const TOO_MANY_ATTEMPTS: LoginError = {
+  kind: 'server',
+  message: m('Too many attempts. Wait a while and try again.'),
+}
 const SERVER_UNAVAILABLE: LoginError = {
   kind: 'server',
   message: m('We could not sign you in right now. Check your connection and try again.'),
@@ -48,7 +53,13 @@ export function LoginForm({ callbackUrl }: { callbackUrl: string }) {
       }
 
       // Only a refused login is the user's mistake; anything else is ours.
-      setError(result?.error === 'CredentialsSignin' ? INVALID_CREDENTIALS : SERVER_UNAVAILABLE)
+      setError(
+        result?.error === 'CredentialsSignin'
+          ? INVALID_CREDENTIALS
+          : result?.error === 'TooManyAttempts'
+            ? TOO_MANY_ATTEMPTS
+            : SERVER_UNAVAILABLE,
+      )
     } catch {
       setError(SERVER_UNAVAILABLE)
     }
@@ -82,7 +93,12 @@ export function LoginForm({ callbackUrl }: { callbackUrl: string }) {
       </div>
 
       <div className="grid gap-2">
-        <Label htmlFor="password">{t('Password')}</Label>
+        <div className="flex items-baseline justify-between gap-3">
+          <Label htmlFor="password">{t('Password')}</Label>
+          <Link href="/forgot-password" className="text-sm text-muted-foreground underline underline-offset-4 hover:text-foreground">
+            {t('Forgot password?')}
+          </Link>
+        </div>
         <div className="relative">
           <Input
             id="password"
