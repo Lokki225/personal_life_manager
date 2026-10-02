@@ -65,7 +65,18 @@ export const credentialsSchema = z
     path: ['confirmPassword'],
   })
 
+export const apiTokenSchema = z.object({
+  name: requiredText('Say what the key is for.', 40),
+  scope: z.enum(['READ', 'WRITE'], { error: 'Choose what the key may do.' }),
+})
+
+export const deleteApiTokenSchema = z.object({
+  id: z.string({ error: 'Choose a key.' }).trim().min(1, 'Choose a key.'),
+})
+
 const options = { isRuleError: isAccountRuleError }
 
 export const profileForm = new FormHandler(profileSchema, options)
 export const credentialsForm = new FormHandler(credentialsSchema, options)
+export const apiTokenForm = new FormHandler(apiTokenSchema, options)
+export const deleteApiTokenForm = new FormHandler(deleteApiTokenSchema, options)

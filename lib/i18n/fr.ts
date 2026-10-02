@@ -859,6 +859,8 @@ export const FR: Messages = {
     'Sent. It should appear in a moment.': 'Envoyé. Elle devrait apparaître dans un instant.',
     'Notifications could not be turned on for this device.':
       "Les notifications n'ont pas pu être activées sur cet appareil.",
+    'Brave blocks notifications until you allow them: open brave://settings/privacy, turn on "Use Google services for push messaging", then try again.':
+      "Brave bloque les notifications tant que vous ne les autorisez pas : ouvrez brave://settings/privacy, activez « Utiliser les services Google pour la messagerie push », puis réessayez.",
     'Notifications could not be turned off. Try again.': "Les notifications n'ont pas pu être désactivées. Réessayez.",
     'This browser cannot receive notifications here. On an iPhone, first add the app to your home screen (Share, then "Add to Home Screen") and open it from there.':
       "Ce navigateur ne peut pas recevoir de notifications ici. Sur iPhone, ajoutez d'abord l'application à votre écran d'accueil (Partager, puis « Sur l'écran d'accueil ») et ouvrez-la depuis là.",
@@ -883,6 +885,37 @@ export const FR: Messages = {
     '{name} owes you {amount}.': '{name} vous doit {amount}.',
     'A loan is late coming back': 'Un prêt tarde à revenir',
     '{name} still owes you {amount}.': '{name} vous doit encore {amount}.',
+
+    // --- API keys ------------------------------------------------------------------
+    'API keys': 'Clés API',
+    'A key lets a program, such as an assistant, use the app as you. Give one only to something you trust, and delete it when you stop using it.':
+      "Une clé permet à un programme, par exemple un assistant, d'utiliser l'application en votre nom. N'en donnez qu'à ce en quoi vous avez confiance, et supprimez-la quand vous ne l'utilisez plus.",
+    'Copy this key now. It will not be shown again.': 'Copiez cette clé maintenant. Elle ne sera plus affichée.',
+    'Copy the key': 'Copier la clé',
+    'Can read and record': 'Peut lire et enregistrer',
+    'Can only read': 'Peut seulement lire',
+    'Created {date}': 'Créée le {date}',
+    'Last used {date}': 'Dernière utilisation le {date}',
+    'Never used': 'Jamais utilisée',
+    'Delete this key? Whatever uses it stops working at once.':
+      "Supprimer cette clé ? Ce qui l'utilise cessera aussitôt de fonctionner.",
+    'What is it for?': 'À quoi sert-elle ?',
+    'My assistant, a script...': 'Mon assistant, un script...',
+    'What may it do?': 'Que peut-elle faire ?',
+    'Only read my data': 'Seulement lire mes données',
+    'Read, record and notify me': 'Lire, enregistrer et me notifier',
+    'Create a key': 'Créer une clé',
+    'Say what the key is for.': 'Indiquez à quoi sert la clé.',
+    'Choose what the key may do.': 'Choisissez ce que la clé peut faire.',
+    'Choose a key.': 'Choisissez une clé.',
+    'You have the maximum number of keys. Delete one first.':
+      "Vous avez le nombre maximal de clés. Supprimez-en une d'abord.",
+    'This key no longer exists.': "Cette clé n'existe plus.",
+    'Keep the description under 80 characters.': 'La description doit faire moins de 80 caractères.',
+    'Keep the reason under 160 characters.': 'La raison doit faire moins de 160 caractères.',
+    'Send the expense as a JSON object.': 'Envoyez la dépense sous forme d’objet JSON.',
+    'Give at least one of "amount", "category" or "description".':
+      'Donnez au moins « amount », « category » ou « description ».',
 
     // --- Amounts ---------------------------------------------------------------
     'Enter an amount.': 'Saisissez un montant.',

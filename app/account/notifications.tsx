@@ -24,6 +24,30 @@ function keyBytes(key: string): Uint8Array<ArrayBuffer> {
   return bytes
 }
 
+// Some browsers never answer a subscription they will not allow. Waiting is
+// cut short so the person gets an explanation instead of an endless spinner.
+const SUBSCRIBE_TIMEOUT = 15_000
+
+function withTimeout<Result>(task: Promise<Result>): Promise<Result> {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error('timeout')), SUBSCRIBE_TIMEOUT)
+
+    task.then(
+      (value) => {
+        clearTimeout(timer)
+        resolve(value)
+      },
+      (error) => {
+        clearTimeout(timer)
+        reject(error)
+      },
+    )
+  })
+}
+
+// Brave blocks the push service of Chromium browsers until a setting is on.
+const isBrave = () => 'brave' in navigator
+
 const isSupported = () => 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window
 
 // Turns notifications on or off for this device. `publicKey` is null when the
@@ -78,10 +102,12 @@ export function NotificationSettings({ publicKey }: { publicKey: string | null }
         }
 
         const registration = await navigator.serviceWorker.register('/sw.js')
-        await navigator.serviceWorker.ready
+        await withTimeout(navigator.serviceWorker.ready)
         const subscription =
           (await registration.pushManager.getSubscription()) ??
-          (await registration.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: keyBytes(publicKey!) }))
+          (await withTimeout(
+            registration.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: keyBytes(publicKey!) }),
+          ))
         const saved = await subscribePushAction(JSON.parse(JSON.stringify(subscription)))
 
         if (saved.error) {
@@ -91,7 +117,13 @@ export function NotificationSettings({ publicKey }: { publicKey: string | null }
 
         setStatus('on')
       } catch {
-        setMessage(t('Notifications could not be turned on for this device.'))
+        setMessage(
+          isBrave()
+            ? t(
+                'Brave blocks notifications until you allow them: open brave://settings/privacy, turn on "Use Google services for push messaging", then try again.',
+              )
+            : t('Notifications could not be turned on for this device.'),
+        )
       }
     })
 

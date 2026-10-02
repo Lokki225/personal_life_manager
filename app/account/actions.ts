@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 
+import { createApiToken, deleteApiToken } from '@/application/account/apiTokens'
 import { changeCredentials, updateProfile } from '@/application/account/profile'
 import { notifyDevices } from '@/application/notifications/notify'
 import { getSignedInUser } from '@/infrastructure/auth/sessionUser'
@@ -12,7 +13,7 @@ import { signedOutState, translateFormState, type FormState } from '@/lib/forms/
 import { isValidTimeZone, setClockZone } from '@/lib/clock'
 import { getT } from '@/lib/i18n/server'
 
-import { credentialsForm, profileForm, REMOVE_PICTURE } from './schema'
+import { apiTokenForm, credentialsForm, deleteApiTokenForm, profileForm, REMOVE_PICTURE } from './schema'
 
 // What was typed stays in the form itself, so it is never sent back: not a
 // picture, and above all not a password.
@@ -143,4 +144,42 @@ export async function sendTestPushAction(): Promise<{ error?: string }> {
   })
 
   return delivered > 0 ? {} : { error: t('The test could not be sent. Turn notifications off and on again.') }
+}
+
+// The answer to creating a key carries the key itself, this once.
+export type CreateTokenState = FormState & { token?: string }
+
+export async function createApiTokenAction(_previousState: CreateTokenState, formData: FormData): Promise<CreateTokenState> {
+  const [user, t] = await Promise.all([getSignedInUser(), getT()])
+
+  if (!user) {
+    return signedOutState(t)
+  }
+
+  let token: string | undefined
+  const state = await apiTokenForm.submit(formData, async (input) => {
+    token = await createApiToken(user.id, input)
+  })
+
+  if (state.status === 'success') {
+    revalidatePath('/account')
+  }
+
+  return { ...translateFormState(state, t), token }
+}
+
+export async function deleteApiTokenAction(_previousState: FormState, formData: FormData): Promise<FormState> {
+  const [user, t] = await Promise.all([getSignedInUser(), getT()])
+
+  if (!user) {
+    return signedOutState(t)
+  }
+
+  const state = await deleteApiTokenForm.submit(formData, ({ id }) => deleteApiToken(user.id, id))
+
+  if (state.status === 'success') {
+    revalidatePath('/account')
+  }
+
+  return translateFormState(state, t)
 }
