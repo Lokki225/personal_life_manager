@@ -9,6 +9,8 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select'
 import { fieldAttributes, fieldName, initialFormState, type FormState } from '@/lib/forms/formState'
+import { useT } from '@/lib/i18n/client'
+import { m } from '@/lib/i18n/translate'
 
 import { MEASUREMENT_LABELS, OPERATOR_LABELS } from '../goal-labels'
 import { ActionDrawer, ActionForm, FIELD_CLASS } from '../today-actions'
@@ -22,6 +24,7 @@ type ConditionRow = { key: number; measurement: string }
 const newRow = (key: number): ConditionRow => ({ key, measurement: 'chest_balance' })
 
 function GoalBuilderFields({ state, chests }: { state: FormState; chests: { id: string; name: string }[] }) {
+  const t = useT()
   const [rows, setRows] = useState<ConditionRow[]>([newRow(0)])
   const [nextKey, setNextKey] = useState(1)
   // Row errors are keyed by position, so they are hidden once rows move.
@@ -42,11 +45,11 @@ function GoalBuilderFields({ state, chests }: { state: FormState; chests: { id: 
   return (
     <>
       <div className="grid gap-2">
-        <Label htmlFor="custom-goal-name">Goal</Label>
+        <Label htmlFor="custom-goal-name">{t('Goal')}</Label>
         <Input
           id="custom-goal-name"
           {...fieldAttributes(state, 'name', scope)}
-          placeholder="A disciplined month"
+          placeholder={t('A disciplined month')}
           maxLength={40}
           className={FIELD_CLASS}
         />
@@ -54,11 +57,11 @@ function GoalBuilderFields({ state, chests }: { state: FormState; chests: { id: 
       </div>
 
       <fieldset className="grid gap-2">
-        <legend className="mb-2 text-sm font-medium">It is reached when</legend>
+        <legend className="mb-2 text-sm font-medium">{t('It is reached when')}</legend>
         <div className="grid grid-cols-2 gap-2">
           {[
-            { value: 'ALL', label: 'All conditions hold' },
-            { value: 'ANY', label: 'Any one holds' },
+            { value: 'ALL', label: m('All conditions hold') },
+            { value: 'ANY', label: m('Any one holds') },
           ].map((option, index) => (
             <label key={option.value} className="cursor-pointer">
               <input
@@ -69,7 +72,7 @@ function GoalBuilderFields({ state, chests }: { state: FormState; chests: { id: 
                 className="peer sr-only"
               />
               <span className="flex min-h-12 items-center justify-center rounded-md border border-input px-3 text-center text-sm font-medium transition-colors peer-checked:border-primary peer-checked:bg-primary peer-checked:text-primary-foreground peer-focus-visible:ring-[3px] peer-focus-visible:ring-ring/50">
-                {option.label}
+                {t(option.label)}
               </span>
             </label>
           ))}
@@ -92,7 +95,7 @@ function GoalBuilderFields({ state, chests }: { state: FormState; chests: { id: 
           >
             <div className="flex min-h-11 items-center justify-between">
               <p id={id('title')} className="text-sm font-semibold">
-                Condition {index + 1}
+                {t('Condition {number}', { number: String(index + 1) })}
               </p>
               {rows.length > 1 ? (
                 <Button
@@ -101,7 +104,7 @@ function GoalBuilderFields({ state, chests }: { state: FormState; chests: { id: 
                   size="icon"
                   onClick={() => removeRow(row.key)}
                   className="-mr-2 size-11 text-muted-foreground hover:text-destructive-strong"
-                  aria-label={`Remove condition ${index + 1}`}
+                  aria-label={t('Remove condition {number}', { number: String(index + 1) })}
                 >
                   <Trash2 aria-hidden="true" />
                 </Button>
@@ -110,7 +113,7 @@ function GoalBuilderFields({ state, chests }: { state: FormState; chests: { id: 
             <FieldError state={rowState} name={fieldName('conditions', index)} scope={scope} />
 
             <div className="grid gap-2">
-              <Label htmlFor={id('measurement')}>Measure</Label>
+              <Label htmlFor={id('measurement')}>{t('Measure')}</Label>
               <NativeSelect
                 id={id('measurement')}
                 {...fieldAttributes(rowState, name('measurement'), scope)}
@@ -126,7 +129,7 @@ function GoalBuilderFields({ state, chests }: { state: FormState; chests: { id: 
               >
                 {Object.entries(MEASUREMENT_LABELS).map(([value, label]) => (
                   <NativeSelectOption key={value} value={value}>
-                    {label}
+                    {t(label)}
                   </NativeSelectOption>
                 ))}
               </NativeSelect>
@@ -135,7 +138,7 @@ function GoalBuilderFields({ state, chests }: { state: FormState; chests: { id: 
 
             {row.measurement === 'chest_balance' ? (
               <div className="grid gap-2">
-                <Label htmlFor={id('chestId')}>Chest</Label>
+                <Label htmlFor={id('chestId')}>{t('Chest')}</Label>
                 <NativeSelect
                   id={id('chestId')}
                   {...fieldAttributes(rowState, name('chestId'), scope)}
@@ -143,7 +146,7 @@ function GoalBuilderFields({ state, chests }: { state: FormState; chests: { id: 
                 >
                   {chests.map((chest) => (
                     <NativeSelectOption key={chest.id} value={chest.id}>
-                      {chest.name}
+                      {t(chest.name)}
                     </NativeSelectOption>
                   ))}
                 </NativeSelect>
@@ -153,7 +156,7 @@ function GoalBuilderFields({ state, chests }: { state: FormState; chests: { id: 
 
             <div className="grid grid-cols-2 gap-2">
               <div className="grid gap-2">
-                <Label htmlFor={id('operator')}>Is</Label>
+                <Label htmlFor={id('operator')}>{t('Is')}</Label>
                 <NativeSelect
                   id={id('operator')}
                   {...fieldAttributes(rowState, name('operator'), scope)}
@@ -164,14 +167,14 @@ function GoalBuilderFields({ state, chests }: { state: FormState; chests: { id: 
                 >
                   {Object.entries(OPERATOR_LABELS).map(([value, label]) => (
                     <NativeSelectOption key={value} value={value}>
-                      {label}
+                      {t(label)}
                     </NativeSelectOption>
                   ))}
                 </NativeSelect>
                 <FieldError state={rowState} name={name('operator')} scope={scope} />
               </div>
               <div className="grid gap-2">
-                <Label htmlFor={id('targetValue')}>Target</Label>
+                <Label htmlFor={id('targetValue')}>{t('Target')}</Label>
                 <Input
                   id={id('targetValue')}
                   {...fieldAttributes(rowState, name('targetValue'), scope)}
@@ -191,7 +194,7 @@ function GoalBuilderFields({ state, chests }: { state: FormState; chests: { id: 
       {rows.length < MAX_CONDITIONS ? (
         <Button type="button" variant="outline" onClick={addRow} className="h-11 w-full">
           <Plus aria-hidden="true" />
-          Add a condition
+          {t('Add a condition')}
         </Button>
       ) : null}
     </>
@@ -199,19 +202,21 @@ function GoalBuilderFields({ state, chests }: { state: FormState; chests: { id: 
 }
 
 export function CustomGoalDrawer({ chests }: { chests: { id: string; name: string }[] }) {
+  const t = useT()
+
   return (
     <ActionDrawer
-      title="Custom goal"
-      description="Combine several conditions, such as a balance to reach and a limit on exceptions."
+      title={t('Custom goal')}
+      description={t('Combine several conditions, such as a balance to reach and a limit on exceptions.')}
       trigger={
         <Button variant="outline" className="h-11">
           <ListChecks aria-hidden="true" />
-          Custom goal
+          {t('Custom goal')}
         </Button>
       }
     >
       {(close) => (
-        <ActionForm action={createCustomGoalAction} submitLabel="Create goal" onDone={close}>
+        <ActionForm action={createCustomGoalAction} submitLabel={t('Create goal')} onDone={close}>
           {(state) => <GoalBuilderFields state={state} chests={chests} />}
         </ActionForm>
       )}

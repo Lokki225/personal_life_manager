@@ -8,7 +8,7 @@ export default function LoginLoading() {
         <div className="h-11 rounded-md bg-muted" />
         <div className="h-11 rounded-md bg-muted" />
         <div className="h-11 rounded-md bg-muted" />
-        <span className="sr-only">Loading sign in</span>
+        <span className="sr-only">Loading / Chargement</span>
       </div>
     </main>
   )

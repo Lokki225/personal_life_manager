@@ -41,6 +41,11 @@
   --category-subscription: #047857;
   --category-savings: #4d7c0f;
   --category-custom: #475569;
+  /* Chart series, in this fixed order. Checked for colour-blind separation. */
+  --chart-1: #2a78d6;
+  --chart-2: #eb6834;
+  --chart-3: #1baf7a;
+  --chart-4: #eda100;
   --radius: 0.875rem;
   color-scheme: light;
 }
@@ -75,6 +80,10 @@ html[data-theme='dark'] {
   --category-subscription: #34d399;
   --category-savings: #a3e635;
   --category-custom: #cbd5e1;
+  --chart-1: #3987e5;
+  --chart-2: #d95926;
+  --chart-3: #199e70;
+  --chart-4: #c98500;
   color-scheme: dark;
 }
 
@@ -107,6 +116,10 @@ html[data-theme='dark'] {
   --color-category-subscription: var(--category-subscription);
   --color-category-savings: var(--category-savings);
   --color-category-custom: var(--category-custom);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
   --radius-sm: calc(var(--radius) - 6px);
   --radius-md: calc(var(--radius) - 4px);
   --radius-lg: var(--radius);
@@ -151,76 +164,4 @@ textarea {
   min-height: 100vh;
   min-height: 100dvh;
   background: transparent;
-}
-
-.bento-card {
-  background: var(--panel);
-  border: 1px solid var(--border);
-  border-radius: 28px;
-  box-shadow: var(--shadow-soft);
-  backdrop-filter: blur(12px);
-}
-
-.bento-card-strong {
-  background: var(--panel-strong);
-  border: 1px solid var(--border);
-  border-radius: 28px;
-  box-shadow: var(--shadow-soft);
-}
-
-.bento-card-soft {
-  background: var(--panel-soft);
-  border: 1px solid var(--border);
-  border-radius: 24px;
-}
-
-.bento-label {
-  font-size: 10px;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--muted);
-}
-
-.bento-button-primary {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 16px;
-  background: var(--accent);
-  color: var(--panel-strong);
-  border: 1px solid transparent;
-  transition: transform 0.2s ease, opacity 0.2s ease;
-}
-
-.bento-button-primary:hover {
-  transform: translateY(-1px);
-}
-
-.bento-button-secondary {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 16px;
-  background: transparent;
-  color: var(--text);
-  border: 1px solid var(--border);
-}
-
-.bento-input {
-  width: 100%;
-  border-radius: 16px;
-  border: 1px solid var(--border);
-  background: rgba(148, 163, 184, 0.04);
-  color: var(--text);
-  padding: 0.8rem 0.9rem;
-}
-
-.bento-input:focus {
-  outline: 2px solid var(--ring);
-  outline-offset: 1px;
-}
-
-.bento-grid {
-  display: grid;
-  gap: 1rem;
 }

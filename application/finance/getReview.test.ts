@@ -62,6 +62,12 @@ describe('getReview', () => {
         expect.objectContaining({ category: 'transportation', total: 220 }),
       ]),
     )
+    // September, day by day: spending on the 10th, 12th and 14th, and the 150
+    // saved on the 15th. Later days have no balance yet.
+    expect(review.trend?.buckets).toHaveLength(30)
+    expect(review.trend?.spent.slice(9, 14)).toEqual([120, 0, 80, 0, 220])
+    expect(review.trend?.budget).toBe(83)
+    expect(review.trend?.saved.slice(13, 16)).toEqual([0, 150, null])
     expect(review.exceptionBreakdown).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ category: 'food', total: 45 }),

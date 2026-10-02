@@ -8,9 +8,11 @@ import { FieldError } from '@/components/ui/field-error'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select'
-import { CURRENCY_CODE, formatAmount } from '@/domain/finance/calculations'
+import { CURRENCY_CODE } from '@/domain/finance/calculations'
 import type { DebtDirection } from '@/domain/finance/options'
 import { fieldAttributes, type FormState } from '@/lib/forms/formState'
+import { useT } from '@/lib/i18n/client'
+import { m } from '@/lib/i18n/translate'
 
 import { ActionDrawer, ActionForm, AmountField, FIELD_CLASS } from '../today-actions'
 import { createDebtAction, repayDebtAction } from './actions'
@@ -20,8 +22,8 @@ type ChestOption = { id: string; name: string; balance: number }
 type GoalOption = { id: string; name: string }
 
 const DIRECTIONS: { value: DebtDirection; label: string }[] = [
-  { value: 'BORROWED', label: 'I borrowed' },
-  { value: 'LENT', label: 'I lent' },
+  { value: 'BORROWED', label: m('I borrowed') },
+  { value: 'LENT', label: m('I lent') },
 ]
 
 function SourceChestField({
@@ -35,9 +37,11 @@ function SourceChestField({
   chests: ChestOption[]
   defaultChestId?: string
 }) {
+  const t = useT()
+
   return (
     <div className="grid gap-2">
-      <Label htmlFor={`${scope}-chestId`}>Take it from</Label>
+      <Label htmlFor={`${scope}-chestId`}>{t('Take it from')}</Label>
       <NativeSelect
         id={`${scope}-chestId`}
         {...fieldAttributes(state, 'chestId', scope)}
@@ -46,7 +50,7 @@ function SourceChestField({
       >
         {chests.map((chest) => (
           <NativeSelectOption key={chest.id} value={chest.id}>
-            {chest.name} ({formatAmount(chest.balance)})
+            {t(chest.name)} ({t.amount(chest.balance)})
           </NativeSelectOption>
         ))}
       </NativeSelect>
@@ -56,6 +60,7 @@ function SourceChestField({
 }
 
 function DebtFields({ state, chests, goals }: { state: FormState; chests: ChestOption[]; goals: GoalOption[] }) {
+  const t = useT()
   const scope = 'debt'
   const [direction, setDirection] = useState<DebtDirection>('BORROWED')
   const [interestType, setInterestType] = useState('NONE')
@@ -64,7 +69,7 @@ function DebtFields({ state, chests, goals }: { state: FormState; chests: ChestO
   return (
     <>
       <fieldset className="grid gap-2">
-        <legend className="mb-2 text-sm font-medium">What happened?</legend>
+        <legend className="mb-2 text-sm font-medium">{t('What happened?')}</legend>
         <div className="grid grid-cols-2 gap-2">
           {DIRECTIONS.map(({ value, label }) => (
             <label key={value} className="cursor-pointer">
@@ -77,7 +82,7 @@ function DebtFields({ state, chests, goals }: { state: FormState; chests: ChestO
                 className="peer sr-only"
               />
               <span className="flex h-12 items-center justify-center rounded-md border border-input px-3 text-sm font-medium transition-colors peer-checked:border-primary peer-checked:bg-primary peer-checked:text-primary-foreground peer-focus-visible:ring-[3px] peer-focus-visible:ring-ring/50">
-                {label}
+                {t(label)}
               </span>
             </label>
           ))}
@@ -86,11 +91,11 @@ function DebtFields({ state, chests, goals }: { state: FormState; chests: ChestO
       </fieldset>
 
       <div className="grid gap-2">
-        <Label htmlFor="debt-counterparty">{borrowed ? 'From' : 'To'}</Label>
+        <Label htmlFor="debt-counterparty">{borrowed ? t('From') : t('To')}</Label>
         <Input
           id="debt-counterparty"
           {...fieldAttributes(state, 'counterparty', scope)}
-          placeholder="A person, a company, an app..."
+          placeholder={t('A person, a company, an app...')}
           maxLength={60}
           autoFocus
           className={FIELD_CLASS}
@@ -102,9 +107,9 @@ function DebtFields({ state, chests, goals }: { state: FormState; chests: ChestO
 
       {borrowed && goals.length > 0 ? (
         <div className="grid gap-2">
-          <Label htmlFor="debt-goalId">For a goal (optional)</Label>
+          <Label htmlFor="debt-goalId">{t('For a goal (optional)')}</Label>
           <NativeSelect id="debt-goalId" {...fieldAttributes(state, 'goalId', scope)} className={FIELD_CLASS}>
-            <NativeSelectOption value="">No goal: keep it in the Debts Chest</NativeSelectOption>
+            <NativeSelectOption value="">{t('No goal: keep it in the Debts Chest')}</NativeSelectOption>
             {goals.map((goal) => (
               <NativeSelectOption key={goal.id} value={goal.id}>
                 {goal.name}
@@ -114,14 +119,14 @@ function DebtFields({ state, chests, goals }: { state: FormState; chests: ChestO
           <FieldError state={state} name="goalId" scope={scope} />
         </div>
       ) : borrowed ? (
-        <p className="text-sm text-muted-foreground">It goes into your Debts Chest.</p>
+        <p className="text-sm text-muted-foreground">{t('It goes into your Debts Chest.')}</p>
       ) : (
         <SourceChestField state={state} scope={scope} chests={chests} />
       )}
 
       <div className="grid grid-cols-2 gap-3">
         <div className={interestType === 'NONE' ? 'col-span-2 grid gap-2' : 'grid gap-2'}>
-          <Label htmlFor="debt-interestType">Interest</Label>
+          <Label htmlFor="debt-interestType">{t('Interest')}</Label>
           <NativeSelect
             id="debt-interestType"
             {...fieldAttributes(state, 'interestType', scope)}
@@ -129,15 +134,17 @@ function DebtFields({ state, chests, goals }: { state: FormState; chests: ChestO
             onChange={(event) => setInterestType(event.target.value)}
             className={FIELD_CLASS}
           >
-            <NativeSelectOption value="NONE">No interest</NativeSelectOption>
-            <NativeSelectOption value="PERCENT">Percent</NativeSelectOption>
-            <NativeSelectOption value="FIXED">Fixed amount</NativeSelectOption>
+            <NativeSelectOption value="NONE">{t('No interest')}</NativeSelectOption>
+            <NativeSelectOption value="PERCENT">{t('Percent')}</NativeSelectOption>
+            <NativeSelectOption value="FIXED">{t('Fixed amount')}</NativeSelectOption>
           </NativeSelect>
           <FieldError state={state} name="interestType" scope={scope} />
         </div>
         {interestType === 'NONE' ? null : (
           <div className="grid gap-2">
-            <Label htmlFor="debt-interestValue">{interestType === 'PERCENT' ? 'Rate (%)' : `Amount (${CURRENCY_CODE})`}</Label>
+            <Label htmlFor="debt-interestValue">
+              {interestType === 'PERCENT' ? t('Rate (%)') : t('Amount ({currency})', { currency: CURRENCY_CODE })}
+            </Label>
             <Input
               id="debt-interestValue"
               {...fieldAttributes(state, 'interestValue', scope)}
@@ -155,7 +162,7 @@ function DebtFields({ state, chests, goals }: { state: FormState; chests: ChestO
       </div>
 
       <div className="grid gap-2">
-        <Label htmlFor="debt-dueDate">Due date (optional)</Label>
+        <Label htmlFor="debt-dueDate">{t('Due date (optional)')}</Label>
         <Input id="debt-dueDate" {...fieldAttributes(state, 'dueDate', scope)} type="date" className={FIELD_CLASS} />
         <FieldError state={state} name="dueDate" scope={scope} />
       </div>
@@ -164,19 +171,21 @@ function DebtFields({ state, chests, goals }: { state: FormState; chests: ChestO
 }
 
 export function NewDebtDrawer({ chests, goals }: { chests: ChestOption[]; goals: GoalOption[] }) {
+  const t = useT()
+
   return (
     <ActionDrawer
-      title="New debt or loan"
-      description="Money you borrowed, or money you lent to someone."
+      title={t('New debt or loan')}
+      description={t('Money you borrowed, or money you lent to someone.')}
       trigger={
         <Button variant="outline" className="h-11">
           <Plus aria-hidden="true" />
-          New debt or loan
+          {t('New debt or loan')}
         </Button>
       }
     >
       {(close) => (
-        <ActionForm action={createDebtAction} submitLabel="Record" onDone={close}>
+        <ActionForm action={createDebtAction} submitLabel={t('Record')} onDone={close}>
           {(state) => <DebtFields state={state} chests={chests} goals={goals} />}
         </ActionForm>
       )}
@@ -191,6 +200,7 @@ export function RepayDrawer({
   debt: { id: string; direction: DebtDirection; counterparty: string; outstanding: number }
   chests: ChestOption[]
 }) {
+  const t = useT()
   const scope = `repay-${debt.id}`
   const borrowed = debt.direction === 'BORROWED'
   // The Debts Chest pays when it can, since that is where the money went.
@@ -199,20 +209,27 @@ export function RepayDrawer({
     debtsChest && debtsChest.balance >= debt.outstanding
       ? debtsChest
       : (chests.find((chest) => chest.name === 'Base Chest') ?? chests[0])
+  const left = { amount: debt.outstanding, currency: CURRENCY_CODE }
 
   return (
     <ActionDrawer
-      title={borrowed ? `Repay ${debt.counterparty}` : `Repayment from ${debt.counterparty}`}
-      description={`${formatAmount(debt.outstanding)} ${CURRENCY_CODE} is left${borrowed ? ' to repay' : ' to receive'}.`}
+      title={
+        borrowed
+          ? t('Repay {name}', { name: debt.counterparty })
+          : t('Repayment from {name}', { name: debt.counterparty })
+      }
+      description={
+        borrowed ? t('{amount} {currency} is left to repay.', left) : t('{amount} {currency} is left to receive.', left)
+      }
       trigger={
         <Button variant="outline" className="h-11">
           <HandCoins aria-hidden="true" />
-          {borrowed ? 'Repay' : 'Record repayment'}
+          {borrowed ? t('Repay') : t('Record repayment')}
         </Button>
       }
     >
       {(close) => (
-        <ActionForm action={repayDebtAction} submitLabel={borrowed ? 'Repay' : 'Record'} onDone={close}>
+        <ActionForm action={repayDebtAction} submitLabel={borrowed ? t('Repay') : t('Record')} onDone={close}>
           {(state) => (
             <>
               <input type="hidden" name="debtId" value={debt.id} />
@@ -220,7 +237,9 @@ export function RepayDrawer({
               {borrowed ? (
                 <SourceChestField state={state} scope={scope} chests={chests} defaultChestId={defaultChest?.id} />
               ) : (
-                <p className="text-sm text-muted-foreground">It comes back as new money, into your Base Chest.</p>
+                <p className="text-sm text-muted-foreground">
+                  {t('It comes back as new money, into your Base Chest.')}
+                </p>
               )}
             </>
           )}

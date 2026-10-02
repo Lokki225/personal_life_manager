@@ -10,6 +10,7 @@
     "db:deploy": "prisma migrate deploy",
     "db:status": "prisma migrate status",
     "db:create-user": "tsx prisma/create-user.ts",
+    "db:set-role": "tsx prisma/set-role.ts",
     "start": "next start",
     "lint": "eslint",
     "test": "vitest run",

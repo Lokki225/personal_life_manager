@@ -44,6 +44,11 @@ enum InterestType {
   FIXED
 }
 
+enum UserRole {
+  USER
+  ADMIN
+}
+
 enum GoalLogic { 
   ALL 
   ANY 
@@ -130,6 +135,14 @@ model User {
   id            String   @id @default(cuid())
   email         String   @unique
   passwordHash  String
+  // The name shown in the app. Sign-in is by email.
+  username      String?
+  // A small image as a data URL, shrunk by the browser before upload.
+  picture       String?
+  role          UserRole @default(USER)
+  // The last day the person opened the app, and the language it was shown in.
+  lastSeenAt    DateTime?
+  locale        String?
   createdAt     DateTime @default(now())
 
   incomes           Income[]

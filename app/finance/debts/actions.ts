@@ -4,21 +4,16 @@ import { revalidatePath } from 'next/cache'
 
 import { recordDebt, repayDebt } from '@/application/finance/debts'
 import { getSignedInUserId } from '@/infrastructure/auth/sessionUser'
-import type { FormState } from '@/lib/forms/formState'
+import { signedOutState, translateFormState, type FormState } from '@/lib/forms/formState'
+import { getT } from '@/lib/i18n/server'
 
 import { debtForm, repayForm } from './schema'
 
-const SIGNED_OUT: FormState = {
-  status: 'error',
-  fieldErrors: {},
-  formErrors: ['Your session has ended. Sign in again to continue.'],
-}
-
 export async function createDebtAction(_previousState: FormState, formData: FormData): Promise<FormState> {
-  const userId = await getSignedInUserId()
+  const [userId, t] = await Promise.all([getSignedInUserId(), getT()])
 
   if (!userId) {
-    return SIGNED_OUT
+    return signedOutState(t)
   }
 
   const state = await debtForm.submit(formData, (debt) =>
@@ -40,14 +35,14 @@ export async function createDebtAction(_previousState: FormState, formData: Form
     revalidatePath('/finance', 'layout')
   }
 
-  return state
+  return translateFormState(state, t)
 }
 
 export async function repayDebtAction(_previousState: FormState, formData: FormData): Promise<FormState> {
-  const userId = await getSignedInUserId()
+  const [userId, t] = await Promise.all([getSignedInUserId(), getT()])
 
   if (!userId) {
-    return SIGNED_OUT
+    return signedOutState(t)
   }
 
   const state = await repayForm.submit(formData, (repayment) =>
@@ -58,5 +53,5 @@ export async function repayDebtAction(_previousState: FormState, formData: FormD
     revalidatePath('/finance', 'layout')
   }
 
-  return state
+  return translateFormState(state, t)
 }

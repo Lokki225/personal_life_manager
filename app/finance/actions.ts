@@ -10,7 +10,8 @@ import { recordDailyExpense } from '@/application/finance/recordDailyExpense'
 import { saveDailyRemaining } from '@/application/finance/saveDailyRemaining'
 import { transferBetweenChests } from '@/application/finance/transferBetweenChests'
 import { getSignedInUserId } from '@/infrastructure/auth/sessionUser'
-import type { FormState } from '@/lib/forms/formState'
+import { signedOutState, translateFormState, type FormState } from '@/lib/forms/formState'
+import { getT } from '@/lib/i18n/server'
 
 import {
   confirmIncomeForm,
@@ -21,21 +22,15 @@ import {
   transferForm,
 } from './schema'
 
-const SIGNED_OUT: FormState = {
-  status: 'error',
-  fieldErrors: {},
-  formErrors: ['Your session has ended. Sign in again to continue.'],
-}
-
 function refreshFinance() {
   revalidatePath('/finance', 'layout')
 }
 
 export async function addExpense(_previousState: FormState, formData: FormData): Promise<FormState> {
-  const userId = await getSignedInUserId()
+  const [userId, t] = await Promise.all([getSignedInUserId(), getT()])
 
   if (!userId) {
-    return SIGNED_OUT
+    return signedOutState(t)
   }
 
   const state = await expenseForm.submit(formData, (expense) =>
@@ -51,14 +46,14 @@ export async function addExpense(_previousState: FormState, formData: FormData):
     refreshFinance()
   }
 
-  return state
+  return translateFormState(state, t)
 }
 
 export async function confirmIncomeAction(_previousState: FormState, formData: FormData): Promise<FormState> {
-  const userId = await getSignedInUserId()
+  const [userId, t] = await Promise.all([getSignedInUserId(), getT()])
 
   if (!userId) {
-    return SIGNED_OUT
+    return signedOutState(t)
   }
 
   const state = await confirmIncomeForm.submit(formData, (income) =>
@@ -69,14 +64,14 @@ export async function confirmIncomeAction(_previousState: FormState, formData: F
     refreshFinance()
   }
 
-  return state
+  return translateFormState(state, t)
 }
 
 export async function saveRemaining(_previousState: FormState, formData: FormData): Promise<FormState> {
-  const userId = await getSignedInUserId()
+  const [userId, t] = await Promise.all([getSignedInUserId(), getT()])
 
   if (!userId) {
-    return SIGNED_OUT
+    return signedOutState(t)
   }
 
   const state = await saveRemainingForm.submit(formData, (saving) =>
@@ -91,14 +86,14 @@ export async function saveRemaining(_previousState: FormState, formData: FormDat
     refreshFinance()
   }
 
-  return state
+  return translateFormState(state, t)
 }
 
 export async function recordException(_previousState: FormState, formData: FormData): Promise<FormState> {
-  const userId = await getSignedInUserId()
+  const [userId, t] = await Promise.all([getSignedInUserId(), getT()])
 
   if (!userId) {
-    return SIGNED_OUT
+    return signedOutState(t)
   }
 
   const state = await exceptionForm.submit(formData, (exception) =>
@@ -109,14 +104,14 @@ export async function recordException(_previousState: FormState, formData: FormD
     refreshFinance()
   }
 
-  return state
+  return translateFormState(state, t)
 }
 
 export async function transferChests(_previousState: FormState, formData: FormData): Promise<FormState> {
-  const userId = await getSignedInUserId()
+  const [userId, t] = await Promise.all([getSignedInUserId(), getT()])
 
   if (!userId) {
-    return SIGNED_OUT
+    return signedOutState(t)
   }
 
   const state = await transferForm.submit(formData, (transfer) =>
@@ -133,14 +128,14 @@ export async function transferChests(_previousState: FormState, formData: FormDa
     refreshFinance()
   }
 
-  return state
+  return translateFormState(state, t)
 }
 
 export async function consolidateBufferAction(_previousState: FormState, formData: FormData): Promise<FormState> {
-  const userId = await getSignedInUserId()
+  const [userId, t] = await Promise.all([getSignedInUserId(), getT()])
 
   if (!userId) {
-    return SIGNED_OUT
+    return signedOutState(t)
   }
 
   const state = await consolidateForm.submit(formData, async () => {
@@ -151,5 +146,5 @@ export async function consolidateBufferAction(_previousState: FormState, formDat
     refreshFinance()
   }
 
-  return state
+  return translateFormState(state, t)
 }

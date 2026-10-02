@@ -9,6 +9,24 @@ export type FormState = {
 
 export const initialFormState: FormState = { status: 'idle', fieldErrors: {}, formErrors: [] }
 
+// The same answer with its messages in the reader's language.
+export function translateFormState(state: FormState, translate: (message: string) => string): FormState {
+  return {
+    ...state,
+    fieldErrors: Object.fromEntries(
+      Object.entries(state.fieldErrors).map(([field, messages]) => [field, messages.map((message) => translate(message))]),
+    ),
+    formErrors: state.formErrors.map((message) => translate(message)),
+  }
+}
+
+// What an action answers when nobody is signed in any more.
+export const signedOutState = (translate: (message: string) => string): FormState => ({
+  status: 'error',
+  fieldErrors: {},
+  formErrors: [translate('Your session has ended. Sign in again to continue.')],
+})
+
 // fieldName('allocations', 0, 'amount') gives "allocations.0.amount".
 export function fieldName(...segments: (string | number)[]): string {
   return segments.join('.')

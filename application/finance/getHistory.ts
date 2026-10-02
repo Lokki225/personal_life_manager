@@ -1,3 +1,4 @@
+import { periodBuckets, sumByBucket } from '../../domain/finance/series'
 import {
   financeRepository,
   type BudgetExceptionRepository,
@@ -31,6 +32,22 @@ export type GetHistoryInput = {
   category?: string | null
   referenceDate?: Date
   repository?: ExpenseRepository & BudgetExceptionRepository & MovementRepository
+}
+
+// The amounts of the listed events over the period: per day for a week or a
+// month, per month for a year. Null for a single day.
+export function historyTrend(
+  events: HistoryEvent[],
+  period: HistoryPeriod,
+  referenceDate: Date = new Date(),
+): { buckets: { start: Date }[]; totals: number[] } | null {
+  if (period === 'day') {
+    return null
+  }
+
+  const buckets = periodBuckets(period, referenceDate)
+
+  return { buckets, totals: sumByBucket(buckets, events) }
 }
 
 // "DAILY_SAVING" reads as "Daily saving".

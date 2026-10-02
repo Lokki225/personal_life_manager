@@ -13,6 +13,8 @@ import { Separator } from '@/components/ui/separator'
 import { FieldError } from '@/components/ui/field-error'
 import { CURRENCY_CODE, dailyLivingBudget } from '@/domain/finance/calculations'
 import { fieldAttributes, fieldName, initialFormState, type FormState } from '@/lib/forms/formState'
+import { useT } from '@/lib/i18n/client'
+import { m } from '@/lib/i18n/translate'
 import { cn } from '@/lib/utils'
 
 import { saveSetupPlan } from './actions'
@@ -42,34 +44,34 @@ type SetupFormProps = {
   initialData?: FinanceSetupInitialData
 }
 
-const DEFAULT_INCOME_SOURCE = 'Salary'
+const DEFAULT_INCOME_SOURCE = m('Salary')
 const DEFAULT_INCOME_AMOUNT = 5000
 const DEFAULT_INCOME_FREQUENCY: IncomeFrequency = 'monthly'
 const DEFAULT_ALLOCATIONS: AllocationDraft[] = []
 
 const PERIODS: { value: AllocationDraft['period']; label: string }[] = [
-  { value: 'monthly', label: 'Monthly' },
-  { value: 'weekly', label: 'Weekly' },
+  { value: 'monthly', label: m('Monthly') },
+  { value: 'weekly', label: m('Weekly') },
 ]
 
 const CATEGORY_BADGES: Record<string, { label: string; className: string }> = {
-  daily_living: { label: 'Daily living', className: 'bg-category-daily-living/15 text-category-daily-living' },
-  fixed: { label: 'Fixed', className: 'bg-category-fixed/15 text-category-fixed' },
-  subscription: { label: 'Subscription', className: 'bg-category-subscription/15 text-category-subscription' },
-  savings: { label: 'Savings', className: 'bg-category-savings/15 text-category-savings' },
-  custom: { label: 'Custom', className: 'bg-category-custom/15 text-category-custom' },
+  daily_living: { label: m('Daily living'), className: 'bg-category-daily-living/15 text-category-daily-living' },
+  fixed: { label: m('Fixed'), className: 'bg-category-fixed/15 text-category-fixed' },
+  subscription: { label: m('Subscription'), className: 'bg-category-subscription/15 text-category-subscription' },
+  savings: { label: m('Savings'), className: 'bg-category-savings/15 text-category-savings' },
+  custom: { label: m('Custom'), className: 'bg-category-custom/15 text-category-custom' },
 }
 
 // 44px touch targets and 16px text on phones (avoids iOS zoom on focus),
 // compact from the sm breakpoint up.
 const FIELD_CLASS = 'h-11 text-base sm:h-9 sm:text-sm'
 
-const amountFormatter = new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 })
-
 function Amount({ value, className }: { value: number; className?: string }) {
+  const t = useT()
+
   return (
     <span className={cn('shrink-0 whitespace-nowrap tabular-nums', className)}>
-      {amountFormatter.format(Number.isFinite(value) ? value : 0)}
+      {t.amount(value)}
       <span className="ml-1 text-xs font-medium text-muted-foreground">{CURRENCY_CODE}</span>
     </span>
   )
@@ -84,7 +86,8 @@ const createAllocation = (name: string, amount: string, period: 'monthly' | 'wee
 })
 
 export function SetupForm({ initialData }: SetupFormProps = {}) {
-  const [incomeSource, setIncomeSource] = useState(initialData?.incomeSource ?? DEFAULT_INCOME_SOURCE)
+  const t = useT()
+  const [incomeSource, setIncomeSource] = useState(initialData?.incomeSource ?? t(DEFAULT_INCOME_SOURCE))
   const [incomeAmount, setIncomeAmount] = useState(initialData?.incomeAmount ?? DEFAULT_INCOME_AMOUNT)
   const [incomeFrequency, setIncomeFrequency] = useState<IncomeFrequency>(
     initialData?.incomeFrequency ?? DEFAULT_INCOME_FREQUENCY,
@@ -135,12 +138,12 @@ export function SetupForm({ initialData }: SetupFormProps = {}) {
 
   return (
     <main className="mx-auto w-full max-w-5xl space-y-6 px-4 py-6 sm:px-6 sm:py-8">
-      {/* Right padding keeps the title clear of the fixed theme toggle */}
-      <header className="pr-14">
-        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">Finance setup</p>
-        <h1 className="mt-2 text-2xl font-semibold tracking-tight sm:text-3xl">Plan your monthly budget</h1>
+      {/* Right padding keeps the title clear of the sign-out and theme buttons */}
+      <header className="pr-28">
+        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">{t('Finance setup')}</p>
+        <h1 className="mt-2 text-2xl font-semibold tracking-tight sm:text-3xl">{t('Plan your monthly budget')}</h1>
         <p className="mt-2 text-sm text-muted-foreground sm:text-base">
-          Capture your income and the recurring allocations that shape your daily budget.
+          {t('Capture your income and the recurring allocations that shape your daily budget.')}
         </p>
       </header>
 
@@ -150,13 +153,13 @@ export function SetupForm({ initialData }: SetupFormProps = {}) {
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-lg">
                 <Wallet className="size-5 text-muted-foreground" aria-hidden="true" />
-                Income
+                {t('Income')}
               </CardTitle>
-              <CardDescription>What comes in, and how often.</CardDescription>
+              <CardDescription>{t('What comes in, and how often.')}</CardDescription>
             </CardHeader>
             <CardContent className="grid gap-4 sm:grid-cols-2">
               <div className="grid gap-2 sm:col-span-2">
-                <Label htmlFor="incomeSource">Source</Label>
+                <Label htmlFor="incomeSource">{t('Source')}</Label>
                 <Input
                   id="incomeSource"
                   {...fieldAttributes(state, 'incomeSource')}
@@ -167,7 +170,7 @@ export function SetupForm({ initialData }: SetupFormProps = {}) {
                 <FieldError state={state} name="incomeSource" />
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="incomeAmount">Amount ({CURRENCY_CODE})</Label>
+                <Label htmlFor="incomeAmount">{t('Amount ({currency})', { currency: CURRENCY_CODE })}</Label>
                 <Input
                   id="incomeAmount"
                   type="number"
@@ -180,7 +183,7 @@ export function SetupForm({ initialData }: SetupFormProps = {}) {
                 <FieldError state={state} name="incomeAmount" />
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="incomeFrequency">Frequency</Label>
+                <Label htmlFor="incomeFrequency">{t('Frequency')}</Label>
                 <NativeSelect
                   id="incomeFrequency"
                   {...fieldAttributes(state, 'incomeFrequency')}
@@ -188,15 +191,15 @@ export function SetupForm({ initialData }: SetupFormProps = {}) {
                   onChange={(event) => setIncomeFrequency(event.target.value as IncomeFrequency)}
                   className={FIELD_CLASS}
                 >
-                  <NativeSelectOption value="monthly">Monthly</NativeSelectOption>
-                  <NativeSelectOption value="weekly">Weekly</NativeSelectOption>
-                  <NativeSelectOption value="occasional">Occasional</NativeSelectOption>
-                  <NativeSelectOption value="recurring">Recurring</NativeSelectOption>
+                  <NativeSelectOption value="monthly">{t('Monthly')}</NativeSelectOption>
+                  <NativeSelectOption value="weekly">{t('Weekly')}</NativeSelectOption>
+                  <NativeSelectOption value="occasional">{t('Occasional')}</NativeSelectOption>
+                  <NativeSelectOption value="recurring">{t('Recurring')}</NativeSelectOption>
                 </NativeSelect>
                 <FieldError state={state} name="incomeFrequency" />
               </div>
               <div className="grid gap-2 sm:col-span-2">
-                <Label htmlFor="incomePayDay">Pay day (day of the month)</Label>
+                <Label htmlFor="incomePayDay">{t('Pay day (day of the month)')}</Label>
                 <Input
                   id="incomePayDay"
                   type="number"
@@ -208,7 +211,7 @@ export function SetupForm({ initialData }: SetupFormProps = {}) {
                   className={FIELD_CLASS}
                 />
                 <p className="text-xs text-muted-foreground">
-                  You will be asked to confirm it on that day, starting a month from now.
+                  {t('You will be asked to confirm it on that day, starting a month from now.')}
                 </p>
                 <FieldError state={state} name="incomePayDay" />
               </div>
@@ -219,9 +222,9 @@ export function SetupForm({ initialData }: SetupFormProps = {}) {
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-lg">
                 <Layers className="size-5 text-muted-foreground" aria-hidden="true" />
-                Allocations
+                {t('Allocations')}
               </CardTitle>
-              <CardDescription>Where the money is planned to go.</CardDescription>
+              <CardDescription>{t('Where the money is planned to go.')}</CardDescription>
               <CardAction>
                 <Button
                   type="button"
@@ -230,7 +233,7 @@ export function SetupForm({ initialData }: SetupFormProps = {}) {
                   className="h-11 sm:h-9"
                 >
                   <Plus aria-hidden="true" />
-                  Add
+                  {t('Add')}
                 </Button>
               </CardAction>
             </CardHeader>
@@ -239,7 +242,7 @@ export function SetupForm({ initialData }: SetupFormProps = {}) {
 
               {allocations.length === 0 ? (
                 <p className="rounded-lg border border-dashed px-4 py-8 text-center text-sm text-muted-foreground">
-                  No allocations yet. Add rent, subscriptions, savings and your daily living budget.
+                  {t('No allocations yet. Add rent, subscriptions, savings and your daily living budget.')}
                 </p>
               ) : null}
 
@@ -256,7 +259,7 @@ export function SetupForm({ initialData }: SetupFormProps = {}) {
                   >
                     <div className="mb-3 flex min-h-11 items-center justify-between sm:min-h-9">
                       <p id={fieldId('title')} className="text-sm font-semibold">
-                        Allocation {index + 1}
+                        {t('Allocation {number}', { number: String(index + 1) })}
                       </p>
                       {allocations.length > 1 ? (
                         <Button
@@ -270,7 +273,7 @@ export function SetupForm({ initialData }: SetupFormProps = {}) {
                             )
                           }}
                           className="size-11 text-destructive hover:bg-destructive/10 hover:text-destructive sm:size-9"
-                          aria-label={`Remove allocation ${index + 1}`}
+                          aria-label={t('Remove allocation {number}', { number: String(index + 1) })}
                         >
                           <Trash2 aria-hidden="true" />
                         </Button>
@@ -283,7 +286,7 @@ export function SetupForm({ initialData }: SetupFormProps = {}) {
 
                     <div className="grid grid-cols-2 gap-4">
                       <div className="col-span-2 grid gap-2">
-                        <Label htmlFor={fieldId('name')}>Name</Label>
+                        <Label htmlFor={fieldId('name')}>{t('Name')}</Label>
                         <Input
                           id={fieldId('name')}
                           {...fieldAttributes(rowState, rowField('name'))}
@@ -295,7 +298,7 @@ export function SetupForm({ initialData }: SetupFormProps = {}) {
                       </div>
 
                       <div className="grid gap-2">
-                        <Label htmlFor={fieldId('amount')}>Amount</Label>
+                        <Label htmlFor={fieldId('amount')}>{t('Amount')}</Label>
                         <Input
                           id={fieldId('amount')}
                           type="number"
@@ -309,7 +312,7 @@ export function SetupForm({ initialData }: SetupFormProps = {}) {
                       </div>
 
                       <div className="grid gap-2">
-                        <Label htmlFor={fieldId('period')}>Period</Label>
+                        <Label htmlFor={fieldId('period')}>{t('Period')}</Label>
                         <NativeSelect
                           id={fieldId('period')}
                           {...fieldAttributes(rowState, rowField('period'))}
@@ -323,14 +326,14 @@ export function SetupForm({ initialData }: SetupFormProps = {}) {
                           }
                           className={FIELD_CLASS}
                         >
-                          <NativeSelectOption value="monthly">Monthly</NativeSelectOption>
-                          <NativeSelectOption value="weekly">Weekly</NativeSelectOption>
+                          <NativeSelectOption value="monthly">{t('Monthly')}</NativeSelectOption>
+                          <NativeSelectOption value="weekly">{t('Weekly')}</NativeSelectOption>
                         </NativeSelect>
                         <FieldError state={rowState} name={rowField('period')} />
                       </div>
 
                       <div className="col-span-2 grid gap-2">
-                        <Label htmlFor={fieldId('category')}>Category</Label>
+                        <Label htmlFor={fieldId('category')}>{t('Category')}</Label>
                         <NativeSelect
                           id={fieldId('category')}
                           {...fieldAttributes(rowState, rowField('category'))}
@@ -338,11 +341,11 @@ export function SetupForm({ initialData }: SetupFormProps = {}) {
                           onChange={(event) => updateAllocation(allocation.id, 'category', event.target.value)}
                           className={FIELD_CLASS}
                         >
-                          <NativeSelectOption value="fixed">Fixed</NativeSelectOption>
-                          <NativeSelectOption value="subscription">Subscription</NativeSelectOption>
-                          <NativeSelectOption value="daily_living">Daily living</NativeSelectOption>
-                          <NativeSelectOption value="savings">Savings</NativeSelectOption>
-                          <NativeSelectOption value="custom">Custom</NativeSelectOption>
+                          <NativeSelectOption value="fixed">{t('Fixed')}</NativeSelectOption>
+                          <NativeSelectOption value="subscription">{t('Subscription')}</NativeSelectOption>
+                          <NativeSelectOption value="daily_living">{t('Daily living')}</NativeSelectOption>
+                          <NativeSelectOption value="savings">{t('Savings')}</NativeSelectOption>
+                          <NativeSelectOption value="custom">{t('Custom')}</NativeSelectOption>
                         </NativeSelect>
                         <FieldError state={rowState} name={rowField('category')} />
                       </div>
@@ -369,17 +372,19 @@ export function SetupForm({ initialData }: SetupFormProps = {}) {
 
           <Button type="submit" disabled={isPending} className="h-11 w-full sm:w-auto sm:px-6">
             {isPending ? <Loader2 className="animate-spin" aria-hidden="true" /> : <Save aria-hidden="true" />}
-            {isPending ? 'Saving...' : 'Save setup'}
+            {isPending ? t('Saving...') : t('Save setup')}
           </Button>
         </form>
 
-        <Card className="gap-0 lg:sticky lg:top-6" aria-label="Plan summary">
+        <Card className="gap-0 lg:sticky lg:top-6" aria-label={t('Plan summary')}>
           <CardContent>
-            <h2 className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">Income</h2>
+            <h2 className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">{t('Income')}</h2>
             <div className="mt-1 flex items-center justify-between gap-3">
               <div className="flex min-w-0 items-center gap-2">
-                <span className="truncate font-semibold">{incomeSource || 'Untitled'}</span>
-                <Badge className="bg-category-income/15 capitalize text-category-income">{incomeFrequency}</Badge>
+                <span className="truncate font-semibold">{incomeSource || t('Untitled')}</span>
+                <Badge className="bg-category-income/15 text-category-income first-letter:uppercase">
+                  {t(incomeFrequency)}
+                </Badge>
               </div>
               <Amount value={incomeAmount} className="text-xl font-semibold" />
             </div>
@@ -387,7 +392,7 @@ export function SetupForm({ initialData }: SetupFormProps = {}) {
             <Separator className="my-4" />
 
             {allocations.length === 0 ? (
-              <p className="text-sm text-muted-foreground">Add an allocation to see your plan here.</p>
+              <p className="text-sm text-muted-foreground">{t('Add an allocation to see your plan here.')}</p>
             ) : (
               PERIODS.map(({ value, label }) => {
                 const rows = allocations.filter((allocation) => allocation.period === value)
@@ -399,7 +404,7 @@ export function SetupForm({ initialData }: SetupFormProps = {}) {
                 return (
                   <section key={value} className="mb-4">
                     <h3 className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">
-                      {label}
+                      {t(label)}
                     </h3>
                     <ul className="mt-1 divide-y">
                       {rows.map((allocation) => {
@@ -408,10 +413,10 @@ export function SetupForm({ initialData }: SetupFormProps = {}) {
                         return (
                           <li key={allocation.id} className="flex items-center justify-between gap-3 py-2.5">
                             <div className="flex min-w-0 items-center gap-2">
-                              <span className="truncate font-semibold">{allocation.name || 'Untitled'}</span>
+                              <span className="truncate font-semibold">{allocation.name || t('Untitled')}</span>
                               <Badge className={badge.className}>
                                 {allocation.category === 'daily_living' ? <Lock aria-hidden="true" /> : null}
-                                {badge.label}
+                                {t(badge.label)}
                               </Badge>
                             </div>
                             <Amount value={Number(allocation.amount || 0)} className="font-semibold" />
@@ -427,7 +432,7 @@ export function SetupForm({ initialData }: SetupFormProps = {}) {
             <Separator className="my-4" />
 
             <div className="flex items-center justify-between gap-3">
-              <span className="text-sm text-muted-foreground">Derived daily budget</span>
+              <span className="text-sm text-muted-foreground">{t('Derived daily budget')}</span>
               <Amount value={derivedDailyBudget} className="text-xl font-semibold" />
             </div>
           </CardContent>

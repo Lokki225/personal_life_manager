@@ -16,9 +16,10 @@ import { FieldError } from '@/components/ui/field-error'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select'
-import { CURRENCY_CODE, formatAmount } from '@/domain/finance/calculations'
+import { CURRENCY_CODE } from '@/domain/finance/calculations'
 import { EXCEPTION_CATEGORIES, EXPENSE_CATEGORIES } from '@/domain/finance/options'
 import { fieldAttributes, initialFormState, type FormState } from '@/lib/forms/formState'
+import { useT } from '@/lib/i18n/client'
 
 import { addExpense, confirmIncomeAction, recordException, saveRemaining } from './actions'
 import { categoryStyle } from './categories'
@@ -39,6 +40,7 @@ export function ActionForm({
   onDone: () => void
   children: (state: FormState) => ReactNode
 }) {
+  const t = useT()
   const [state, formAction, isPending] = useActionState(async (previousState: FormState, formData: FormData) => {
     const nextState = await action(previousState, formData)
 
@@ -72,7 +74,7 @@ export function ActionForm({
 
       <Button type="submit" disabled={isPending} className="h-12 w-full text-base">
         {isPending ? <Loader2 className="animate-spin" aria-hidden="true" /> : null}
-        {isPending ? 'Saving...' : submitLabel}
+        {isPending ? t('Saving...') : submitLabel}
       </Button>
     </form>
   )
@@ -111,20 +113,23 @@ export function AmountField({
   state,
   scope,
   name = 'amount',
-  label = `Amount (${CURRENCY_CODE})`,
+  label,
   defaultValue,
   autoFocus = true,
 }: {
   state: FormState
   scope: string
   name?: string
+  // Defaults to "Amount (XOF)".
   label?: string
   defaultValue?: number
   autoFocus?: boolean
 }) {
+  const t = useT()
+
   return (
     <div className="grid gap-2">
-      <Label htmlFor={`${scope}-${name}`}>{label}</Label>
+      <Label htmlFor={`${scope}-${name}`}>{label ?? t('Amount ({currency})', { currency: CURRENCY_CODE })}</Label>
       <Input
         id={`${scope}-${name}`}
         {...fieldAttributes(state, name, scope)}
@@ -143,6 +148,8 @@ export function AmountField({
 
 // Category choices as large tap targets instead of a dropdown.
 function CategoryChips({ categories, legend }: { categories: readonly string[]; legend: string }) {
+  const t = useT()
+
   return (
     <fieldset className="grid gap-2">
       <legend className="mb-2 text-sm font-medium">{legend}</legend>
@@ -161,7 +168,7 @@ function CategoryChips({ categories, legend }: { categories: readonly string[]; 
               />
               <span className="flex h-12 items-center gap-2 rounded-md border border-input px-3 text-sm font-medium transition-colors peer-checked:border-primary peer-checked:bg-primary peer-checked:text-primary-foreground peer-focus-visible:ring-[3px] peer-focus-visible:ring-ring/50">
                 <Icon className="size-4" aria-hidden="true" />
-                {label}
+                {t(label)}
               </span>
             </label>
           )
@@ -172,31 +179,32 @@ function CategoryChips({ categories, legend }: { categories: readonly string[]; 
 }
 
 export function AddExpenseDrawer() {
+  const t = useT()
   const scope = 'expense'
 
   return (
     <ActionDrawer
-      title="Add an expense"
-      description="It counts against today's budget."
+      title={t('Add an expense')}
+      description={t("It counts against today's budget.")}
       trigger={
         <Button className="h-12 w-full text-base">
           <Plus aria-hidden="true" />
-          Add expense
+          {t('Add expense')}
         </Button>
       }
     >
       {(close) => (
-        <ActionForm action={addExpense} submitLabel="Add expense" onDone={close}>
+        <ActionForm action={addExpense} submitLabel={t('Add expense')} onDone={close}>
           {(state) => (
             <>
               <AmountField state={state} scope={scope} />
-              <CategoryChips categories={EXPENSE_CATEGORIES} legend="Category" />
+              <CategoryChips categories={EXPENSE_CATEGORIES} legend={t('Category')} />
               <div className="grid gap-2">
-                <Label htmlFor="expense-description">Note (optional)</Label>
+                <Label htmlFor="expense-description">{t('Note (optional)')}</Label>
                 <Input
                   id="expense-description"
                   {...fieldAttributes(state, 'description', scope)}
-                  placeholder="Lunch, taxi..."
+                  placeholder={t('Lunch, taxi...')}
                   maxLength={80}
                   className={FIELD_CLASS}
                 />
@@ -211,21 +219,24 @@ export function AddExpenseDrawer() {
 }
 
 export function ConfirmIncomeDrawer({ income }: { income: { id: string; source: string; usualAmount: number } }) {
+  const t = useT()
   const scope = `income-${income.id}`
 
   return (
     <ActionDrawer
-      title={`${income.source} arrived`}
-      description="Enter what really came in. Your planned savings and the income no allocation claims go into your chests."
+      title={t('{source} arrived', { source: income.source })}
+      description={t(
+        'Enter what really came in. Your planned savings and the income no allocation claims go into your chests.',
+      )}
       trigger={
         <Button variant="outline" className="h-11">
           <BanknoteArrowDown aria-hidden="true" />
-          Confirm
+          {t('Confirm')}
         </Button>
       }
     >
       {(close) => (
-        <ActionForm action={confirmIncomeAction} submitLabel="Confirm income" onDone={close}>
+        <ActionForm action={confirmIncomeAction} submitLabel={t('Confirm income')} onDone={close}>
           {(state) => (
             <>
               <input type="hidden" name="incomeId" value={income.id} />
@@ -245,27 +256,31 @@ export function SaveRemainingDrawer({
   available: number
   chests: { id: string; name: string }[]
 }) {
+  const t = useT()
   const scope = 'saving'
 
   return (
     <ActionDrawer
-      title="Save what is left"
-      description={`Up to ${formatAmount(available)} ${CURRENCY_CODE} is left from today's budget.`}
+      title={t('Save what is left')}
+      description={t("Up to {amount} {currency} is left from today's budget.", {
+        amount: available,
+        currency: CURRENCY_CODE,
+      })}
       trigger={
         <Button variant="outline" className="h-12 w-full text-base">
           <PiggyBank aria-hidden="true" />
-          Save {formatAmount(available)}
+          {t('Save {amount}', { amount: available })}
         </Button>
       }
     >
       {(close) => (
-        <ActionForm action={saveRemaining} submitLabel="Save" onDone={close}>
+        <ActionForm action={saveRemaining} submitLabel={t('Save')} onDone={close}>
           {(state) => (
             <>
               <AmountField state={state} scope={scope} defaultValue={available} />
               {chests.length > 0 ? (
                 <div className="grid gap-2">
-                  <Label htmlFor="saving-chest">Into</Label>
+                  <Label htmlFor="saving-chest">{t('Into')}</Label>
                   <NativeSelect
                     id="saving-chest"
                     {...fieldAttributes(state, 'destinationChestId', scope)}
@@ -274,14 +289,14 @@ export function SaveRemainingDrawer({
                   >
                     {chests.map((chest) => (
                       <NativeSelectOption key={chest.id} value={chest.id}>
-                        {chest.name}
+                        {t(chest.name)}
                       </NativeSelectOption>
                     ))}
                   </NativeSelect>
                   <FieldError state={state} name="destinationChestId" scope={scope} />
                 </div>
               ) : (
-                <p className="text-sm text-muted-foreground">It goes to your Buffer chest.</p>
+                <p className="text-sm text-muted-foreground">{t('It goes to your Buffer chest.')}</p>
               )}
             </>
           )}
@@ -292,31 +307,35 @@ export function SaveRemainingDrawer({
 }
 
 export function ExceptionDrawer({ overspend }: { overspend: number }) {
+  const t = useT()
   const scope = 'exception'
 
   return (
     <ActionDrawer
-      title="Explain the overspend"
-      description={`You are ${formatAmount(overspend)} ${CURRENCY_CODE} over today. A short reason helps the review.`}
+      title={t('Explain the overspend')}
+      description={t('You are {amount} {currency} over today. A short reason helps the review.', {
+        amount: overspend,
+        currency: CURRENCY_CODE,
+      })}
       trigger={
         <Button variant="outline" className="h-12 w-full text-base">
           <MessageSquareWarning aria-hidden="true" />
-          Explain overspend
+          {t('Explain overspend')}
         </Button>
       }
     >
       {(close) => (
-        <ActionForm action={recordException} submitLabel="Record" onDone={close}>
+        <ActionForm action={recordException} submitLabel={t('Record')} onDone={close}>
           {(state) => (
             <>
-              <CategoryChips categories={EXCEPTION_CATEGORIES} legend="What caused it?" />
+              <CategoryChips categories={EXCEPTION_CATEGORIES} legend={t('What caused it?')} />
               <FieldError state={state} name="category" scope={scope} />
               <div className="grid gap-2">
-                <Label htmlFor="exception-reason">Reason (optional)</Label>
+                <Label htmlFor="exception-reason">{t('Reason (optional)')}</Label>
                 <Input
                   id="exception-reason"
                   {...fieldAttributes(state, 'reason', scope)}
-                  placeholder="Unexpected bill, guests..."
+                  placeholder={t('Unexpected bill, guests...')}
                   maxLength={160}
                   autoFocus
                   className={FIELD_CLASS}

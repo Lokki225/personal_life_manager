@@ -9,6 +9,9 @@ import {
   type ExpenseRepository,
   type IncomeRepository,
 } from '../../infrastructure/repositories/financeRepository'
+import { budgetDaysInPeriod } from '../../domain/finance/calculations'
+import { DEBTS_CHEST_NAME } from '../../domain/finance/chests'
+import { periodBuckets, runningBalance, sumByBucket } from '../../domain/finance/series'
 import { getHistory, type HistoryPeriod } from './getHistory'
 import { recomputeFinanceState } from './recomputeFinanceState'
 
@@ -40,6 +43,17 @@ export type GetReviewInput = {
     Partial<DebtRepository>
 }
 
+// What the period looked like over time. A week and a month are cut into
+// days, a year into months.
+export type ReviewTrend = {
+  buckets: { start: Date }[]
+  spent: number[]
+  // The planned spending for one bucket: a day's budget, or a month's.
+  budget: number
+  // Held in chests, borrowed money aside. Null for days still to come.
+  saved: (number | null)[]
+}
+
 export type GetReviewResult = {
   period: HistoryPeriod
   referenceDate: Date
@@ -52,6 +66,8 @@ export type GetReviewResult = {
   categoryBreakdown: ReviewCategoryBreakdown[]
   exceptionBreakdown: ReviewCategoryBreakdown[]
   goals: ReviewGoalStatus[]
+  // Null for a single day, which has nothing to plot over time.
+  trend: ReviewTrend | null
 }
 
 export async function getReview(input: GetReviewInput): Promise<GetReviewResult> {
@@ -61,11 +77,14 @@ export async function getReview(input: GetReviewInput): Promise<GetReviewResult>
     AllocationRepository &
     ExpenseRepository &
     BudgetExceptionRepository &
-    MovementRepository
+    MovementRepository &
+    ChestRepository
 
-  const [state, history] = await Promise.all([
+  const [state, history, movements, chests] = await Promise.all([
     recomputeFinanceState({ userId, referenceDate, repository: readRepository }),
     getHistory({ userId, period, referenceDate, repository: readRepository }),
+    readRepository.listMovements(userId),
+    readRepository.listChests(userId),
   ])
 
   const rangeExpenses = history.filter((event) => event.type === 'expense')
@@ -92,6 +111,35 @@ export async function getReview(input: GetReviewInput): Promise<GetReviewResult>
     .map(([category, total]) => ({ category, total }))
     .sort((left, right) => right.total - left.total)
 
+  let trend: ReviewTrend | null = null
+
+  if (period !== 'day') {
+    const buckets = periodBuckets(period, referenceDate)
+    const savingsChests = new Set(
+      chests.filter((chest) => !(chest.isSystem && chest.name === DEBTS_CHEST_NAME)).map((chest) => chest.id),
+    )
+    // Each movement as what it adds to, or takes from, the savings chests.
+    const savingsChanges = movements.map((movement) => ({
+      date: new Date(movement.date),
+      amount:
+        (savingsChests.has(movement.destinationChestId ?? '') ? Number(movement.amount) : 0) -
+        (savingsChests.has(movement.sourceChestId ?? '') ? Number(movement.amount) : 0),
+    }))
+
+    trend = {
+      buckets,
+      spent: sumByBucket(
+        buckets,
+        rangeExpenses.map((event) => ({ date: event.date, amount: event.amount })),
+      ),
+      budget:
+        period === 'year'
+          ? state.periodBudget
+          : Math.floor(state.periodBudget / budgetDaysInPeriod('monthly', referenceDate)),
+      saved: runningBalance(buckets, savingsChanges, referenceDate),
+    }
+  }
+
   return {
     period,
     referenceDate,
@@ -104,5 +152,6 @@ export async function getReview(input: GetReviewInput): Promise<GetReviewResult>
     categoryBreakdown,
     exceptionBreakdown,
     goals: state.goals,
+    trend,
   }
 }

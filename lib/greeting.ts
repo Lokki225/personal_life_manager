@@ -1,35 +1,40 @@
+import { createTranslator, m, type Translator } from './i18n/translate'
+
 const MONTH_NOTES = [
-  'A new year, a clean slate for your budget.',
-  'Short month: every day counts a little more.',
-  'A quarter of the year is almost behind you.',
-  'A good month to check your plan still fits.',
-  'Steady days add up. Keep the rhythm.',
-  'Halfway through the year already.',
-  'Second half of the year: a fresh start.',
-  'A quiet month to build your buffer.',
-  'Back to routine, back to the plan.',
-  'Last quarter of the year begins.',
-  'The busy season is close. Plan ahead.',
-  'Finish the year the way you want to start the next.',
+  m('A new year, a clean slate for your budget.'),
+  m('Short month: every day counts a little more.'),
+  m('A quarter of the year is almost behind you.'),
+  m('A good month to check your plan still fits.'),
+  m('Steady days add up. Keep the rhythm.'),
+  m('Halfway through the year already.'),
+  m('Second half of the year: a fresh start.'),
+  m('A quiet month to build your buffer.'),
+  m('Back to routine, back to the plan.'),
+  m('Last quarter of the year begins.'),
+  m('The busy season is close. Plan ahead.'),
+  m('Finish the year the way you want to start the next.'),
 ]
 
-const monthName = (date: Date) => new Intl.DateTimeFormat('en-GB', { month: 'long' }).format(date)
+const english = createTranslator('en')
 
 // A greeting that follows the time of day, and a short line that follows the
 // month: its first days, its last days, or the month itself.
-export function greetingFor(date: Date): { salutation: string; note: string } {
+export function greetingFor(date: Date, t: Translator = english): { salutation: string; note: string } {
   const hour = date.getHours()
-  const salutation =
-    hour < 5 ? 'Still up' : hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening'
+  const salutation = t(
+    hour < 5 ? m('Still up') : hour < 12 ? m('Good morning') : hour < 18 ? m('Good afternoon') : m('Good evening'),
+  )
+  const month = new Intl.DateTimeFormat(t.intl, { month: 'long' }).format(date)
 
   const day = date.getDate()
   const lastDay = new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate()
   const note =
     day <= 2
-      ? `${monthName(date)} starts here. A fresh budget.`
+      ? // In a sentence of its own, the month starts with a capital in every language.
+        t('{month} starts here. A fresh budget.', { month: month.charAt(0).toUpperCase() + month.slice(1) })
       : day >= lastDay - 2
-        ? `Last days of ${monthName(date)}. Finish it well.`
-        : MONTH_NOTES[date.getMonth()]
+        ? t('Last days of {month}. Finish it well.', { month })
+        : t(MONTH_NOTES[date.getMonth()])
 
   return { salutation, note }
 }

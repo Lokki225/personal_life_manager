@@ -5,7 +5,8 @@ import { redirect } from 'next/navigation'
 import { createSetupPlan } from '@/application/finance/createSetupPlan'
 import { ensureDefaultChests } from '@/application/finance/ensureDefaultChests'
 import { resolveSessionUserId } from '@/infrastructure/auth/sessionUser'
-import type { FormState } from '@/lib/forms/formState'
+import { translateFormState, type FormState } from '@/lib/forms/formState'
+import { getT } from '@/lib/i18n/server'
 
 import { setupForm } from './schema'
 
@@ -19,7 +20,7 @@ export async function saveSetupPlan(_previousState: FormState, formData: FormDat
   })
 
   if (state.status !== 'success') {
-    return state
+    return translateFormState(state, await getT())
   }
 
   redirect('/finance')

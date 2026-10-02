@@ -8,8 +8,9 @@ import { FieldError } from '@/components/ui/field-error'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select'
-import { CURRENCY_CODE, formatAmount } from '@/domain/finance/calculations'
+import { CURRENCY_CODE } from '@/domain/finance/calculations'
 import { fieldAttributes, initialFormState, type FormState } from '@/lib/forms/formState'
+import { useT } from '@/lib/i18n/client'
 
 import { consolidateBufferAction, transferChests } from '../actions'
 import { ActionDrawer, ActionForm, FIELD_CLASS } from '../today-actions'
@@ -18,30 +19,31 @@ import { createChestAction, deleteChestAction } from './actions'
 type ChestOption = { id: string; name: string; balance: number }
 
 export function NewChestDrawer() {
+  const t = useT()
   const scope = 'chest'
   const [type, setType] = useState('AVAILABLE')
 
   return (
     <ActionDrawer
-      title="New chest"
-      description="A place to keep money for one purpose."
+      title={t('New chest')}
+      description={t('A place to keep money for one purpose.')}
       trigger={
         <Button variant="outline" className="h-11">
           <Plus aria-hidden="true" />
-          New chest
+          {t('New chest')}
         </Button>
       }
     >
       {(close) => (
-        <ActionForm action={createChestAction} submitLabel="Create chest" onDone={close}>
+        <ActionForm action={createChestAction} submitLabel={t('Create chest')} onDone={close}>
           {(state) => (
             <>
               <div className="grid gap-2">
-                <Label htmlFor="chest-name">Name</Label>
+                <Label htmlFor="chest-name">{t('Name')}</Label>
                 <Input
                   id="chest-name"
                   {...fieldAttributes(state, 'name', scope)}
-                  placeholder="Holidays, new phone..."
+                  placeholder={t('Holidays, new phone...')}
                   maxLength={40}
                   autoFocus
                   className={FIELD_CLASS}
@@ -49,7 +51,7 @@ export function NewChestDrawer() {
                 <FieldError state={state} name="name" scope={scope} />
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="chest-type">Type</Label>
+                <Label htmlFor="chest-type">{t('Type')}</Label>
                 <NativeSelect
                   id="chest-type"
                   {...fieldAttributes(state, 'type', scope)}
@@ -57,14 +59,14 @@ export function NewChestDrawer() {
                   onChange={(event) => setType(event.target.value)}
                   className={FIELD_CLASS}
                 >
-                  <NativeSelectOption value="AVAILABLE">Available: move money out any time</NativeSelectOption>
-                  <NativeSelectOption value="SECURE">Secure: can be locked until a date</NativeSelectOption>
+                  <NativeSelectOption value="AVAILABLE">{t('Available: move money out any time')}</NativeSelectOption>
+                  <NativeSelectOption value="SECURE">{t('Secure: can be locked until a date')}</NativeSelectOption>
                 </NativeSelect>
                 <FieldError state={state} name="type" scope={scope} />
               </div>
               {type === 'SECURE' ? (
                 <div className="grid gap-2">
-                  <Label htmlFor="chest-lockedUntil">Locked until (optional)</Label>
+                  <Label htmlFor="chest-lockedUntil">{t('Locked until (optional)')}</Label>
                   <Input
                     id="chest-lockedUntil"
                     {...fieldAttributes(state, 'lockedUntil', scope)}
@@ -93,6 +95,7 @@ function TransferFields({
   defaultSourceId: string
   defaultDestinationId: string
 }) {
+  const t = useT()
   const scope = 'transfer'
   const balanceOf = (id: string) => Math.max(Math.floor(chests.find((chest) => chest.id === id)?.balance ?? 0), 0)
   const [sourceId, setSourceId] = useState(defaultSourceId)
@@ -101,7 +104,7 @@ function TransferFields({
   return (
     <>
       <div className="grid gap-2">
-        <Label htmlFor="transfer-source">From</Label>
+        <Label htmlFor="transfer-source">{t('From')}</Label>
         <NativeSelect
           id="transfer-source"
           {...fieldAttributes(state, 'sourceChestId', scope)}
@@ -115,14 +118,14 @@ function TransferFields({
         >
           {chests.map((chest) => (
             <NativeSelectOption key={chest.id} value={chest.id}>
-              {chest.name} ({formatAmount(chest.balance)})
+              {t(chest.name)} ({t.amount(chest.balance)})
             </NativeSelectOption>
           ))}
         </NativeSelect>
         <FieldError state={state} name="sourceChestId" scope={scope} />
       </div>
       <div className="grid gap-2">
-        <Label htmlFor="transfer-destination">To</Label>
+        <Label htmlFor="transfer-destination">{t('To')}</Label>
         <NativeSelect
           id="transfer-destination"
           {...fieldAttributes(state, 'destinationChestId', scope)}
@@ -131,14 +134,14 @@ function TransferFields({
         >
           {chests.map((chest) => (
             <NativeSelectOption key={chest.id} value={chest.id}>
-              {chest.name}
+              {t(chest.name)}
             </NativeSelectOption>
           ))}
         </NativeSelect>
         <FieldError state={state} name="destinationChestId" scope={scope} />
       </div>
       <div className="grid gap-2">
-        <Label htmlFor="transfer-amount">Amount ({CURRENCY_CODE})</Label>
+        <Label htmlFor="transfer-amount">{t('Amount ({currency})', { currency: CURRENCY_CODE })}</Label>
         <Input
           id="transfer-amount"
           {...fieldAttributes(state, 'amount', scope)}
@@ -157,6 +160,7 @@ function TransferFields({
 }
 
 export function TransferDrawer({ chests }: { chests: ChestOption[] }) {
+  const t = useT()
   // The usual move is Buffer to Base Chest, so that is what opens.
   const source = chests.find((chest) => chest.name === 'Buffer') ?? chests[0]
   const destination =
@@ -169,17 +173,17 @@ export function TransferDrawer({ chests }: { chests: ChestOption[] }) {
 
   return (
     <ActionDrawer
-      title="Transfer between chests"
-      description="Money moves from one chest to another. Nothing is spent."
+      title={t('Transfer between chests')}
+      description={t('Money moves from one chest to another. Nothing is spent.')}
       trigger={
         <Button variant="outline" className="h-11">
           <ArrowLeftRight aria-hidden="true" />
-          Transfer
+          {t('Transfer')}
         </Button>
       }
     >
       {(close) => (
-        <ActionForm action={transferChests} submitLabel="Transfer" onDone={close}>
+        <ActionForm action={transferChests} submitLabel={t('Transfer')} onDone={close}>
           {(state) => (
             <TransferFields
               state={state}
@@ -196,6 +200,7 @@ export function TransferDrawer({ chests }: { chests: ChestOption[] }) {
 
 // One tap: everything in the Buffer goes to the Base Chest.
 export function ConsolidateButton({ bufferBalance }: { bufferBalance: number }) {
+  const t = useT()
   const [state, formAction, isPending] = useActionState(consolidateBufferAction, initialFormState)
 
   return (
@@ -204,10 +209,10 @@ export function ConsolidateButton({ bufferBalance }: { bufferBalance: number }) 
         type="button"
         disabled={isPending}
         onClick={() => startTransition(() => formAction(new FormData()))}
-        className="h-11 w-full"
+        className="h-auto min-h-11 w-full py-2 whitespace-normal"
       >
         {isPending ? <Loader2 className="animate-spin" aria-hidden="true" /> : <Layers aria-hidden="true" />}
-        Consolidate {formatAmount(bufferBalance)} {CURRENCY_CODE} into Base Chest
+        {t('Consolidate {amount} {currency} into Base Chest', { amount: bufferBalance, currency: CURRENCY_CODE })}
       </Button>
       {state.formErrors.length > 0 ? (
         <p role="alert" className="flex items-start gap-2 text-sm text-destructive-strong">
@@ -221,6 +226,7 @@ export function ConsolidateButton({ bufferBalance }: { bufferBalance: number }) 
 
 // Deleting asks once more in place, since it cannot be undone.
 export function DeleteChestButton({ chestId, chestName }: { chestId: string; chestName: string }) {
+  const t = useT()
   const [confirming, setConfirming] = useState(false)
   const [state, formAction, isPending] = useActionState(deleteChestAction, initialFormState)
 
@@ -238,7 +244,7 @@ export function DeleteChestButton({ chestId, chestName }: { chestId: string; che
         size="icon"
         onClick={() => setConfirming(true)}
         className="-mr-2 size-11 text-muted-foreground hover:text-destructive-strong"
-        aria-label={`Delete ${chestName}`}
+        aria-label={t('Delete {name}', { name: chestName })}
       >
         <Trash2 aria-hidden="true" />
       </Button>
@@ -247,14 +253,14 @@ export function DeleteChestButton({ chestId, chestName }: { chestId: string; che
 
   return (
     <div className="space-y-2">
-      <p className="text-sm">Delete {chestName}? This cannot be undone.</p>
+      <p className="text-sm">{t('Delete {name}? This cannot be undone.', { name: chestName })}</p>
       <div className="flex gap-2">
         <Button type="button" variant="destructive" disabled={isPending} onClick={submit} className="h-11 flex-1">
           {isPending ? <Loader2 className="animate-spin" aria-hidden="true" /> : <Trash2 aria-hidden="true" />}
-          Delete
+          {t('Delete')}
         </Button>
         <Button type="button" variant="outline" disabled={isPending} onClick={() => setConfirming(false)} className="h-11 flex-1">
-          Keep
+          {t('Keep')}
         </Button>
       </div>
       {state.formErrors.length > 0 ? (

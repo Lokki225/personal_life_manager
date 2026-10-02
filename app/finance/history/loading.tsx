@@ -9,7 +9,7 @@ export default function Loading() {
         <Skeleton className="h-32 rounded-xl" />
         <Skeleton className="h-32 rounded-xl" />
       </div>
-      <span className="sr-only">Loading</span>
+      <span className="sr-only">Loading / Chargement</span>
     </main>
   )
 }

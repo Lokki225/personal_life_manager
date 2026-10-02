@@ -3,7 +3,10 @@ import { PrismaPg } from '@prisma/adapter-pg'
 
 const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient }
 
-const connectionString = process.env.DATABASE_URL
+// The driver already treats "require" as full certificate verification, and
+// warns that a future version will not. Asking for it by name keeps today's
+// behaviour and silences the warning.
+const connectionString = process.env.DATABASE_URL?.replace(/([?&]sslmode=)(prefer|require|verify-ca)\b/, '$1verify-full')
 
 export const prisma =
   globalForPrisma.prisma ??

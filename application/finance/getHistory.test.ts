@@ -1,6 +1,21 @@
 import { describe, expect, it, vi } from 'vitest'
 
-import { getHistory } from './getHistory'
+import { getHistory, historyTrend, type HistoryEvent } from './getHistory'
+
+describe('historyTrend', () => {
+  const events = [
+    { id: 'e-1', type: 'expense', date: new Date(2026, 8, 14, 9), amount: 120, label: 'Lunch' },
+    { id: 'e-2', type: 'expense', date: new Date(2026, 8, 14, 19), amount: 80, label: 'Dinner' },
+    { id: 'e-3', type: 'expense', date: new Date(2026, 8, 16, 9), amount: 50, label: 'Taxi' },
+  ] as HistoryEvent[]
+
+  it('totals the events per day of the week, and has nothing to plot for one day', () => {
+    const trend = historyTrend(events, 'week', new Date(2026, 8, 15, 12))
+
+    expect(trend?.totals).toEqual([200, 0, 50, 0, 0, 0, 0])
+    expect(historyTrend(events, 'day', new Date(2026, 8, 15, 12))).toBeNull()
+  })
+})
 
 describe('getHistory', () => {
   it('filters the event list by period and type', async () => {

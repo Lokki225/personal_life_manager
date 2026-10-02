@@ -6,21 +6,16 @@ import { createCustomGoal } from '@/application/finance/createCustomGoal'
 import { createSavingsGoal } from '@/application/finance/createSavingsGoal'
 import { fundGoal } from '@/application/finance/fundGoal'
 import { getSignedInUserId } from '@/infrastructure/auth/sessionUser'
-import type { FormState } from '@/lib/forms/formState'
+import { signedOutState, translateFormState, type FormState } from '@/lib/forms/formState'
+import { getT } from '@/lib/i18n/server'
 
 import { customGoalForm, fundGoalForm, goalForm } from './schema'
 
-const SIGNED_OUT: FormState = {
-  status: 'error',
-  fieldErrors: {},
-  formErrors: ['Your session has ended. Sign in again to continue.'],
-}
-
 export async function createGoalAction(_previousState: FormState, formData: FormData): Promise<FormState> {
-  const userId = await getSignedInUserId()
+  const [userId, t] = await Promise.all([getSignedInUserId(), getT()])
 
   if (!userId) {
-    return SIGNED_OUT
+    return signedOutState(t)
   }
 
   const state = await goalForm.submit(formData, async (goal) => {
@@ -35,14 +30,14 @@ export async function createGoalAction(_previousState: FormState, formData: Form
     revalidatePath('/finance', 'layout')
   }
 
-  return state
+  return translateFormState(state, t)
 }
 
 export async function fundGoalAction(_previousState: FormState, formData: FormData): Promise<FormState> {
-  const userId = await getSignedInUserId()
+  const [userId, t] = await Promise.all([getSignedInUserId(), getT()])
 
   if (!userId) {
-    return SIGNED_OUT
+    return signedOutState(t)
   }
 
   const state = await fundGoalForm.submit(formData, (funding) =>
@@ -53,14 +48,14 @@ export async function fundGoalAction(_previousState: FormState, formData: FormDa
     revalidatePath('/finance', 'layout')
   }
 
-  return state
+  return translateFormState(state, t)
 }
 
 export async function createCustomGoalAction(_previousState: FormState, formData: FormData): Promise<FormState> {
-  const userId = await getSignedInUserId()
+  const [userId, t] = await Promise.all([getSignedInUserId(), getT()])
 
   if (!userId) {
-    return SIGNED_OUT
+    return signedOutState(t)
   }
 
   const state = await customGoalForm.submit(formData, async (goal) => {
@@ -71,5 +66,5 @@ export async function createCustomGoalAction(_previousState: FormState, formData
     revalidatePath('/finance', 'layout')
   }
 
-  return state
+  return translateFormState(state, t)
 }

@@ -2,15 +2,13 @@ import { getToken } from 'next-auth/jwt'
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
+// Pages a visitor can open without an account.
+const PUBLIC_PATHS = ['/', '/login', '/signup', '/learn', '/favicon.ico']
+
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
 
-  if (
-    pathname.startsWith('/api/auth') ||
-    pathname.startsWith('/_next') ||
-    pathname === '/login' ||
-    pathname === '/favicon.ico'
-  ) {
+  if (pathname.startsWith('/api/auth') || pathname.startsWith('/_next') || PUBLIC_PATHS.includes(pathname)) {
     return NextResponse.next()
   }
 
@@ -29,5 +27,5 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/((?!api|_next|login|favicon.ico).*)'],
+  matcher: ['/((?!api|_next|login|signup|favicon.ico).*)'],
 }

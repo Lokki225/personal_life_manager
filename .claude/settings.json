@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python -)",
+      "Bash(gh auth *)",
+      "Bash(gh api *)",
+      "Bash(npx next *)",
+      "Bash(git add *)",
+      "Bash(git commit -q -m 'Add public home, sign-up, accounts with roles, French, charts, admin dashboard and guide *)",
+      "Bash(git push *)"
+    ]
+  }
+}

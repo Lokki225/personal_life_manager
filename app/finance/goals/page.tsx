@@ -4,8 +4,8 @@ import { Check, Target, X } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
 import { recomputeFinanceState } from '@/application/finance/recomputeFinanceState'
-import { formatAmount } from '@/domain/finance/calculations'
 import { getSignedInUserId } from '@/infrastructure/auth/sessionUser'
+import { getT } from '@/lib/i18n/server'
 import { cn } from '@/lib/utils'
 
 import { measurementLabel, operatorLabel } from '../goal-labels'
@@ -14,7 +14,7 @@ import { CustomGoalDrawer } from './custom-goal-drawer'
 import { FundGoalDrawer, NewGoalDrawer } from './goal-forms'
 
 export default async function FinanceGoalsPage() {
-  const userId = await getSignedInUserId()
+  const [userId, t] = await Promise.all([getSignedInUserId(), getT()])
 
   if (!userId) {
     redirect('/login')
@@ -30,11 +30,11 @@ export default async function FinanceGoalsPage() {
   return (
     <main className="mx-auto w-full max-w-2xl space-y-4 px-4 py-6 sm:px-6">
       <header>
-        <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">Goals</h1>
+        <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">{t('Goals')}</h1>
         <p className="mt-1 text-sm text-muted-foreground">
           {state.goals.length > 0
-            ? `${reached} of ${state.goals.length} reached.`
-            : 'Give your savings something to aim for.'}
+            ? t('{reached} of {total} reached.', { reached: String(reached), total: String(state.goals.length) })
+            : t('Give your savings something to aim for.')}
         </p>
       </header>
 
@@ -69,7 +69,7 @@ export default async function FinanceGoalsPage() {
                         <span className="line-clamp-2">{goal.name}</span>
                       </p>
                       <Badge variant={goal.satisfied ? 'default' : 'secondary'} className="shrink-0">
-                        {goal.satisfied ? 'Reached' : 'In progress'}
+                        {goal.satisfied ? t('Reached') : t('In progress')}
                       </Badge>
                     </div>
 
@@ -78,17 +78,17 @@ export default async function FinanceGoalsPage() {
                         <Meter
                           value={(single.actual / single.target) * 100}
                           tone={goal.satisfied ? 'success' : 'primary'}
-                          label={`Progress towards ${goal.name}`}
+                          label={t('Progress towards {goal}', { goal: goal.name })}
                         />
                         <p className="flex flex-wrap justify-between gap-x-4 text-sm text-muted-foreground">
                           <span>
-                            <Money value={single.actual} className="font-medium text-foreground" /> of{' '}
+                            <Money value={single.actual} className="font-medium text-foreground" /> {t('of')}{' '}
                             <Money value={single.target} />
                           </span>
                           {goal.satisfied ? null : (
                             <span>
-                              <Money value={single.target - single.actual} className="font-medium text-foreground" /> to
-                              go
+                              <Money value={single.target - single.actual} className="font-medium text-foreground" />{' '}
+                              {t('to go')}
                             </span>
                           )}
                         </p>
@@ -104,17 +104,18 @@ export default async function FinanceGoalsPage() {
                               )}
                             >
                               {result.satisfied ? (
-                                <Check className="size-3.5" aria-label="Met" />
+                                <Check className="size-3.5" aria-label={t('Met')} />
                               ) : (
-                                <X className="size-3.5" aria-label="Not met" />
+                                <X className="size-3.5" aria-label={t('Not met')} />
                               )}
                             </span>
                             <span>
-                              {measurementLabel(result.measurement)}:{' '}
-                              <span className="font-medium">{formatAmount(result.actual)}</span>
+                              {t(measurementLabel(result.measurement))}
+                              {t(': ')}
+                              <span className="font-medium">{t.amount(result.actual)}</span>
                               <span className="text-muted-foreground">
                                 {' '}
-                                ({operatorLabel(result.operator)} {formatAmount(result.target)})
+                                ({t(operatorLabel(result.operator))} {t.amount(result.target)})
                               </span>
                             </span>
                           </li>
@@ -124,13 +125,13 @@ export default async function FinanceGoalsPage() {
 
                     {goal.borrowed > 0 ? (
                       <p className="text-sm text-muted-foreground">
-                        Of which <Money value={goal.borrowed} /> borrowed
+                        {t('Of which')} <Money value={goal.borrowed} /> {t('borrowed')}
                         {goal.owed > 0 ? (
                           <>
-                            , <Money value={goal.owed} className="font-medium text-foreground" /> still owed
+                            , <Money value={goal.owed} className="font-medium text-foreground" /> {t('still owed')}
                           </>
                         ) : (
-                          ', fully repaid'
+                          `, ${t('fully repaid')}`
                         )}
                         .
                       </p>
@@ -144,9 +145,9 @@ export default async function FinanceGoalsPage() {
       ) : (
         <div className="rounded-xl border border-dashed px-4 py-10 text-center">
           <Target className="mx-auto size-8 text-muted-foreground" aria-hidden="true" />
-          <p className="mt-3 text-sm font-medium">No goals yet</p>
+          <p className="mt-3 text-sm font-medium">{t('No goals yet')}</p>
           <p className="mt-1 text-sm text-muted-foreground">
-            Create one, such as a phone or an emergency fund, and fund it from your chests.
+            {t('Create one, such as a phone or an emergency fund, and fund it from your chests.')}
           </p>
         </div>
       )}

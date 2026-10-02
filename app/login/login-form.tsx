@@ -8,6 +8,8 @@ import { CircleAlert, Eye, EyeOff, Loader2, LogIn } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { useT } from '@/lib/i18n/client'
+import { m } from '@/lib/i18n/translate'
 
 // 44px touch targets and 16px text on phones (avoids iOS zoom on focus).
 const FIELD_CLASS = 'h-11 text-base sm:text-sm'
@@ -15,13 +17,14 @@ const ERROR_ID = 'login-error'
 
 type LoginError = { kind: 'credentials' | 'server'; message: string }
 
-const INVALID_CREDENTIALS: LoginError = { kind: 'credentials', message: 'Invalid email or password.' }
+const INVALID_CREDENTIALS: LoginError = { kind: 'credentials', message: m('Invalid email or password.') }
 const SERVER_UNAVAILABLE: LoginError = {
   kind: 'server',
-  message: 'We could not sign you in right now. Check your connection and try again.',
+  message: m('We could not sign you in right now. Check your connection and try again.'),
 }
 
 export function LoginForm({ callbackUrl }: { callbackUrl: string }) {
+  const t = useT()
   const router = useRouter()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -61,7 +64,7 @@ export function LoginForm({ callbackUrl }: { callbackUrl: string }) {
   return (
     <form onSubmit={handleSubmit} className="mt-8 space-y-5">
       <div className="grid gap-2">
-        <Label htmlFor="email">Email</Label>
+        <Label htmlFor="email">{t('Email')}</Label>
         <Input
           id="email"
           type="email"
@@ -79,7 +82,7 @@ export function LoginForm({ callbackUrl }: { callbackUrl: string }) {
       </div>
 
       <div className="grid gap-2">
-        <Label htmlFor="password">Password</Label>
+        <Label htmlFor="password">{t('Password')}</Label>
         <div className="relative">
           <Input
             id="password"
@@ -100,7 +103,7 @@ export function LoginForm({ callbackUrl }: { callbackUrl: string }) {
             size="icon"
             onClick={() => setShowPassword((visible) => !visible)}
             className="absolute right-0 top-0 size-11 text-muted-foreground"
-            aria-label={showPassword ? 'Hide password' : 'Show password'}
+            aria-label={showPassword ? t('Hide password') : t('Show password')}
           >
             {showPassword ? <EyeOff aria-hidden="true" /> : <Eye aria-hidden="true" />}
           </Button>
@@ -114,13 +117,13 @@ export function LoginForm({ callbackUrl }: { callbackUrl: string }) {
           className="flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2.5 text-sm text-destructive-strong"
         >
           <CircleAlert className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
-          {error.message}
+          {t(error.message)}
         </p>
       ) : null}
 
       <Button type="submit" disabled={isSubmitting} className="h-11 w-full">
         {isSubmitting ? <Loader2 className="animate-spin" aria-hidden="true" /> : <LogIn aria-hidden="true" />}
-        {isSubmitting ? 'Signing in...' : 'Sign in'}
+        {isSubmitting ? t('Signing in...') : t('Sign in')}
       </Button>
     </form>
   )

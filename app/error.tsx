@@ -1,25 +1,35 @@
 'use client'
 
+import Link from 'next/link'
+import { RotateCw, TriangleAlert } from 'lucide-react'
+
+import { Button } from '@/components/ui/button'
+import { useT } from '@/lib/i18n/client'
+
 export default function GlobalError({
   reset,
 }: {
   reset: () => void
 }) {
+  const t = useT()
+
   return (
-    <main className="flex min-h-screen items-center justify-center bg-[var(--bg)] px-4 text-[var(--text)]">
-      <div className="max-w-md rounded-[28px] border border-[var(--border)] bg-[var(--panel)] p-6 text-center shadow-[var(--shadow-soft)] backdrop-blur-md">
-        <p className="text-[10px] uppercase tracking-[0.14em] text-[var(--muted)]">Finance app</p>
-        <h1 className="mt-3 text-2xl font-semibold text-[var(--text)]">Something went wrong</h1>
-        <p className="mt-3 text-sm text-[var(--muted)]">
-          The finance data could not be loaded. Please try again.
+    <main className="flex min-h-dvh items-center justify-center px-4 py-10">
+      <div className="w-full max-w-md rounded-xl border bg-card p-6 text-center shadow-sm">
+        <TriangleAlert className="mx-auto size-8 text-warning" aria-hidden="true" />
+        <h1 className="mt-3 text-2xl font-semibold tracking-tight">{t('Something went wrong')}</h1>
+        <p className="mt-2 text-sm text-muted-foreground">
+          {t('This page could not be loaded. Your data is safe. Try again in a moment.')}
         </p>
-        <button
-          type="button"
-          onClick={() => reset()}
-          className="mt-5 inline-flex rounded-xl border border-[var(--border)] bg-[var(--text)] px-4 py-2 text-sm font-medium text-[var(--bg)]"
-        >
-          Try again
-        </button>
+        <div className="mt-6 flex flex-wrap justify-center gap-2">
+          <Button type="button" onClick={() => reset()} className="h-11">
+            <RotateCw aria-hidden="true" />
+            {t('Try again')}
+          </Button>
+          <Button asChild variant="outline" className="h-11">
+            <Link href="/">{t('Back to home')}</Link>
+          </Button>
+        </div>
       </div>
     </main>
   )
