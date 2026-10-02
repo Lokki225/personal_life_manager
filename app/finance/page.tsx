@@ -370,9 +370,9 @@ export default async function FinanceTodayPage() {
                 </div>
               </dl>
               {state.chests.length > 0 ? (
-                <ul className="-mx-6 flex gap-2 overflow-x-auto px-6 pb-1">
+                <ul className="-mx-6 flex gap-2 overflow-x-auto px-6 pb-1 sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0 sm:pb-0">
                   {state.chests.map((chest) => (
-                    <li key={chest.id} className="min-w-32 shrink-0 rounded-lg border px-3 py-2.5">
+                    <li key={chest.id} className="min-w-32 shrink-0 rounded-lg border px-3 py-2.5 sm:flex-1">
                       <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
                         {chest.type === 'SECURE' ? <Lock className="size-3" aria-label={t('Secure chest')} /> : null}
                         <span className="truncate">{t(chest.name)}</span>
