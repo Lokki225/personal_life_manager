@@ -39,6 +39,30 @@ export const confirmIncomeSchema = z.object({
   amount: moneyField,
 })
 
+const payDayField = z
+  .string({ error: 'Enter a day from 1 to 31.' })
+  .trim()
+  .regex(/^([1-9]|[12]\d|3[01])$/, 'Enter a day from 1 to 31.')
+  .transform(Number)
+
+export const editExpenseSchema = z.object({
+  id: requiredId('Choose an expense.'),
+  amount: moneyField,
+  category: z.enum(EXPENSE_CATEGORIES, { error: 'Choose a category.' }),
+  description: optionalText(80),
+})
+
+export const deleteExpenseSchema = z.object({
+  id: requiredId('Choose an expense.'),
+})
+
+export const incomeSchema = z.object({
+  id: requiredId('Choose an income.'),
+  source: requiredText('Enter an income source.', 60),
+  amount: moneyField,
+  payDay: payDayField,
+})
+
 export const planAllocationSchema = z.object({
   // Empty for a new allocation.
   id: z.string().trim().optional(),
@@ -65,5 +89,9 @@ export const exceptionForm = new FormHandler(exceptionSchema, options)
 export const transferForm = new FormHandler(transferSchema, options)
 export const confirmIncomeForm = new FormHandler(confirmIncomeSchema, options)
 export const planAllocationForm = new FormHandler(planAllocationSchema, options)
+export const editExpenseForm = new FormHandler(editExpenseSchema, options)
+export const deleteExpenseForm = new FormHandler(deleteExpenseSchema, options)
+export const incomeForm = new FormHandler(incomeSchema, options)
+export const coverForm = new FormHandler(z.object({}), options)
 export const deleteAllocationForm = new FormHandler(deleteAllocationSchema, options)
 export const consolidateForm = new FormHandler(z.object({}), options)

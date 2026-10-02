@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 
-import { removeAllocation, saveAllocation } from './managePlan'
+import { removeAllocation, saveAllocation, updateIncome } from './managePlan'
 
 const today = new Date(2026, 9, 2, 12)
 const rent = { name: ' Rent ', amount: 100000, period: 'monthly', category: 'fixed' }
@@ -61,5 +61,21 @@ describe('removeAllocation', () => {
 
     await expect(removeAllocation('user-1', 'someone-else', deps)).rejects.toThrow('This allocation no longer exists.')
     expect(deps.remove).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe('updateIncome', () => {
+  const salary = { id: 'income-1', source: ' Salary ', amount: 350000, payDay: 27 }
+
+  it('corrects one of the user’s incomes, and only theirs', async () => {
+    const deps = { listIncomes: vi.fn().mockResolvedValue([{ id: 'income-1' }]), update: vi.fn() }
+
+    await updateIncome('user-1', salary, deps)
+    expect(deps.update).toHaveBeenCalledWith('income-1', { source: 'Salary', amount: 350000, payDay: 27 })
+
+    await expect(updateIncome('user-1', { ...salary, id: 'someone-else' }, deps)).rejects.toThrow(
+      'This income no longer exists.',
+    )
+    expect(deps.update).toHaveBeenCalledTimes(1)
   })
 })

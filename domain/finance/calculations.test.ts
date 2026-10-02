@@ -10,6 +10,7 @@ import {
   monthlyLivingBudget,
   planDeposits,
   receiptDeposits,
+  expenseOverages,
   planChestMoves,
   incomePayDate,
   isIncomeDue,
@@ -167,6 +168,13 @@ describe('finance calculations', () => {
     expect(
       planChestMoves({ target: { savings: 100000, unallocated: 70000 }, placed, balances, oneChest: true }),
     ).toEqual([{ kind: 'out', amount: 20000 }])
+  })
+
+  it('finds how much of each expense went over what was left of the day', () => {
+    expect(expenseOverages(2000, [1500, 800, 300])).toEqual([0, 300, 300])
+    expect(expenseOverages(2000, [500, 500])).toEqual([0, 0])
+    expect(expenseOverages(0, [400])).toEqual([400])
+    expect(expenseOverages(-500, [400])).toEqual([400])
   })
 
   it('expects an income on its pay day, or on the last day of a shorter month', () => {

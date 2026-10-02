@@ -32,6 +32,7 @@ export type CreateIncomeData = {
   status?: string
   notes?: string | null
   projectId?: string | null
+  payDay?: number
 }
 
 export type UpdateIncomeData = Partial<CreateIncomeData>

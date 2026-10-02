@@ -810,6 +810,28 @@ export const FR: Messages = {
       'Téléchargez tout ce que vous avez enregistré en un seul fichier : votre propre sauvegarde, à conserver.',
     'Export my data': 'Exporter mes données',
 
+    // --- Editing expenses and income, covering a day -----------------------------
+    'Edit expense': 'Modifier la dépense',
+    'An expense can be corrected or deleted the day it was made.':
+      'Une dépense peut être corrigée ou supprimée le jour même.',
+    'Delete this expense': 'Supprimer cette dépense',
+    'Delete this expense? This cannot be undone.': 'Supprimer cette dépense ? Cette action est définitive.',
+    'This expense no longer exists.': "Cette dépense n'existe plus.",
+    'An expense can only be changed the day it was made.': 'Une dépense ne peut être modifiée que le jour même.',
+    'Expenses of a 31st cannot be changed.': "Les dépenses d'un 31 ne peuvent pas être modifiées.",
+    'Choose an expense.': 'Choisissez une dépense.',
+    'Cover {amount} {currency} from the Buffer': 'Couvrir {amount} {currency} avec la réserve',
+    'Today is within budget, so there is nothing to cover.':
+      "La journée est dans le budget : il n'y a rien à couvrir.",
+    'The Buffer is empty.': 'La réserve est vide.',
+    'Covered overspend': 'Dépassement couvert',
+    'The budget includes': 'Le budget comprend',
+    'taken from your Buffer.': 'pris dans votre réserve.',
+    'Edit income': 'Modifier le revenu',
+    'It counts from the next time this income is confirmed.':
+      'Le changement compte à partir de la prochaine confirmation de ce revenu.',
+    'Income, expected on the {day} of each month': 'Revenu, attendu le {day} de chaque mois',
+
     // --- Amounts ---------------------------------------------------------------
     'Enter an amount.': 'Saisissez un montant.',
     'Use digits only, for example 60000.': 'Utilisez uniquement des chiffres, par exemple 60000.',

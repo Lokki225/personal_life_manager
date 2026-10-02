@@ -56,6 +56,9 @@ export async function recomputeFinanceState(input: RecomputeFinanceStateInput): 
   uncoveredDay: boolean
   // What the reserves (Buffer and Base Chest) still owe to today's budget.
   reserveBudgetLeft: number
+  // Taken out of the Buffer today to pay for an overspend.
+  coveredToday: number
+  incomes: Array<{ id: string; source: string; amount: number; payDay: number }>
   overspending: number
   actualSavings: number
   buffer: number
@@ -234,7 +237,10 @@ export async function recomputeFinanceState(input: RecomputeFinanceStateInput): 
     : 0
   const reserveBudgetLeft = Math.max(reserveBudget - drawnToday, 0)
 
-  const dailyBudgetAmount = uncoveredDay ? reserveBudget : plannedDailyBudget
+  // On a day the plan covers, money taken from the Buffer to pay for an
+  // overspend adds to what the day could afford.
+  const coveredToday = uncoveredDay ? 0 : drawnToday
+  const dailyBudgetAmount = uncoveredDay ? reserveBudget : plannedDailyBudget + coveredToday
 
   const dailyRemaining = Math.max(dailyBudgetAmount - dailySpent - todaySavingMovement, 0)
   // What was saved today is committed too, so spending after saving can still
@@ -316,6 +322,13 @@ export async function recomputeFinanceState(input: RecomputeFinanceStateInput): 
     savedToday: todaySavingMovement,
     uncoveredDay,
     reserveBudgetLeft,
+    coveredToday,
+    incomes: incomes.map((income) => ({
+      id: String(income.id),
+      source: String(income.source ?? ''),
+      amount: Number(income.amount || 0),
+      payDay: Number(income.payDay ?? 1),
+    })),
     overspending: dailyOverspend,
     actualSavings,
     buffer,
