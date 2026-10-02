@@ -171,6 +171,19 @@ model User {
   debts             Debt[]
   incomeReceipts    IncomeReceipt[]
   passwordResets    PasswordResetToken[]
+  pushSubscriptions PushSubscription[]
+}
+
+// One device that agreed to receive notifications. The browser gives the
+// address to send to and the keys to encrypt with.
+model PushSubscription {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  createdAt DateTime @default(now())
 }
 
 // A one-time link to choose a new password. Only a hash of the link's secret

@@ -3,7 +3,10 @@
 import { revalidatePath } from 'next/cache'
 
 import { changeCredentials, updateProfile } from '@/application/account/profile'
+import { notifyDevices } from '@/application/notifications/notify'
 import { getSignedInUser } from '@/infrastructure/auth/sessionUser'
+import { isPushConfigured } from '@/infrastructure/push/sendPush'
+import { pushRepository } from '@/infrastructure/repositories/pushRepository'
 import { userRepository } from '@/infrastructure/repositories/userRepository'
 import { signedOutState, translateFormState, type FormState } from '@/lib/forms/formState'
 import { isValidTimeZone, setClockZone } from '@/lib/clock'
@@ -80,4 +83,64 @@ export async function reportTimeZoneAction(timeZone: string): Promise<void> {
     await userRepository.setTimeZoneIfMissing(user.id, timeZone)
     revalidatePath('/', 'layout')
   }
+}
+
+// What a browser hands over when a device subscribes. Checked by hand: it is
+// not a form, and the address has to be a real push service.
+function readSubscription(input: unknown): { endpoint: string; p256dh: string; auth: string } | null {
+  const value = input as { endpoint?: unknown; keys?: { p256dh?: unknown; auth?: unknown } } | null
+  const endpoint = value?.endpoint
+  const p256dh = value?.keys?.p256dh
+  const auth = value?.keys?.auth
+
+  if (typeof endpoint !== 'string' || typeof p256dh !== 'string' || typeof auth !== 'string') {
+    return null
+  }
+
+  if (endpoint.length > 2000 || p256dh.length > 200 || auth.length > 200 || !endpoint.startsWith('https://')) {
+    return null
+  }
+
+  return { endpoint, p256dh, auth }
+}
+
+export async function subscribePushAction(input: unknown): Promise<{ error?: string }> {
+  const [user, t] = await Promise.all([getSignedInUser(), getT()])
+  const subscription = readSubscription(input)
+
+  if (!user) {
+    return { error: t('Your session has ended. Sign in again to continue.') }
+  }
+
+  if (!subscription || !isPushConfigured()) {
+    return { error: t('Notifications could not be turned on for this device.') }
+  }
+
+  await pushRepository.saveSubscription(user.id, subscription)
+
+  return {}
+}
+
+export async function unsubscribePushAction(endpoint: string): Promise<void> {
+  const user = await getSignedInUser()
+
+  if (user && typeof endpoint === 'string') {
+    await pushRepository.removeSubscription(user.id, endpoint)
+  }
+}
+
+export async function sendTestPushAction(): Promise<{ error?: string }> {
+  const [user, t] = await Promise.all([getSignedInUser(), getT()])
+
+  if (!user) {
+    return { error: t('Your session has ended. Sign in again to continue.') }
+  }
+
+  const delivered = await notifyDevices(await pushRepository.listSubscriptions(user.id), {
+    title: t('Notifications are working'),
+    body: t('This is what a reminder from Personal Life Manager looks like.'),
+    url: '/finance',
+  })
+
+  return delivered > 0 ? {} : { error: t('The test could not be sent. Turn notifications off and on again.') }
 }

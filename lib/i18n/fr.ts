@@ -848,6 +848,42 @@ export const FR: Messages = {
     'Not set': 'Non défini',
     'Choose a time zone from the list.': 'Choisissez un fuseau horaire dans la liste.',
 
+    // --- Notifications ------------------------------------------------------------
+    Notifications: 'Notifications',
+    'An evening reminder when nothing was recorded, when an income is waiting to be confirmed, and when a debt or a loan comes due.':
+      "Un rappel le soir quand rien n'a été enregistré, quand un revenu attend d'être confirmé, et quand une dette ou un prêt arrive à échéance.",
+    'Turn on notifications': 'Activer les notifications',
+    'Notifications are on for this device.': 'Les notifications sont activées sur cet appareil.',
+    'Send a test': 'Envoyer un test',
+    'Turn off': 'Désactiver',
+    'Sent. It should appear in a moment.': 'Envoyé. Elle devrait apparaître dans un instant.',
+    'Notifications could not be turned on for this device.':
+      "Les notifications n'ont pas pu être activées sur cet appareil.",
+    'Notifications could not be turned off. Try again.': "Les notifications n'ont pas pu être désactivées. Réessayez.",
+    'This browser cannot receive notifications here. On an iPhone, first add the app to your home screen (Share, then "Add to Home Screen") and open it from there.':
+      "Ce navigateur ne peut pas recevoir de notifications ici. Sur iPhone, ajoutez d'abord l'application à votre écran d'accueil (Partager, puis « Sur l'écran d'accueil ») et ouvrez-la depuis là.",
+    'Notifications are blocked for this site. Allow them in your browser settings, then come back.':
+      'Les notifications sont bloquées pour ce site. Autorisez-les dans les réglages de votre navigateur, puis revenez.',
+    'Notifications are working': 'Les notifications fonctionnent',
+    'This is what a reminder from Personal Life Manager looks like.':
+      'Voici à quoi ressemble un rappel de Personal Life Manager.',
+    'The test could not be sent. Turn notifications off and on again.':
+      "Le test n'a pas pu être envoyé. Désactivez puis réactivez les notifications.",
+    'Anything spent today?': "Des dépenses aujourd'hui ?",
+    'Record it before the day ends, so tomorrow starts right.':
+      'Enregistrez-les avant la fin de la journée, pour bien commencer demain.',
+    today: "aujourd'hui",
+    tomorrow: 'demain',
+    'in 2 days': 'dans 2 jours',
+    'A repayment is due {when}': 'Un remboursement est dû {when}',
+    'You owe {name} {amount}.': 'Vous devez {amount} à {name}.',
+    'A repayment is late': 'Un remboursement est en retard',
+    'You still owe {name} {amount}.': 'Vous devez encore {amount} à {name}.',
+    'Money is due back {when}': "De l'argent doit vous revenir {when}",
+    '{name} owes you {amount}.': '{name} vous doit {amount}.',
+    'A loan is late coming back': 'Un prêt tarde à revenir',
+    '{name} still owes you {amount}.': '{name} vous doit encore {amount}.',
+
     // --- Amounts ---------------------------------------------------------------
     'Enter an amount.': 'Saisissez un montant.',
     'Use digits only, for example 60000.': 'Utilisez uniquement des chiffres, par exemple 60000.',

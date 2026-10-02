@@ -6,12 +6,14 @@ import { ChevronLeft, Download } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
 import { getSignedInUser } from '@/infrastructure/auth/sessionUser'
+import { pushPublicKey } from '@/infrastructure/push/sendPush'
 import { userRepository } from '@/infrastructure/repositories/userRepository'
 import { getT } from '@/lib/i18n/server'
 
 import { SignOutButton } from '../sign-out-button'
 import { SignedInMenu } from '../signed-in-menu'
 import { CredentialsForm, ProfileForm } from './account-form'
+import { NotificationSettings } from './notifications'
 
 export const metadata: Metadata = {
   title: 'My account | Personal Life Manager',
@@ -85,6 +87,20 @@ export default async function AccountPage() {
             <p className="mt-1 text-sm text-muted-foreground">{t('The email and password you sign in with.')}</p>
           </div>
           <CredentialsForm email={profile.email} />
+        </CardContent>
+      </Card>
+
+      <Card className="gap-0 py-5">
+        <CardContent className="space-y-3">
+          <div>
+            <h2 className="text-base font-semibold">{t('Notifications')}</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {t(
+                'An evening reminder when nothing was recorded, when an income is waiting to be confirmed, and when a debt or a loan comes due.',
+              )}
+            </p>
+          </div>
+          <NotificationSettings publicKey={pushPublicKey()} />
         </CardContent>
       </Card>
 

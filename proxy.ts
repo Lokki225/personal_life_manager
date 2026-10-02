@@ -12,6 +12,10 @@ const PUBLIC_PATHS = [
   '/learn',
   '/icon.svg',
   '/apple-icon',
+  '/manifest.webmanifest',
+  '/sw.js',
+  '/icons/192',
+  '/icons/512',
 ]
 
 export async function proxy(request: NextRequest) {
