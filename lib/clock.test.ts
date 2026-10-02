@@ -51,7 +51,7 @@ describe('now', () => {
   it('is set by a page for everything it calls afterwards, without reaching another request', async () => {
     const pause = () => new Promise((resolve) => setTimeout(resolve, 5))
     // What a use case does: some work, then asks the time.
-    const useCase = async () => {
+    const askTheTime = async () => {
       await pause()
       return now().getHours()
     }
@@ -61,7 +61,7 @@ describe('now', () => {
       await pause()
       setClockZone(timeZone)
       await pause()
-      return useCase()
+      return askTheTime()
     }
 
     const [paris, newYork, tokyo] = await Promise.all([
