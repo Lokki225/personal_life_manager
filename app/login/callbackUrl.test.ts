@@ -8,23 +8,25 @@ describe('safeCallbackUrl', () => {
     expect(safeCallbackUrl(['/finance/goals', '/other'])).toBe('/finance/goals')
   })
 
-  it('falls back to the finance overview when there is nothing useful', () => {
-    expect(safeCallbackUrl(undefined)).toBe('/finance')
-    expect(safeCallbackUrl('')).toBe('/finance')
-    expect(safeCallbackUrl('/')).toBe('/finance')
-    expect(safeCallbackUrl('/login')).toBe('/finance')
-    expect(safeCallbackUrl('/login?callbackUrl=/login')).toBe('/finance')
+  it('falls back to the guide when there is nothing useful', () => {
+    expect(safeCallbackUrl(undefined)).toBe('/learn')
+    expect(safeCallbackUrl('')).toBe('/learn')
+    expect(safeCallbackUrl('/')).toBe('/learn')
+    expect(safeCallbackUrl('/login')).toBe('/learn')
+    expect(safeCallbackUrl('/finance')).toBe('/learn')
+    expect(safeCallbackUrl('/signup')).toBe('/learn')
+    expect(safeCallbackUrl('/login?callbackUrl=/login')).toBe('/learn')
   })
 
   it('rejects anything that could leave the site', () => {
-    expect(safeCallbackUrl('https://evil.example')).toBe('/finance')
-    expect(safeCallbackUrl('//evil.example')).toBe('/finance')
-    expect(safeCallbackUrl('/\\evil.example')).toBe('/finance')
-    expect(safeCallbackUrl('javascript:alert(1)')).toBe('/finance')
-    expect(safeCallbackUrl('/\t/evil.example')).toBe('/finance')
-    expect(safeCallbackUrl('/\n/evil.example')).toBe('/finance')
-    expect(safeCallbackUrl('/.//evil.example')).toBe('/finance')
-    expect(safeCallbackUrl('/' + 'a'.repeat(2001))).toBe('/finance')
+    expect(safeCallbackUrl('https://evil.example')).toBe('/learn')
+    expect(safeCallbackUrl('//evil.example')).toBe('/learn')
+    expect(safeCallbackUrl('/\\evil.example')).toBe('/learn')
+    expect(safeCallbackUrl('javascript:alert(1)')).toBe('/learn')
+    expect(safeCallbackUrl('/\t/evil.example')).toBe('/learn')
+    expect(safeCallbackUrl('/\n/evil.example')).toBe('/learn')
+    expect(safeCallbackUrl('/.//evil.example')).toBe('/learn')
+    expect(safeCallbackUrl('/' + 'a'.repeat(2001))).toBe('/learn')
   })
 
   it('keeps the query string of a deep link', () => {

@@ -1,4 +1,5 @@
-const DEFAULT_DESTINATION = '/finance'
+// The guide, which leads on to the finance pages.
+const DEFAULT_DESTINATION = '/learn'
 const PLACEHOLDER_ORIGIN = 'http://internal.invalid'
 const MAX_LENGTH = 2000
 // Browsers drop tabs and line breaks when resolving a URL, which would turn
@@ -26,7 +27,9 @@ export function safeCallbackUrl(value: string | string[] | undefined): string {
     return DEFAULT_DESTINATION
   }
 
-  if (url.pathname === '/' || url.pathname === '/login') {
+  // The general ways in all lead to the guide. Only a link to a particular
+  // page is followed.
+  if (['/', '/login', '/signup', '/finance'].includes(url.pathname)) {
     return DEFAULT_DESTINATION
   }
 
