@@ -10,6 +10,7 @@ import {
   monthlyLivingBudget,
   planDeposits,
   receiptDeposits,
+  planChestMoves,
   incomePayDate,
   isIncomeDue,
   isUncoveredDay,
@@ -142,6 +143,30 @@ describe('finance calculations', () => {
     expect(receiptDeposits(allocations, 150000, 150000, september)).toEqual({ savings: 0, unallocated: 120000 })
     // Less than usual never deposits more than arrived.
     expect(receiptDeposits(allocations, 0, 12000, september)).toEqual({ savings: 12000, unallocated: 0 })
+  })
+
+  it('moves money between chests so they match a changed plan', () => {
+    const balances = { savings: 0, base: 190000 }
+    const placed = { savings: 0, unallocated: 190000 }
+
+    // Nothing changed.
+    expect(planChestMoves({ target: placed, placed, balances })).toEqual([])
+    // A 100,000 savings allocation was added: it comes out of the Base Chest.
+    expect(planChestMoves({ target: { savings: 100000, unallocated: 90000 }, placed, balances })).toEqual([
+      { kind: 'toSavings', amount: 100000 },
+    ])
+    // A 20,000 bill was added: that money is no longer free.
+    expect(planChestMoves({ target: { savings: 0, unallocated: 170000 }, placed, balances })).toEqual([
+      { kind: 'out', amount: 20000 },
+    ])
+    // Both at once, with a Base Chest that only holds 50,000.
+    expect(
+      planChestMoves({ target: { savings: 100000, unallocated: 70000 }, placed, balances: { savings: 0, base: 50000 } }),
+    ).toEqual([{ kind: 'toSavings', amount: 50000 }])
+    // Without a savings chest, the Base Chest holds both.
+    expect(
+      planChestMoves({ target: { savings: 100000, unallocated: 70000 }, placed, balances, oneChest: true }),
+    ).toEqual([{ kind: 'out', amount: 20000 }])
   })
 
   it('expects an income on its pay day, or on the last day of a shorter month', () => {

@@ -85,7 +85,7 @@ function AllocationDrawer({ allocation, trigger }: { allocation?: PlanAllocation
   return (
     <ActionDrawer
       title={allocation ? t('Edit allocation') : t('New allocation')}
-      description={t('Changes apply from today. Money already placed in your chests this month stays where it is.')}
+      description={t('Changes apply from today. Your chests follow: an allocation takes its money from the Base Chest.')}
       trigger={trigger}
     >
       {(close) => (

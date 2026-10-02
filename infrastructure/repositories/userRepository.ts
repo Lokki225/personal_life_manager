@@ -4,9 +4,29 @@ import { prisma } from '../prisma/client'
 
 export type UserRole = 'USER' | 'ADMIN'
 
+// What a person can say about themselves. Only the two names are required.
+export type ProfileData = {
+  firstName: string
+  lastName: string
+  username: string | null
+  bio: string | null
+  occupation: string | null
+  phone: string | null
+  country: string | null
+  city: string | null
+  birthDate: Date | null
+}
+
+export type UserProfile = { [Field in keyof ProfileData]: ProfileData[Field] | null } & {
+  email: string
+  picture: string | null
+}
+
 export type UserSummary = {
   id: string
   email: string
+  firstName: string | null
+  lastName: string | null
   username: string | null
   role: UserRole
   createdAt: Date
@@ -34,9 +54,19 @@ export interface UserRepository {
   emailExists: (email: string) => Promise<boolean>
   // Stores the user with a hashed password. Resolves to null, without
   // writing, when the email is already taken.
-  createUser: (email: string, password: string, username: string) => Promise<{ id: string; email: string } | null>
+  createUser: (
+    email: string,
+    password: string,
+    names: { firstName: string; lastName: string; username: string | null },
+  ) => Promise<{ id: string; email: string } | null>
+  getProfile: (userId: string) => Promise<UserProfile | null>
   // `picture` is left as it is when undefined, and removed when null.
-  updateProfile: (userId: string, profile: { username: string; picture?: string | null }) => Promise<void>
+  updateProfile: (userId: string, profile: ProfileData & { picture?: string | null }) => Promise<void>
+  // Whether this is the person's current password.
+  passwordMatches: (userId: string, password: string) => Promise<boolean>
+  // Changes the email, the password, or both. Resolves to false, without
+  // writing, when the email belongs to another account.
+  updateCredentials: (userId: string, credentials: { email?: string; password?: string }) => Promise<boolean>
   listUsers: () => Promise<UserSummary[]>
   // Resolves to false when the user does not exist.
   setRole: (userId: string, role: UserRole) => Promise<boolean>
@@ -66,12 +96,16 @@ export const userRepository: UserRepository = {
     return (await prisma.user.count({ where: { email } })) > 0
   },
 
-  createUser: async (email: string, password: string, username: string) => {
+  createUser: async (
+    email: string,
+    password: string,
+    names: { firstName: string; lastName: string; username: string | null },
+  ) => {
     const passwordHash = await bcrypt.hash(password, 10)
 
     try {
       return await prisma.user.create({
-        data: { email, passwordHash, username },
+        data: { email, passwordHash, ...names },
         select: { id: true, email: true },
       })
     } catch (error) {
@@ -84,8 +118,53 @@ export const userRepository: UserRepository = {
     }
   },
 
-  updateProfile: async (userId: string, profile: { username: string; picture?: string | null }) => {
+  getProfile: async (userId: string) => {
+    return prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        email: true,
+        picture: true,
+        firstName: true,
+        lastName: true,
+        username: true,
+        bio: true,
+        occupation: true,
+        phone: true,
+        country: true,
+        city: true,
+        birthDate: true,
+      },
+    })
+  },
+
+  updateProfile: async (userId: string, profile: ProfileData & { picture?: string | null }) => {
     await prisma.user.update({ where: { id: userId }, data: profile })
+  },
+
+  passwordMatches: async (userId: string, password: string) => {
+    const user = await prisma.user.findUnique({ where: { id: userId }, select: { passwordHash: true } })
+
+    return user !== null && (await bcrypt.compare(password, user.passwordHash))
+  },
+
+  updateCredentials: async (userId: string, credentials: { email?: string; password?: string }) => {
+    try {
+      await prisma.user.update({
+        where: { id: userId },
+        data: {
+          email: credentials.email,
+          passwordHash: credentials.password === undefined ? undefined : await bcrypt.hash(credentials.password, 10),
+        },
+      })
+
+      return true
+    } catch (error) {
+      if (isUniqueViolation(error)) {
+        return false
+      }
+
+      throw error
+    }
   },
 
   listUsers: async () => {
@@ -93,6 +172,8 @@ export const userRepository: UserRepository = {
       select: {
         id: true,
         email: true,
+        firstName: true,
+        lastName: true,
         username: true,
         role: true,
         createdAt: true,

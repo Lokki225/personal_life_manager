@@ -8,7 +8,9 @@ const daysAgo = (days: number) => new Date(2026, 9, 15 - days, 10)
 const user = (id: string, overrides: Record<string, unknown> = {}) => ({
   id,
   email: `${id}@example.com`,
-  username: id,
+  firstName: id,
+  lastName: null,
+  username: null,
   role: 'USER' as const,
   createdAt: daysAgo(60),
   lastSeenAt: null,

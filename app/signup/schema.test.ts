@@ -8,7 +8,7 @@ const formDataOf = (entries: Record<string, string>) => {
   return formData
 }
 
-const valid = { username: 'Awa', email: 'awa@example.com', password: 'long-enough', confirmPassword: 'long-enough' }
+const valid = { firstName: 'Awa', lastName: 'Koné', email: 'awa@example.com', password: 'long-enough', confirmPassword: 'long-enough' }
 
 const errorsOf = (entries: Record<string, string>) => {
   const result = signUpForm.parse(formDataOf(entries))
@@ -25,7 +25,12 @@ describe('sign-up form', () => {
       email: ['Enter a valid email, like you@example.com.'],
     })
     expect(errorsOf({ ...valid, email: '' }).email?.[0]).toBe('Enter your email.')
-    expect(errorsOf({ ...valid, username: ' ' })).toEqual({ username: ['Enter the name to show in the app.'] })
+    expect(errorsOf({ ...valid, firstName: ' ', lastName: '' })).toEqual({
+      firstName: ['Enter your first name.'],
+      lastName: ['Enter your last name.'],
+    })
+    // The nickname is optional.
+    expect(signUpForm.parse(formDataOf({ ...valid, username: 'Wawa' })).ok).toBe(true)
     expect(errorsOf({ ...valid, password: 'short', confirmPassword: 'short' })).toEqual({
       password: ['Use at least 8 characters.'],
     })

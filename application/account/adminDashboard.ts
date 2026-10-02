@@ -32,6 +32,8 @@ const NO_USAGE: UserUsage = {
 export type AdminUserRow = {
   id: string
   email: string
+  firstName: string | null
+  lastName: string | null
   username: string | null
   role: UserRole
   createdAt: Date
@@ -83,6 +85,8 @@ export async function getAdminDashboard(
     return {
       id: user.id,
       email: user.email,
+      firstName: user.firstName,
+      lastName: user.lastName,
       username: user.username,
       role: user.role,
       createdAt: user.createdAt,

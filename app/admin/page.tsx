@@ -8,7 +8,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { getAdminDashboard, type FeatureKey } from '@/application/account/adminDashboard'
 import type { ActivityStatus } from '@/domain/account/activity'
 import { getSignedInUser } from '@/infrastructure/auth/sessionUser'
-import { displayNameFromEmail } from '@/lib/greeting'
+import { fullName } from '@/lib/greeting'
 import { getT } from '@/lib/i18n/server'
 import { m } from '@/lib/i18n/translate'
 import { cn } from '@/lib/utils'
@@ -179,7 +179,7 @@ export default async function AdminPage() {
           <h2 className="py-3 text-base font-semibold">{t('Accounts')}</h2>
           <ul className="divide-y border-t">
             {dashboard.users.map((user) => {
-              const name = user.username || displayNameFromEmail(user.email) || user.email
+              const name = fullName(user)
               const isSelf = user.id === actor.id
               const status = STATUS[user.status]
               const language = user.locale === 'fr' || user.locale === 'en' ? LANGUAGE_NAMES[user.locale] : null

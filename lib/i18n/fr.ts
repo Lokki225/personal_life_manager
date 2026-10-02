@@ -286,7 +286,6 @@ export const FR: Messages = {
     'The line marks where even spending would be.': 'Le trait indique où en serait une dépense régulière.',
     'spent this month.': 'dépensés ce mois-ci.',
     Manage: 'Gérer',
-    'Total saved': 'Total épargné',
     'Of which buffer': 'Dont réserve',
     'Secure chest': 'Coffre sécurisé',
     'Your chests are created the first time you save what is left of a day.':
@@ -717,16 +716,51 @@ export const FR: Messages = {
     'New allocation': 'Nouveau poste',
     'Edit allocation': 'Modifier le poste',
     'Edit {name}': 'Modifier {name}',
-    'Changes apply from today. Money already placed in your chests this month stays where it is.':
-      "Les changements s'appliquent dès aujourd'hui. L'argent déjà placé dans vos coffres ce mois-ci reste où il est.",
+    'Changes apply from today. Your chests follow: an allocation takes its money from the Base Chest.':
+      "Les changements s'appliquent dès aujourd'hui. Vos coffres suivent : un poste prend son argent dans le coffre principal.",
+    'Plan change': 'Changement de plan',
+    'In your chests': 'Dans vos coffres',
     'Rent, internet, savings...': 'Loyer, internet, épargne...',
     'Delete this allocation': 'Supprimer ce poste',
     'Delete this allocation? Your past expenses are kept.': 'Supprimer ce poste ? Vos dépenses passées sont conservées.',
     'Not allocated': 'Non réparti',
-    'It goes to your Base Chest each time your income is confirmed.':
-      'Ce montant va dans votre coffre principal à chaque confirmation de revenu.',
+    'It is kept in your Base Chest.': 'Ce montant est gardé dans votre coffre principal.',
     'This allocation no longer exists.': "Ce poste n'existe plus.",
     'Choose an allocation.': 'Choisissez un poste.',
+
+    // --- Profile ---------------------------------------------------------------
+    'Who you are, and how you sign in.': 'Qui vous êtes, et comment vous vous connectez.',
+    Profile: 'Profil',
+    optional: 'facultatif',
+    'First name': 'Prénom',
+    'Last name': 'Nom',
+    Username: 'Pseudo',
+    'A nickname. The app greets you with it instead of your first name.':
+      "Un surnom. L'application vous salue avec lui plutôt qu'avec votre prénom.",
+    Occupation: 'Profession',
+    'About you': 'À propos de vous',
+    'Contact and place': 'Contact et lieu',
+    Phone: 'Téléphone',
+    'Date of birth': 'Date de naissance',
+    Country: 'Pays',
+    City: 'Ville',
+    'Sign-in details': 'Identifiants de connexion',
+    'The email and password you sign in with.': "L'e-mail et le mot de passe avec lesquels vous vous connectez.",
+    'New password': 'Nouveau mot de passe',
+    'Leave empty to keep your password. At least 8 characters.':
+      'Laissez vide pour garder votre mot de passe. Au moins 8 caractères.',
+    'Current password': 'Mot de passe actuel',
+    'Needed to change your email or your password.': 'Nécessaire pour changer votre e-mail ou votre mot de passe.',
+    'Enter your first name.': 'Saisissez votre prénom.',
+    'Enter your last name.': 'Saisissez votre nom.',
+    'Enter a phone number, for example +225 07 00 00 00 00.':
+      'Saisissez un numéro de téléphone, par exemple +225 07 00 00 00 00.',
+    'Enter your current password.': 'Saisissez votre mot de passe actuel.',
+    'Enter a real date of birth.': 'Saisissez une date de naissance réelle.',
+    'This is not your current password.': "Ce n'est pas votre mot de passe actuel.",
+    'Another account already uses this email.': 'Un autre compte utilise déjà cet e-mail.',
+    'Administrators can see your name, your email, when you use the app and which features you use. They never see your amounts, what you write, or the rest of your profile.':
+      "Les administrateurs peuvent voir votre nom, votre e-mail, quand vous utilisez l'application et quelles fonctions vous utilisez. Ils ne voient jamais vos montants, ce que vous écrivez, ni le reste de votre profil.",
 
     // --- Amounts ---------------------------------------------------------------
     'Enter an amount.': 'Saisissez un montant.',

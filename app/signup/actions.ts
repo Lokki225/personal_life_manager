@@ -9,7 +9,13 @@ import { signUpForm } from './schema'
 export async function signUpAction(_previousState: FormState, formData: FormData): Promise<FormState> {
   const t = await getT()
   const state = await signUpForm.submit(formData, async (account) => {
-    await registerUser({ email: account.email, password: account.password, username: account.username })
+    await registerUser({
+      email: account.email,
+      password: account.password,
+      firstName: account.firstName,
+      lastName: account.lastName,
+      username: account.username,
+    })
   })
 
   // The form keeps what was typed itself, so the passwords are never sent back.

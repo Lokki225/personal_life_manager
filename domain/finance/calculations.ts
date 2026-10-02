@@ -112,6 +112,63 @@ export function planDeposits(
   }
 }
 
+export type PlanChestMove = { kind: 'toSavings' | 'toBase' | 'in' | 'out'; amount: number }
+
+// What to move so the chests match the plan again after it changed.
+// `target` is what the plan wants placed this month (savings in the savings
+// chest, unallocated income in the Base Chest), `placed` what it already put
+// there. Money goes between the two chests first; the rest enters or leaves
+// the Base Chest. Nothing is taken from a chest that does not hold it.
+export function planChestMoves({
+  target,
+  placed,
+  balances,
+  oneChest = false,
+}: {
+  target: { savings: number; unallocated: number }
+  placed: { savings: number; unallocated: number }
+  balances: { savings: number; base: number }
+  // No savings chest of its own: everything lives in the Base Chest.
+  oneChest?: boolean
+}): PlanChestMove[] {
+  const moves: PlanChestMove[] = []
+  const add = (kind: PlanChestMove['kind'], amount: number) => {
+    if (Math.floor(amount) >= 1) {
+      moves.push({ kind, amount: Math.floor(amount) })
+    }
+  }
+
+  let baseBalance = Math.max(balances.base, 0)
+  let baseChange = 0
+
+  if (oneChest) {
+    // `placed.unallocated` already counts everything put in the Base Chest.
+    const change = target.savings + target.unallocated - placed.unallocated
+    add(change > 0 ? 'in' : 'out', change > 0 ? change : Math.min(-change, baseBalance))
+
+    return moves
+  }
+
+  const savingsChange = target.savings - placed.savings
+
+  if (savingsChange > 0) {
+    const amount = Math.min(savingsChange, baseBalance)
+    add('toSavings', amount)
+    baseChange -= amount
+  } else if (savingsChange < 0) {
+    const amount = Math.min(-savingsChange, Math.max(balances.savings, 0))
+    add('toBase', amount)
+    baseChange += amount
+  }
+
+  baseBalance += baseChange
+  const rest = target.unallocated - placed.unallocated - baseChange
+
+  add(rest > 0 ? 'in' : 'out', rest > 0 ? rest : Math.min(-rest, Math.max(baseBalance, 0)))
+
+  return moves
+}
+
 // What one confirmed income adds to the chests. The month's receipts are
 // counted together, so savings fill up first and only what the allocations
 // leave over is unallocated, however the income is split across arrivals.

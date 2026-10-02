@@ -7,6 +7,8 @@ import { prisma } from '@/infrastructure/prisma/client'
 export type SignedInUser = {
   id: string
   email: string
+  firstName: string | null
+  lastName: string | null
   username: string | null
   picture: string | null
   role: 'USER' | 'ADMIN'
@@ -21,7 +23,17 @@ export type SignedInUser = {
 export const getSignedInUser = cache(async (): Promise<SignedInUser | null> => {
   const session = await getServerSession(authOptions)
   const sessionUser = session?.user as { id?: unknown; email?: unknown } | undefined
-  const select = { id: true, email: true, username: true, picture: true, role: true, lastSeenAt: true, locale: true }
+  const select = {
+    id: true,
+    email: true,
+    firstName: true,
+    lastName: true,
+    username: true,
+    picture: true,
+    role: true,
+    lastSeenAt: true,
+    locale: true,
+  }
 
   if (typeof sessionUser?.id === 'string' && sessionUser.id.length > 0) {
     return prisma.user.findUnique({ where: { id: sessionUser.id }, select })
