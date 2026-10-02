@@ -4,6 +4,7 @@ import {
   type UserRepository,
   type UserRole,
 } from '../../infrastructure/repositories/userRepository'
+import { isValidTimeZone } from '../../lib/clock'
 import { AccountRuleError } from './errors'
 
 // A picture is kept in the database as a small image the browser shrank
@@ -25,6 +26,7 @@ export type ProfileInput = {
   country?: string | null
   city?: string | null
   birthDate?: Date | null
+  timeZone?: string | null
   // A new image, null to remove the current one, undefined to keep it.
   picture?: string | null
 }
@@ -47,6 +49,12 @@ export async function updateProfile(
     throw new AccountRuleError('Enter a real date of birth.', 'birthDate')
   }
 
+  const timeZone = profile.timeZone?.trim() || null
+
+  if (timeZone && !isValidTimeZone(timeZone)) {
+    throw new AccountRuleError('Choose a time zone from the list.', 'timeZone')
+  }
+
   const data: ProfileData = {
     firstName: profile.firstName.trim(),
     lastName: profile.lastName.trim(),
@@ -57,6 +65,7 @@ export async function updateProfile(
     country: optional(profile.country),
     city: optional(profile.city),
     birthDate,
+    timeZone,
   }
 
   await repository.updateProfile(userId, { ...data, picture })

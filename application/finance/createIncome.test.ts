@@ -16,6 +16,7 @@ describe('createIncome', () => {
       listIncomes: vi.fn(),
       updateIncome: vi.fn(),
       deleteIncome: vi.fn(),
+      removeIncome: vi.fn(),
     }
 
     const result = await createIncome(

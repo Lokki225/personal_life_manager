@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 
-import { removeAllocation, saveAllocation, updateIncome } from './managePlan'
+import { removeAllocation, removeIncome, saveAllocation, saveIncome } from './managePlan'
 
 const today = new Date(2026, 9, 2, 12)
 const rent = { name: ' Rent ', amount: 100000, period: 'monthly', category: 'fixed' }
@@ -64,18 +64,46 @@ describe('removeAllocation', () => {
   })
 })
 
-describe('updateIncome', () => {
-  const salary = { id: 'income-1', source: ' Salary ', amount: 350000, payDay: 27 }
+describe('incomes', () => {
+  const salary = { source: ' Salary ', amount: 350000, payDay: 27 }
+  const depsOf = (ids: string[] = ['income-1', 'income-2']) => ({
+    listIncomes: vi.fn().mockResolvedValue(ids.map((id) => ({ id }))),
+    create: vi.fn(),
+    update: vi.fn(),
+    remove: vi.fn(),
+  })
+
+  it('adds a monthly income', async () => {
+    const deps = depsOf()
+
+    await saveIncome('user-1', salary, deps)
+
+    expect(deps.create).toHaveBeenCalledWith('user-1', { source: 'Salary', amount: 350000, frequency: 'monthly', payDay: 27 })
+    expect(deps.update).not.toHaveBeenCalled()
+  })
 
   it('corrects one of the user’s incomes, and only theirs', async () => {
-    const deps = { listIncomes: vi.fn().mockResolvedValue([{ id: 'income-1' }]), update: vi.fn() }
+    const deps = depsOf()
 
-    await updateIncome('user-1', salary, deps)
+    await saveIncome('user-1', { ...salary, id: 'income-1' }, deps)
     expect(deps.update).toHaveBeenCalledWith('income-1', { source: 'Salary', amount: 350000, payDay: 27 })
 
-    await expect(updateIncome('user-1', { ...salary, id: 'someone-else' }, deps)).rejects.toThrow(
+    await expect(saveIncome('user-1', { ...salary, id: 'someone-else' }, deps)).rejects.toThrow(
       'This income no longer exists.',
     )
     expect(deps.update).toHaveBeenCalledTimes(1)
+  })
+
+  it('removes an income, but never the last one or someone else’s', async () => {
+    const deps = depsOf()
+
+    await removeIncome('user-1', 'income-2', deps)
+    expect(deps.remove).toHaveBeenCalledWith('user-1', 'income-2')
+
+    await expect(removeIncome('user-1', 'someone-else', deps)).rejects.toThrow('This income no longer exists.')
+    await expect(removeIncome('user-1', 'income-1', depsOf(['income-1']))).rejects.toThrow(
+      'Your plan needs at least one income.',
+    )
+    expect(deps.remove).toHaveBeenCalledTimes(1)
   })
 })

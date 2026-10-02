@@ -3,6 +3,7 @@ import {
   financeRepository,
   type SetupPlanRepository,
 } from '../../infrastructure/repositories/financeRepository'
+import { now as clockNow } from '../../lib/clock'
 
 export type SetupPlanInput = {
   incomeSource: string
@@ -25,7 +26,7 @@ export async function createSetupPlan(
   userId: string,
   plan: SetupPlanInput,
   repository: Pick<SetupPlanRepository, 'hasIncome' | 'createInitialPlan'> = financeRepository,
-  today: Date = new Date(),
+  today: Date = clockNow(),
 ): Promise<void> {
   const created = await repository.createInitialPlan(userId, {
     income: {

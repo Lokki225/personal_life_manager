@@ -18,6 +18,7 @@ const errorsOf = (entries: Record<string, string>) => {
 describe('sign-up form', () => {
   it('accepts an email and a matching password of 8 characters or more', () => {
     expect(signUpForm.parse(formDataOf(valid))).toEqual({ ok: true, data: valid })
+    expect(signUpForm.parse(formDataOf({ ...valid, timeZone: 'Africa/Abidjan' })).ok).toBe(true)
   })
 
   it('reports each problem on its own field', () => {

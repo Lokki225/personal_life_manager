@@ -7,7 +7,8 @@ import { goalChestId, listDebtsWithStatus, listGoalsForDebts } from '@/applicati
 import { ensureDefaultChests } from '@/application/finance/ensureDefaultChests'
 import { getChestsWithBalances } from '@/application/finance/getChestsWithBalances'
 import { DEBTS_CHEST_NAME, isDebtChest } from '@/domain/finance/chests'
-import { getSignedInUserId } from '@/infrastructure/auth/sessionUser'
+import { getSignedInUser } from '@/infrastructure/auth/sessionUser'
+import { now as clockNow, setClockZone } from '@/lib/clock'
 import { getT } from '@/lib/i18n/server'
 import { cn } from '@/lib/utils'
 
@@ -16,7 +17,10 @@ import { NewDebtDrawer, RepayDrawer } from './debt-forms'
 import { ensureDaysSettled } from '../settle'
 
 export default async function DebtsPage() {
-  const [userId, t] = await Promise.all([getSignedInUserId(), getT()])
+  const [user, t] = await Promise.all([getSignedInUser(), getT()])
+  const userId = user?.id
+  // Days are counted on this person's clock from here on.
+  setClockZone(user?.timeZone)
 
   // The days that ended since the last visit are closed before anything is shown.
   await ensureDaysSettled()
@@ -42,7 +46,7 @@ export default async function DebtsPage() {
   })
   // Only a goal with its own chest can receive borrowed money.
   const goalOptions = goals.filter(goalChestId).map((goal) => ({ id: goal.id, name: goal.name }))
-  const now = new Date()
+  const now = clockNow()
   // Loans and repayments only come out of the Buffer, Base Chest or Debts Chest.
   const options = chests
     .filter(isDebtChest)

@@ -3,6 +3,7 @@ import { getSignedInUser } from '@/infrastructure/auth/sessionUser'
 import { fullName } from '@/lib/greeting'
 import { getLocale } from '@/lib/i18n/server'
 
+import { TimeZoneReporter } from './time-zone'
 import { UserMenu } from './user-menu'
 
 // The account menu for whoever is signed in, or nothing for a visitor.
@@ -17,13 +18,16 @@ export async function SignedInMenu() {
   await recordVisit(user, await getLocale())
 
   return (
-    <UserMenu
-      user={{
-        name: fullName(user),
-        email: user.email,
-        picture: user.picture,
-        isAdmin: user.role === 'ADMIN',
-      }}
-    />
+    <>
+      {user.timeZone ? null : <TimeZoneReporter />}
+      <UserMenu
+        user={{
+          name: fullName(user),
+          email: user.email,
+          picture: user.picture,
+          isAdmin: user.role === 'ADMIN',
+        }}
+      />
+    </>
   )
 }

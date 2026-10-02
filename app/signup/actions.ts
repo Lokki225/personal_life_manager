@@ -25,6 +25,7 @@ export async function signUpAction(_previousState: FormState, formData: FormData
       firstName: account.firstName,
       lastName: account.lastName,
       username: account.username,
+      timeZone: account.timeZone,
     })
   })
 

@@ -5,6 +5,7 @@ import {
   type ExpenseRepository,
   type MovementRepository,
 } from '../../infrastructure/repositories/financeRepository'
+import { now as clockNow } from '../../lib/clock'
 
 export type HistoryPeriod = 'day' | 'week' | 'month' | 'year'
 export type HistoryTypeFilter = 'all' | 'expense' | 'exception' | 'movement'
@@ -39,7 +40,7 @@ export type GetHistoryInput = {
 export function historyTrend(
   events: HistoryEvent[],
   period: HistoryPeriod,
-  referenceDate: Date = new Date(),
+  referenceDate: Date = clockNow(),
 ): { buckets: { start: Date }[]; totals: number[] } | null {
   if (period === 'day') {
     return null
@@ -62,7 +63,7 @@ export async function getHistory(input: GetHistoryInput): Promise<HistoryEvent[]
     period = 'month',
     type = 'all',
     category = 'all',
-    referenceDate = new Date(),
+    referenceDate = clockNow(),
     repository = financeRepository,
   } = input
 

@@ -3,6 +3,7 @@ import { createBudgetException } from './createBudgetException'
 import { recomputeFinanceState } from './recomputeFinanceState'
 import { recordExpense } from './recordExpense'
 import { recordMovement } from './recordMovement'
+import { now as clockNow } from '../../lib/clock'
 
 type RecordDailyExpenseDeps = {
   getToday: (
@@ -46,7 +47,7 @@ export async function recordDailyExpense(
     reason?: string | null
   },
   deps: RecordDailyExpenseDeps = defaultDeps,
-  today: Date = new Date(),
+  today: Date = clockNow(),
 ): Promise<void> {
   const { userId, amount } = input
   const state = await deps.getToday(userId, today)

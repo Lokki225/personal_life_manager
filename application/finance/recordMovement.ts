@@ -1,3 +1,4 @@
+import { now as clockNow } from '../../lib/clock'
 import { MovementReason } from "@/app/generated/prisma/enums"
 import {
   financeRepository,
@@ -24,7 +25,7 @@ export async function recordMovement(input: {
     amount: input.amount,
     type: input.type,
     reason: input.reason,
-    date: new Date(),
+    date: clockNow(),
     sourceChestId: input.sourceChestId,
     destinationChestId: input.destinationChestId,
     relatedGoalId: input.relatedGoalId,

@@ -1,5 +1,6 @@
 import { FinanceRuleError } from '../../domain/finance/errors'
 import { financeRepository } from '../../infrastructure/repositories/financeRepository'
+import { now as clockNow } from '../../lib/clock'
 
 type ManagePlanDeps = {
   listAllocations: (userId: string) => Promise<{ id: string }[]>
@@ -36,7 +37,7 @@ export async function saveAllocation(
   userId: string,
   allocation: { id?: string | null; name: string; amount: number; period: string; category: string },
   deps: ManagePlanDeps = defaultDeps,
-  today: Date = new Date(),
+  today: Date = clockNow(),
 ): Promise<void> {
   const data = {
     name: allocation.name.trim(),
@@ -61,27 +62,62 @@ export async function removeAllocation(userId: string, id: string, deps: ManageP
 
 type IncomeDeps = {
   listIncomes: (userId: string) => Promise<{ id: string }[]>
+  create: (
+    userId: string,
+    data: { source: string; amount: number; frequency: string; payDay: number },
+  ) => Promise<unknown>
   update: (id: string, data: { source: string; amount: number; payDay: number }) => Promise<unknown>
+  remove: (userId: string, id: string) => Promise<unknown>
 }
 
 const defaultIncomeDeps: IncomeDeps = {
   listIncomes: financeRepository.listIncomes,
+  create: financeRepository.createIncome,
   update: financeRepository.updateIncome,
+  remove: financeRepository.removeIncome,
 }
 
-// Corrects an income of the plan. It counts from the next time that income is
+const INCOME_NOT_FOUND = 'This income no longer exists.'
+
+// Adds an income to the plan, or corrects one when `id` is given.
+//
+// A new income counts as received for the month it is added in, like the
+// income of the setup month. A corrected one counts from the next time it is
 // confirmed: what already arrived this month is not rewritten.
-export async function updateIncome(
+export async function saveIncome(
   userId: string,
-  income: { id: string; source: string; amount: number; payDay: number },
+  income: { id?: string | null; source: string; amount: number; payDay: number },
   deps: IncomeDeps = defaultIncomeDeps,
 ): Promise<void> {
+  const data = { source: income.source.trim(), amount: income.amount, payDay: income.payDay }
+
+  if (!income.id) {
+    await deps.create(userId, { ...data, frequency: 'monthly' })
+    return
+  }
+
   const incomes = await deps.listIncomes(userId)
 
   // An income that belongs to someone else is reported like a missing one.
   if (!incomes.some((candidate) => candidate.id === income.id)) {
-    throw new FinanceRuleError('This income no longer exists.')
+    throw new FinanceRuleError(INCOME_NOT_FOUND)
   }
 
-  await deps.update(income.id, { source: income.source.trim(), amount: income.amount, payDay: income.payDay })
+  await deps.update(income.id, data)
+}
+
+// Removes an income from the plan. One always stays: a plan without any
+// income has nothing to spread.
+export async function removeIncome(userId: string, id: string, deps: IncomeDeps = defaultIncomeDeps): Promise<void> {
+  const incomes = await deps.listIncomes(userId)
+
+  if (!incomes.some((candidate) => candidate.id === id)) {
+    throw new FinanceRuleError(INCOME_NOT_FOUND)
+  }
+
+  if (incomes.length <= 1) {
+    throw new FinanceRuleError('Your plan needs at least one income.')
+  }
+
+  await deps.remove(userId, id)
 }

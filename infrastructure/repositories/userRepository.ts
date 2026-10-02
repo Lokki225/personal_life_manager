@@ -15,6 +15,8 @@ export type ProfileData = {
   country: string | null
   city: string | null
   birthDate: Date | null
+  // Where the person's days begin and end, e.g. "Africa/Abidjan".
+  timeZone: string | null
 }
 
 export type UserProfile = { [Field in keyof ProfileData]: ProfileData[Field] | null } & {
@@ -57,8 +59,10 @@ export interface UserRepository {
   createUser: (
     email: string,
     password: string,
-    names: { firstName: string; lastName: string; username: string | null },
+    names: { firstName: string; lastName: string; username: string | null; timeZone: string | null },
   ) => Promise<{ id: string; email: string } | null>
+  // Sets the time zone of an account that has none. Leaves a chosen one alone.
+  setTimeZoneIfMissing: (userId: string, timeZone: string) => Promise<void>
   getProfile: (userId: string) => Promise<UserProfile | null>
   // `picture` is left as it is when undefined, and removed when null.
   updateProfile: (userId: string, profile: ProfileData & { picture?: string | null }) => Promise<void>
@@ -103,7 +107,7 @@ export const userRepository: UserRepository = {
   createUser: async (
     email: string,
     password: string,
-    names: { firstName: string; lastName: string; username: string | null },
+    names: { firstName: string; lastName: string; username: string | null; timeZone: string | null },
   ) => {
     const passwordHash = await bcrypt.hash(password, 10)
 
@@ -122,6 +126,10 @@ export const userRepository: UserRepository = {
     }
   },
 
+  setTimeZoneIfMissing: async (userId: string, timeZone: string) => {
+    await prisma.user.updateMany({ where: { id: userId, timeZone: null }, data: { timeZone } })
+  },
+
   getProfile: async (userId: string) => {
     return prisma.user.findUnique({
       where: { id: userId },
@@ -137,6 +145,7 @@ export const userRepository: UserRepository = {
         country: true,
         city: true,
         birthDate: true,
+        timeZone: true,
       },
     })
   },

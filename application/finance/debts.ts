@@ -5,6 +5,7 @@ import type { DebtDirection } from '../../domain/finance/options'
 import { financeRepository } from '../../infrastructure/repositories/financeRepository'
 import { ensureDefaultChests } from './ensureDefaultChests'
 import { getChestsWithBalances } from './getChestsWithBalances'
+import { now as clockNow } from '../../lib/clock'
 
 type ChestForDebt = { id: string; name: string; isSystem: boolean; balance: number }
 
@@ -134,7 +135,7 @@ export async function recordDebt(
     dueDate?: Date | null
   },
   deps: DebtDeps = defaultDeps,
-  today: Date = new Date(),
+  today: Date = clockNow(),
 ): Promise<void> {
   const { userId, direction, counterparty, amount, interestType } = input
   const interestValue = interestType === 'NONE' ? 0 : (input.interestValue ?? 0)
@@ -197,7 +198,7 @@ export async function recordDebt(
 export async function repayDebt(
   input: { userId: string; debtId: string; amount: number; chestId?: string | null },
   deps: DebtDeps = defaultDeps,
-  today: Date = new Date(),
+  today: Date = clockNow(),
 ): Promise<void> {
   const { userId, debtId, amount } = input
   const [debts, chests] = await Promise.all([listDebtsWithStatus(userId, deps), deps.listChests(userId)])

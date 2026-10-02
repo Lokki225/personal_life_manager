@@ -21,6 +21,7 @@ describe('registerUser', () => {
       firstName: 'Awa',
       lastName: 'Koné',
       username: null,
+      timeZone: null,
     })
   })
 

@@ -41,6 +41,7 @@ export const profileSchema = z.object({
     .optional(),
   country: optionalText(56),
   city: optionalText(60),
+  timeZone: optionalText(64),
   // From a date input: "1998-05-12", or empty.
   birthDate: z
     .string()

@@ -4,6 +4,7 @@ import {
   type AllocationRepository,
   type CreateAllocationData,
 } from '../../infrastructure/repositories/financeRepository'
+import { now as clockNow } from '../../lib/clock'
 
 export type CreateAllocationInput = {
   userId: string
@@ -39,7 +40,7 @@ export async function createAllocation(
 
 export async function getCurrentAllocations(
   userId: string,
-  today: Date = new Date(),
+  today: Date = clockNow(),
   repository: AllocationRepository = financeRepository,
 ): Promise<AllocationRecord[]> {
   const allocations = await repository.listAllocations(userId)

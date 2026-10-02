@@ -14,6 +14,7 @@ export type SignedInUser = {
   role: 'USER' | 'ADMIN'
   lastSeenAt: Date | null
   locale: string | null
+  timeZone: string | null
   settledThrough: Date | null
   bufferSweepDay: number
 }
@@ -35,6 +36,7 @@ export const getSignedInUser = cache(async (): Promise<SignedInUser | null> => {
     role: true,
     lastSeenAt: true,
     locale: true,
+    timeZone: true,
     settledThrough: true,
     bufferSweepDay: true,
   }

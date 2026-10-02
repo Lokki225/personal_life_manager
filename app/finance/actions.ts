@@ -7,14 +7,15 @@ import { consolidateBuffer } from '@/application/finance/consolidateBuffer'
 import { confirmIncome } from '@/application/finance/confirmIncome'
 import { coverOverspend } from '@/application/finance/coverOverspend'
 import { editExpense, removeExpense } from '@/application/finance/manageExpense'
-import { removeAllocation, saveAllocation, updateIncome } from '@/application/finance/managePlan'
+import { removeAllocation, removeIncome, saveAllocation, saveIncome } from '@/application/finance/managePlan'
 import { recordDailyException } from '@/application/finance/recordDailyException'
 import { recordDailyExpense } from '@/application/finance/recordDailyExpense'
 import { saveDailyRemaining } from '@/application/finance/saveDailyRemaining'
 import { syncPlanToChests } from '@/application/finance/syncPlanToChests'
 import { transferBetweenChests } from '@/application/finance/transferBetweenChests'
-import { getSignedInUserId } from '@/infrastructure/auth/sessionUser'
+import { getSignedInUser } from '@/infrastructure/auth/sessionUser'
 import { signedOutState, translateFormState, type FormState } from '@/lib/forms/formState'
+import { setClockZone } from '@/lib/clock'
 import { getT } from '@/lib/i18n/server'
 
 import {
@@ -22,6 +23,7 @@ import {
   coverForm,
   deleteAllocationForm,
   deleteExpenseForm,
+  deleteIncomeForm,
   editExpenseForm,
   incomeForm,
   planAllocationForm,
@@ -37,7 +39,10 @@ function refreshFinance() {
 }
 
 export async function addExpense(_previousState: FormState, formData: FormData): Promise<FormState> {
-  const [userId, t] = await Promise.all([getSignedInUserId(), getT()])
+  const [user, t] = await Promise.all([getSignedInUser(), getT()])
+  const userId = user?.id
+  // Days are counted on this person's clock from here on.
+  setClockZone(user?.timeZone)
 
   if (!userId) {
     return signedOutState(t)
@@ -62,7 +67,10 @@ export async function addExpense(_previousState: FormState, formData: FormData):
 }
 
 export async function confirmIncomeAction(_previousState: FormState, formData: FormData): Promise<FormState> {
-  const [userId, t] = await Promise.all([getSignedInUserId(), getT()])
+  const [user, t] = await Promise.all([getSignedInUser(), getT()])
+  const userId = user?.id
+  // Days are counted on this person's clock from here on.
+  setClockZone(user?.timeZone)
 
   if (!userId) {
     return signedOutState(t)
@@ -80,7 +88,10 @@ export async function confirmIncomeAction(_previousState: FormState, formData: F
 }
 
 export async function saveRemaining(_previousState: FormState, formData: FormData): Promise<FormState> {
-  const [userId, t] = await Promise.all([getSignedInUserId(), getT()])
+  const [user, t] = await Promise.all([getSignedInUser(), getT()])
+  const userId = user?.id
+  // Days are counted on this person's clock from here on.
+  setClockZone(user?.timeZone)
 
   if (!userId) {
     return signedOutState(t)
@@ -102,7 +113,10 @@ export async function saveRemaining(_previousState: FormState, formData: FormDat
 }
 
 export async function recordException(_previousState: FormState, formData: FormData): Promise<FormState> {
-  const [userId, t] = await Promise.all([getSignedInUserId(), getT()])
+  const [user, t] = await Promise.all([getSignedInUser(), getT()])
+  const userId = user?.id
+  // Days are counted on this person's clock from here on.
+  setClockZone(user?.timeZone)
 
   if (!userId) {
     return signedOutState(t)
@@ -120,7 +134,10 @@ export async function recordException(_previousState: FormState, formData: FormD
 }
 
 export async function transferChests(_previousState: FormState, formData: FormData): Promise<FormState> {
-  const [userId, t] = await Promise.all([getSignedInUserId(), getT()])
+  const [user, t] = await Promise.all([getSignedInUser(), getT()])
+  const userId = user?.id
+  // Days are counted on this person's clock from here on.
+  setClockZone(user?.timeZone)
 
   if (!userId) {
     return signedOutState(t)
@@ -144,7 +161,10 @@ export async function transferChests(_previousState: FormState, formData: FormDa
 }
 
 export async function consolidateBufferAction(_previousState: FormState, formData: FormData): Promise<FormState> {
-  const [userId, t] = await Promise.all([getSignedInUserId(), getT()])
+  const [user, t] = await Promise.all([getSignedInUser(), getT()])
+  const userId = user?.id
+  // Days are counted on this person's clock from here on.
+  setClockZone(user?.timeZone)
 
   if (!userId) {
     return signedOutState(t)
@@ -162,7 +182,10 @@ export async function consolidateBufferAction(_previousState: FormState, formDat
 }
 
 export async function saveAllocationAction(_previousState: FormState, formData: FormData): Promise<FormState> {
-  const [userId, t] = await Promise.all([getSignedInUserId(), getT()])
+  const [user, t] = await Promise.all([getSignedInUser(), getT()])
+  const userId = user?.id
+  // Days are counted on this person's clock from here on.
+  setClockZone(user?.timeZone)
 
   if (!userId) {
     return signedOutState(t)
@@ -182,7 +205,10 @@ export async function saveAllocationAction(_previousState: FormState, formData: 
 }
 
 export async function deleteAllocationAction(_previousState: FormState, formData: FormData): Promise<FormState> {
-  const [userId, t] = await Promise.all([getSignedInUserId(), getT()])
+  const [user, t] = await Promise.all([getSignedInUser(), getT()])
+  const userId = user?.id
+  // Days are counted on this person's clock from here on.
+  setClockZone(user?.timeZone)
 
   if (!userId) {
     return signedOutState(t)
@@ -201,7 +227,10 @@ export async function deleteAllocationAction(_previousState: FormState, formData
 }
 
 export async function editExpenseAction(_previousState: FormState, formData: FormData): Promise<FormState> {
-  const [userId, t] = await Promise.all([getSignedInUserId(), getT()])
+  const [user, t] = await Promise.all([getSignedInUser(), getT()])
+  const userId = user?.id
+  // Days are counted on this person's clock from here on.
+  setClockZone(user?.timeZone)
 
   if (!userId) {
     return signedOutState(t)
@@ -219,7 +248,10 @@ export async function editExpenseAction(_previousState: FormState, formData: For
 }
 
 export async function deleteExpenseAction(_previousState: FormState, formData: FormData): Promise<FormState> {
-  const [userId, t] = await Promise.all([getSignedInUserId(), getT()])
+  const [user, t] = await Promise.all([getSignedInUser(), getT()])
+  const userId = user?.id
+  // Days are counted on this person's clock from here on.
+  setClockZone(user?.timeZone)
 
   if (!userId) {
     return signedOutState(t)
@@ -234,14 +266,17 @@ export async function deleteExpenseAction(_previousState: FormState, formData: F
   return translateFormState(state, t)
 }
 
-export async function updateIncomeAction(_previousState: FormState, formData: FormData): Promise<FormState> {
-  const [userId, t] = await Promise.all([getSignedInUserId(), getT()])
+export async function saveIncomeAction(_previousState: FormState, formData: FormData): Promise<FormState> {
+  const [user, t] = await Promise.all([getSignedInUser(), getT()])
+  const userId = user?.id
+  // Days are counted on this person's clock from here on.
+  setClockZone(user?.timeZone)
 
   if (!userId) {
     return signedOutState(t)
   }
 
-  const state = await incomeForm.submit(formData, (income) => updateIncome(userId, income))
+  const state = await incomeForm.submit(formData, (income) => saveIncome(userId, income))
 
   if (state.status === 'success') {
     refreshFinance()
@@ -251,7 +286,10 @@ export async function updateIncomeAction(_previousState: FormState, formData: Fo
 }
 
 export async function coverOverspendAction(_previousState: FormState, formData: FormData): Promise<FormState> {
-  const [userId, t] = await Promise.all([getSignedInUserId(), getT()])
+  const [user, t] = await Promise.all([getSignedInUser(), getT()])
+  const userId = user?.id
+  // Days are counted on this person's clock from here on.
+  setClockZone(user?.timeZone)
 
   if (!userId) {
     return signedOutState(t)
@@ -260,6 +298,25 @@ export async function coverOverspendAction(_previousState: FormState, formData: 
   const state = await coverForm.submit(formData, async () => {
     await coverOverspend(userId)
   })
+
+  if (state.status === 'success') {
+    refreshFinance()
+  }
+
+  return translateFormState(state, t)
+}
+
+export async function deleteIncomeAction(_previousState: FormState, formData: FormData): Promise<FormState> {
+  const [user, t] = await Promise.all([getSignedInUser(), getT()])
+  const userId = user?.id
+  // Days are counted on this person's clock from here on.
+  setClockZone(user?.timeZone)
+
+  if (!userId) {
+    return signedOutState(t)
+  }
+
+  const state = await deleteIncomeForm.submit(formData, ({ id }) => removeIncome(userId, id))
 
   if (state.status === 'success') {
     refreshFinance()

@@ -6,6 +6,7 @@ import {
 } from '../../domain/finance/calculations'
 import { FinanceRuleError, isFinanceRuleError } from '../../domain/finance/errors'
 import { financeRepository } from '../../infrastructure/repositories/financeRepository'
+import { now as clockNow } from '../../lib/clock'
 
 type ConfirmIncomeDeps = {
   listIncomes: (
@@ -41,7 +42,7 @@ export type PendingIncome = {
 // after setup, and they are not yet confirmed for the reference month.
 export async function listPendingIncomes(
   userId: string,
-  referenceDate: Date = new Date(),
+  referenceDate: Date = clockNow(),
   deps: Pick<ConfirmIncomeDeps, 'listIncomes' | 'listReceipts'> = defaultDeps,
 ): Promise<PendingIncome[]> {
   const [incomes, receipts] = await Promise.all([
@@ -59,7 +60,7 @@ export async function listPendingIncomes(
 // of the setup month is already in hand, so nobody is asked to confirm it.
 export async function listSetupMonthIncomes(
   userId: string,
-  referenceDate: Date = new Date(),
+  referenceDate: Date = clockNow(),
   deps: Pick<ConfirmIncomeDeps, 'listIncomes' | 'listReceipts'> = defaultDeps,
 ): Promise<{ id: string; usualAmount: number }[]> {
   const [incomes, receipts] = await Promise.all([
@@ -79,7 +80,7 @@ export async function listSetupMonthIncomes(
 // shows somewhere from the first day. Doing it twice changes nothing.
 export async function depositSetupMonth(
   userId: string,
-  referenceDate: Date = new Date(),
+  referenceDate: Date = clockNow(),
   deps: ConfirmIncomeDeps = defaultDeps,
 ): Promise<number> {
   const incomes = await listSetupMonthIncomes(userId, referenceDate, deps)
@@ -105,7 +106,7 @@ export async function depositSetupMonth(
 // what no allocation claims goes to the Base Chest.
 export async function confirmIncome(
   input: { userId: string; incomeId: string; amount: number },
-  referenceDate: Date = new Date(),
+  referenceDate: Date = clockNow(),
   deps: ConfirmIncomeDeps = defaultDeps,
 ): Promise<void> {
   const { userId, incomeId, amount } = input

@@ -11,6 +11,8 @@ export const signUpSchema = z
     email: emailField,
     password: newPasswordField,
     confirmPassword: z.string({ error: 'Type the password again.' }),
+    // Filled in by the page with the device's time zone.
+    timeZone: z.string().trim().max(64).optional(),
   })
   .refine((data) => data.password === data.confirmPassword, {
     error: 'The two passwords do not match.',

@@ -5,14 +5,18 @@ import { revalidatePath } from 'next/cache'
 import { createCustomGoal } from '@/application/finance/createCustomGoal'
 import { createSavingsGoal } from '@/application/finance/createSavingsGoal'
 import { fundGoal } from '@/application/finance/fundGoal'
-import { getSignedInUserId } from '@/infrastructure/auth/sessionUser'
+import { getSignedInUser } from '@/infrastructure/auth/sessionUser'
 import { signedOutState, translateFormState, type FormState } from '@/lib/forms/formState'
+import { setClockZone } from '@/lib/clock'
 import { getT } from '@/lib/i18n/server'
 
 import { customGoalForm, fundGoalForm, goalForm } from './schema'
 
 export async function createGoalAction(_previousState: FormState, formData: FormData): Promise<FormState> {
-  const [userId, t] = await Promise.all([getSignedInUserId(), getT()])
+  const [user, t] = await Promise.all([getSignedInUser(), getT()])
+  const userId = user?.id
+  // Days are counted on this person's clock from here on.
+  setClockZone(user?.timeZone)
 
   if (!userId) {
     return signedOutState(t)
@@ -34,7 +38,10 @@ export async function createGoalAction(_previousState: FormState, formData: Form
 }
 
 export async function fundGoalAction(_previousState: FormState, formData: FormData): Promise<FormState> {
-  const [userId, t] = await Promise.all([getSignedInUserId(), getT()])
+  const [user, t] = await Promise.all([getSignedInUser(), getT()])
+  const userId = user?.id
+  // Days are counted on this person's clock from here on.
+  setClockZone(user?.timeZone)
 
   if (!userId) {
     return signedOutState(t)
@@ -52,7 +59,10 @@ export async function fundGoalAction(_previousState: FormState, formData: FormDa
 }
 
 export async function createCustomGoalAction(_previousState: FormState, formData: FormData): Promise<FormState> {
-  const [userId, t] = await Promise.all([getSignedInUserId(), getT()])
+  const [user, t] = await Promise.all([getSignedInUser(), getT()])
+  const userId = user?.id
+  // Days are counted on this person's clock from here on.
+  setClockZone(user?.timeZone)
 
   if (!userId) {
     return signedOutState(t)

@@ -14,6 +14,7 @@ import { DEBTS_CHEST_NAME } from '../../domain/finance/chests'
 import { periodBuckets, runningBalance, sumByBucket } from '../../domain/finance/series'
 import { getHistory, type HistoryPeriod } from './getHistory'
 import { recomputeFinanceState } from './recomputeFinanceState'
+import { now as clockNow } from '../../lib/clock'
 
 export type ReviewCategoryBreakdown = {
   category: string
@@ -71,7 +72,7 @@ export type GetReviewResult = {
 }
 
 export async function getReview(input: GetReviewInput): Promise<GetReviewResult> {
-  const { userId, period = 'month', referenceDate = new Date(), repository = financeRepository } = input
+  const { userId, period = 'month', referenceDate = clockNow(), repository = financeRepository } = input
 
   const readRepository = repository as IncomeRepository &
     AllocationRepository &
