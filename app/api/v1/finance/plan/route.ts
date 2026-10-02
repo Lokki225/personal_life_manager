@@ -1,5 +1,5 @@
-import { endpoint, ok } from '../../api'
-import { planView } from '../../views'
-import { financeState } from '../state'
+import { operations } from '@/application/api/operations'
 
-export const GET = endpoint('READ', async (_request, user) => ok(planView((await financeState(user)).state)))
+import { route } from '../../api'
+
+export const GET = route(operations.getPlan)

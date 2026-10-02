@@ -1,6 +1,6 @@
-import { listDebtsWithStatus } from '@/application/finance/debts'
+import { operations } from '@/application/api/operations'
 
-import { endpoint, ok } from '../../api'
-import { debtsView } from '../../views'
+import { route } from '../../api'
 
-export const GET = endpoint('READ', async (_request, user) => ok(debtsView(await listDebtsWithStatus(user.id))))
+export const GET = route(operations.getDebts)
+export const POST = route(operations.recordDebt)

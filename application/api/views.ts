@@ -6,7 +6,7 @@ import type { recomputeFinanceState } from '@/application/finance/recomputeFinan
 import { CURRENCY_CODE } from '@/domain/finance/calculations'
 import { DEBTS_CHEST_NAME } from '@/domain/finance/chests'
 
-import { localTime } from './api'
+import { localTime } from './operation'
 
 // How the app's data is shown to a program: plain names, whole numbers of the
 // currency, dates on the owner's clock. Kept apart from the pages' wording so
