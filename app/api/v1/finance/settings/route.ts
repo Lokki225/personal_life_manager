@@ -2,4 +2,4 @@ import { operations } from '@/application/api/operations'
 
 import { route } from '../../api'
 
-export const GET = route(operations.getReview)
+export const PATCH = route(operations.setBufferDay)

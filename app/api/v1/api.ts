@@ -2,8 +2,9 @@ import { z } from 'zod'
 
 import { checkApiAccess } from '@/application/account/apiTokens'
 import { isAccountRuleError } from '@/application/account/errors'
+import { ApiNotFound, type ApiUser, type Operation } from '@/application/api/operation'
 import { isFinanceRuleError } from '@/domain/finance/errors'
-import type { ApiScope, ApiTokenOwner } from '@/infrastructure/repositories/apiTokenRepository'
+import type { ApiScope } from '@/infrastructure/repositories/apiTokenRepository'
 import { setClockZone } from '@/lib/clock'
 
 // The shared frame of every API endpoint: who is calling, are they allowed,
@@ -15,8 +16,6 @@ import { setClockZone } from '@/lib/clock'
 //   403 the key may not do this           404 nothing at this address
 //   422 a rule of the app refuses it      429 too many requests
 
-export type ApiUser = ApiTokenOwner['user']
-
 const json = (body: unknown, status = 200) =>
   Response.json(body, { status, headers: { 'Cache-Control': 'no-store' } })
 
@@ -26,32 +25,6 @@ export const fail = (status: number, code: string, message: string, field?: stri
   json({ error: { code, message, ...(field ? { field } : {}) } }, status)
 
 const CODES: Record<number, string> = { 401: 'unauthorized', 403: 'forbidden', 429: 'rate_limited' }
-
-// A date as the person reads it on their own clock, e.g. "2026-10-03T19:30:00".
-// No time zone is attached on purpose: every date in the app is already on the
-// clock of its owner.
-export function localTime(date: Date | null | undefined): string | null {
-  if (!date) {
-    return null
-  }
-
-  const two = (value: number) => String(value).padStart(2, '0')
-
-  return `${date.getFullYear()}-${two(date.getMonth() + 1)}-${two(date.getDate())}T${two(date.getHours())}:${two(date.getMinutes())}:${two(date.getSeconds())}`
-}
-
-// Reads a JSON body and checks it. Throws a ZodError the frame turns into a 400.
-export async function readBody<Schema extends z.ZodType>(request: Request, schema: Schema): Promise<z.output<Schema>> {
-  let body: unknown
-
-  try {
-    body = await request.json()
-  } catch {
-    body = undefined
-  }
-
-  return schema.parse(body ?? {})
-}
 
 // Wraps an endpoint. `needs` is what the key must be allowed to do.
 export function endpoint<Context>(
@@ -76,6 +49,10 @@ export function endpoint<Context>(
         return fail(400, 'invalid_request', issue.message, issue.path.map(String).join('.') || undefined)
       }
 
+      if (error instanceof ApiNotFound) {
+        return fail(404, 'not_found', error.message)
+      }
+
       if (isFinanceRuleError(error) || isAccountRuleError(error)) {
         return fail(422, 'refused', error.message, error.field)
       }
@@ -86,12 +63,26 @@ export function endpoint<Context>(
   }
 }
 
-// An amount in whole or decimal units, as a number.
-export const amountField = z
-  .number({ error: 'Give "amount" as a number, for example 1500.' })
-  .positive('The amount must be greater than zero.')
-  .max(999_999_999_999, 'This amount is too large.')
+// The JSON object a request carries. Anything else counts as an empty one, so
+// the answer names the first field that is missing.
+async function jsonObject(request: Request): Promise<Record<string, unknown>> {
+  try {
+    const body: unknown = await request.json()
 
-export const periodField = z.enum(['day', 'week', 'month', 'year'], {
-  error: 'Use "day", "week", "month" or "year" for the period.',
-})
+    return typeof body === 'object' && body !== null && !Array.isArray(body) ? (body as Record<string, unknown>) : {}
+  } catch {
+    return {}
+  }
+}
+
+// The endpoint of an operation: its input is the query of a GET or the JSON
+// body of the others, plus what the path names (`{id}`).
+export function route(operation: Operation) {
+  return endpoint(operation.needs, async (request, user, context: { params: Promise<Record<string, string>> }) => {
+    const given =
+      operation.method === 'GET' ? Object.fromEntries(new URL(request.url).searchParams) : await jsonObject(request)
+    const input = operation.input.parse({ ...given, ...(await context.params) })
+
+    return ok(await operation.run(user, input), operation.status ?? 200)
+  })
+}

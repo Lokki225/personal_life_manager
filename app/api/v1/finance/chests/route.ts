@@ -1,5 +1,6 @@
-import { endpoint, ok } from '../../api'
-import { chestsView } from '../../views'
-import { financeState } from '../state'
+import { operations } from '@/application/api/operations'
 
-export const GET = endpoint('READ', async (_request, user) => ok(chestsView((await financeState(user)).state)))
+import { route } from '../../api'
+
+export const GET = route(operations.getChests)
+export const POST = route(operations.createChest)
