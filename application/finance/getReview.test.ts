@@ -10,9 +10,22 @@ describe('getReview', () => {
         { id: 'e-2', amount: 80, category: 'food', description: 'Dinner', date: new Date('2026-09-12T09:00:00Z') },
         { id: 'e-3', amount: 220, category: 'transportation', description: 'Train', date: new Date('2026-09-14T09:00:00Z') },
       ]),
-      listSavings: vi.fn().mockResolvedValue([
-        { id: 's-1', amount: 150, destination: 'savings', date: new Date('2026-09-15T09:00:00Z') },
+      listChests: vi.fn().mockResolvedValue([
+        { id: 'base', name: 'Base Chest', type: 'AVAILABLE', isSystem: true },
       ]),
+      listMovements: vi.fn().mockResolvedValue([
+        {
+          id: 'm-1',
+          type: 'IN',
+          reason: 'PLANNED_SAVING',
+          amount: 150,
+          sourceChestId: null,
+          destinationChestId: 'base',
+          date: new Date('2026-09-15T09:00:00Z'),
+        },
+      ]),
+      listGoals: vi.fn().mockResolvedValue([]),
+      listDebts: vi.fn().mockResolvedValue([]),
       listBudgetExceptions: vi.fn().mockResolvedValue([
         { id: 'x-1', category: 'food', difference: 45, date: new Date('2026-09-11T09:00:00Z') },
         { id: 'x-2', category: 'transportation', difference: 70, date: new Date('2026-09-14T09:00:00Z') },
@@ -49,6 +62,12 @@ describe('getReview', () => {
         expect.objectContaining({ category: 'transportation', total: 220 }),
       ]),
     )
+    // September, day by day: spending on the 10th, 12th and 14th, and the 150
+    // saved on the 15th. Later days have no balance yet.
+    expect(review.trend?.buckets).toHaveLength(30)
+    expect(review.trend?.spent.slice(9, 14)).toEqual([120, 0, 80, 0, 220])
+    expect(review.trend?.budget).toBe(83)
+    expect(review.trend?.saved.slice(13, 16)).toEqual([0, 150, null])
     expect(review.exceptionBreakdown).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ category: 'food', total: 45 }),

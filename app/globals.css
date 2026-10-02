@@ -1,24 +1,52 @@
 @import "tailwindcss";
 
+/*
+ * Theming
+ * 1. Raw tokens live on :root (light) and html[data-theme='dark'].
+ * 2. `@theme inline` exposes them as semantic Tailwind colors, so components
+ *    use `bg-card`, `text-muted-foreground`, `border-border`... and never
+ *    hard-code a palette or reach for `bg-[var(--x)]`.
+ * 3. `dark:` follows the same data-theme attribute, set before first paint
+ *    by the inline script in app/layout.tsx.
+ */
+@custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
+
 :root {
   --bg: #eef2f7;
   --bg-strong: #e8edf5;
   --panel: rgba(255, 255, 255, 0.78);
   --panel-strong: #ffffff;
   --panel-soft: #f8f9fc;
-  --panel-muted: #eef3f9;
+  --panel-muted: #e3e9f2;
   --border: rgba(15, 23, 42, 0.08);
   --text: #0f172a;
   --muted: #52607a;
   --muted-strong: #334155;
   --accent: #0f172a;
   --accent-soft: rgba(59, 130, 246, 0.12);
-  --success: #16a34a;
-  --warning: #d97706;
+  --success: #15803d;
+  --warning: #b45309;
   --danger: #ef4444;
   --shadow: 0 24px 60px rgba(15, 23, 42, 0.10);
   --shadow-soft: 0 12px 28px rgba(15, 23, 42, 0.08);
   --ring: rgba(59, 130, 246, 0.18);
+  --surface-hover: #d6deea;
+  --on-accent: #f8fafc;
+  --input-border: #7c879b;
+  --danger-strong: #b91c1c;
+  --focus: #2563eb;
+  --category-income: #0369a1;
+  --category-daily-living: #b45309;
+  --category-fixed: #4338ca;
+  --category-subscription: #047857;
+  --category-savings: #4d7c0f;
+  --category-custom: #475569;
+  /* Chart series, in this fixed order. Checked for colour-blind separation. */
+  --chart-1: #2a78d6;
+  --chart-2: #eb6834;
+  --chart-3: #1baf7a;
+  --chart-4: #eda100;
+  --radius: 0.875rem;
   color-scheme: light;
 }
 
@@ -28,7 +56,7 @@ html[data-theme='dark'] {
   --panel: rgba(17, 24, 39, 0.76);
   --panel-strong: #111827;
   --panel-soft: #141d2c;
-  --panel-muted: #0f172a;
+  --panel-muted: #1e293b;
   --border: rgba(148, 163, 184, 0.16);
   --text: #e5edf9;
   --muted: #a4b2c9;
@@ -41,14 +69,69 @@ html[data-theme='dark'] {
   --shadow: 0 24px 60px rgba(2, 6, 23, 0.45);
   --shadow-soft: 0 12px 28px rgba(2, 6, 23, 0.35);
   --ring: rgba(96, 165, 250, 0.2);
+  --surface-hover: #283548;
+  --on-accent: #111827;
+  --input-border: #64748b;
+  --danger-strong: #fca5a5;
+  --focus: #60a5fa;
+  --category-income: #7dd3fc;
+  --category-daily-living: #fbbf24;
+  --category-fixed: #a5b4fc;
+  --category-subscription: #34d399;
+  --category-savings: #a3e635;
+  --category-custom: #cbd5e1;
+  --chart-1: #3987e5;
+  --chart-2: #d95926;
+  --chart-3: #199e70;
+  --chart-4: #c98500;
   color-scheme: dark;
 }
 
 @theme inline {
   --color-background: var(--bg);
   --color-foreground: var(--text);
+  --color-card: var(--panel-strong);
+  --color-card-foreground: var(--text);
+  --color-popover: var(--panel-strong);
+  --color-popover-foreground: var(--text);
+  --color-primary: var(--accent);
+  --color-primary-foreground: var(--on-accent);
+  --color-secondary: var(--panel-muted);
+  --color-secondary-foreground: var(--text);
+  --color-muted: var(--panel-muted);
+  --color-muted-foreground: var(--muted);
+  --color-accent: var(--surface-hover);
+  --color-accent-foreground: var(--text);
+  --color-destructive: var(--danger);
+  /* Readable as text. --danger alone is for borders, fills and icons. */
+  --color-destructive-strong: var(--danger-strong);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-border: var(--border);
+  --color-input: var(--input-border);
+  --color-ring: var(--focus);
+  --color-category-income: var(--category-income);
+  --color-category-daily-living: var(--category-daily-living);
+  --color-category-fixed: var(--category-fixed);
+  --color-category-subscription: var(--category-subscription);
+  --color-category-savings: var(--category-savings);
+  --color-category-custom: var(--category-custom);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --radius-sm: calc(var(--radius) - 6px);
+  --radius-md: calc(var(--radius) - 4px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 6px);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+}
+
+@layer base {
+  * {
+    border-color: var(--border);
+  }
 }
 
 html {
@@ -58,6 +141,7 @@ html {
 
 body {
   min-height: 100vh;
+  min-height: 100dvh;
   background:
     radial-gradient(circle at top, rgba(96, 165, 250, 0.08), transparent 35%),
     linear-gradient(180deg, var(--bg) 0%, var(--bg-strong) 100%);
@@ -78,77 +162,6 @@ textarea {
 
 .theme-shell {
   min-height: 100vh;
+  min-height: 100dvh;
   background: transparent;
-}
-
-.bento-card {
-  background: var(--panel);
-  border: 1px solid var(--border);
-  border-radius: 28px;
-  box-shadow: var(--shadow-soft);
-  backdrop-filter: blur(12px);
-}
-
-.bento-card-strong {
-  background: var(--panel-strong);
-  border: 1px solid var(--border);
-  border-radius: 28px;
-  box-shadow: var(--shadow-soft);
-}
-
-.bento-card-soft {
-  background: var(--panel-soft);
-  border: 1px solid var(--border);
-  border-radius: 24px;
-}
-
-.bento-label {
-  font-size: 10px;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--muted);
-}
-
-.bento-button-primary {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 16px;
-  background: var(--accent);
-  color: var(--panel-strong);
-  border: 1px solid transparent;
-  transition: transform 0.2s ease, opacity 0.2s ease;
-}
-
-.bento-button-primary:hover {
-  transform: translateY(-1px);
-}
-
-.bento-button-secondary {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 16px;
-  background: transparent;
-  color: var(--text);
-  border: 1px solid var(--border);
-}
-
-.bento-input {
-  width: 100%;
-  border-radius: 16px;
-  border: 1px solid var(--border);
-  background: rgba(148, 163, 184, 0.04);
-  color: var(--text);
-  padding: 0.8rem 0.9rem;
-}
-
-.bento-input:focus {
-  outline: 2px solid var(--ring);
-  outline-offset: 1px;
-}
-
-.bento-grid {
-  display: grid;
-  gap: 1rem;
 }

@@ -1,142 +1,318 @@
 import Link from 'next/link'
-import { getServerSession } from 'next-auth'
 import { redirect } from 'next/navigation'
+import { Check, X } from 'lucide-react'
 
-import { authOptions } from '@/app/api/auth/[...nextauth]/route'
+import { Badge } from '@/components/ui/badge'
+import { Card, CardContent } from '@/components/ui/card'
 import { getReview } from '@/application/finance/getReview'
-import { formatCurrency } from '@/domain/finance/calculations'
+import { getSignedInUserId } from '@/infrastructure/auth/sessionUser'
+import { getT } from '@/lib/i18n/server'
+import { m, type Translator } from '@/lib/i18n/translate'
+import { cn } from '@/lib/utils'
+
+import { categoryColor, categoryStyle } from '../categories'
+import { chartPoints } from '../chart-data'
+import { ColumnChart, LineChart } from '../charts'
+import { measurementLabel, operatorLabel } from '../goal-labels'
+import { Meter, Money } from '../money'
 
 const PERIOD_OPTIONS = ['day', 'week', 'month', 'year'] as const
 
 type ReviewPeriod = (typeof PERIOD_OPTIONS)[number]
 
-export default async function FinanceReviewPage({
-  searchParams,
+const PERIOD_LABELS: Record<ReviewPeriod, string> = {
+  day: m('Today'),
+  week: m('This week'),
+  month: m('This month'),
+  year: m('This year'),
+}
+
+// Parts of a whole: one bar cut into the categories, then each one named with
+// its amount and share, so nothing is read from colour alone.
+function Breakdown({
+  title,
+  entries,
+  empty,
+  t,
 }: {
-  searchParams?: Promise<Record<string, string | string[] | undefined>> | Record<string, string | string[] | undefined>
+  title: string
+  entries: { category: string; total: number }[]
+  empty: string
+  t: Translator
 }) {
-  const session = await getServerSession(authOptions)
-  const userId = session?.user && 'id' in session.user ? String(session.user.id) : null
+  const total = entries.reduce((sum, entry) => sum + entry.total, 0)
+
+  return (
+    <Card className="gap-0 py-5">
+      <CardContent className="space-y-4">
+        <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+          <h2 className="text-base font-semibold">{title}</h2>
+          {total > 0 ? (
+            <p className="text-sm text-muted-foreground">
+              <Money value={total} className="font-medium text-foreground" /> {t('in total')}
+            </p>
+          ) : null}
+        </div>
+        {total > 0 ? (
+          <>
+            <div className="flex h-3 gap-0.5 overflow-hidden rounded-full" aria-hidden="true">
+              {entries.map((entry) => (
+                <span
+                  key={entry.category}
+                  className={cn('min-w-1', categoryColor(entry.category))}
+                  style={{ flexGrow: entry.total, flexBasis: 0 }}
+                />
+              ))}
+            </div>
+            <ul className="space-y-2.5">
+              {entries.map((entry) => {
+                const { label, icon: Icon } = categoryStyle(entry.category)
+
+                return (
+                  <li key={entry.category} className="flex items-center justify-between gap-3 text-sm">
+                    <span className="flex min-w-0 items-center gap-2">
+                      <span
+                        className={cn('size-2.5 shrink-0 rounded-full', categoryColor(entry.category))}
+                        aria-hidden="true"
+                      />
+                      <Icon className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+                      <span className="truncate">{t(label)}</span>
+                    </span>
+                    <span className="flex shrink-0 items-baseline gap-3">
+                      <span className="text-xs text-muted-foreground tabular-nums">
+                        {Math.round((entry.total / total) * 100)}%
+                      </span>
+                      <Money value={entry.total} className="font-semibold" />
+                    </span>
+                  </li>
+                )
+              })}
+            </ul>
+          </>
+        ) : (
+          <p className="text-sm text-muted-foreground">{empty}</p>
+        )}
+      </CardContent>
+    </Card>
+  )
+}
+
+export default async function FinanceReviewPage({ searchParams }: PageProps<'/finance/review'>) {
+  const [userId, t] = await Promise.all([getSignedInUserId(), getT()])
 
   if (!userId) {
     redirect('/login')
   }
 
-  const resolvedSearchParams = searchParams ? await Promise.resolve(searchParams) : {}
-  const period = String(resolvedSearchParams.period ?? 'month')
+  const period = String((await searchParams).period ?? 'month')
   const selectedPeriod: ReviewPeriod = PERIOD_OPTIONS.includes(period as ReviewPeriod)
     ? (period as ReviewPeriod)
     : 'month'
 
   const review = await getReview({ userId, period: selectedPeriod })
+  const isOver = review.remaining < 0
+  const usedShare = review.plannedBudget > 0 ? (review.actualSpent / review.plannedBudget) * 100 : 0
+
+  const trend = review.trend
+  const chartPeriod = selectedPeriod === 'day' ? null : selectedPeriod
+  const byMonth = selectedPeriod === 'year'
+  const spendingTitle = byMonth ? t('Spending per month') : t('Spending per day')
+  const spentInPeriod = trend ? trend.spent.reduce((sum, amount) => sum + amount, 0) : 0
+  const bucketsOver = trend && trend.budget > 0 ? trend.spent.filter((amount) => amount > trend.budget).length : 0
+  const savedNow = trend?.saved.findLast((value) => value !== null) ?? 0
+  const savedAtStart = trend?.saved.find((value) => value !== null) ?? 0
 
   return (
-    <main className="theme-shell px-4 py-6 md:px-6">
-      <div className="mx-auto max-w-6xl space-y-6">
-        <header className="bento-card p-6">
-          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+    <main className="mx-auto w-full max-w-2xl space-y-4 px-4 py-6 sm:px-6">
+      <header>
+        <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">{t('Review')}</h1>
+        <p className="mt-1 text-sm text-muted-foreground">{t('How the plan held up, and where it did not.')}</p>
+      </header>
+
+      <Card className="gap-0 py-5">
+        <CardContent className="space-y-3">
+          <h2 className="text-base font-semibold">{t('This month against the plan')}</h2>
+          <p className={cn('text-2xl font-semibold tracking-tight', isOver && 'text-destructive-strong')}>
+            <Money value={Math.abs(review.remaining)} />
+            <span className="ml-2 text-sm font-normal text-muted-foreground">{isOver ? t('over budget') : t('left')}</span>
+          </p>
+          <Meter value={usedShare} tone={isOver ? 'danger' : 'success'} label={t("Share of the month's budget spent")} />
+          <dl className="grid grid-cols-2 gap-3 text-sm">
             <div>
-              <p className="bento-label">Finance review</p>
-              <h1 className="mt-2 text-3xl font-semibold tracking-[-0.05em] text-[var(--text)]">
-                {selectedPeriod.charAt(0).toUpperCase() + selectedPeriod.slice(1)} review
-              </h1>
+              <dt className="text-muted-foreground">{t('Planned')}</dt>
+              <dd className="font-semibold">
+                <Money value={review.plannedBudget} />
+              </dd>
             </div>
-            <div className="flex flex-wrap gap-3">
-              <Link href="/finance" className="bento-button-secondary px-4 py-2.5 text-sm font-medium">
-                Overview
+            <div>
+              <dt className="text-muted-foreground">{t('Spent')}</dt>
+              <dd className="font-semibold">
+                <Money value={review.actualSpent} />
+              </dd>
+            </div>
+            <div>
+              <dt className="text-muted-foreground">{t('Saved in chests')}</dt>
+              <dd className="font-semibold">
+                <Money value={review.actualSavings + review.buffer} />
+              </dd>
+            </div>
+            <div>
+              <dt className="text-muted-foreground">{t('Exceptions')}</dt>
+              <dd className="font-semibold">{review.exceptionCount}</dd>
+            </div>
+          </dl>
+        </CardContent>
+      </Card>
+
+      <div className="space-y-2">
+        <h2 className="px-1 text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">
+          {t('Charts for')}
+        </h2>
+        <ul className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 sm:mx-0 sm:flex-wrap sm:px-0">
+          {PERIOD_OPTIONS.map((option) => (
+            <li key={option} className="shrink-0">
+              <Link
+                href={`/finance/review?period=${option}`}
+                aria-current={selectedPeriod === option ? 'true' : undefined}
+                className={cn(
+                  'flex min-h-11 items-center rounded-full border px-4 text-sm font-medium transition-colors',
+                  selectedPeriod === option
+                    ? 'border-primary bg-primary text-primary-foreground'
+                    : 'border-input text-muted-foreground hover:text-foreground',
+                )}
+              >
+                {t(PERIOD_LABELS[option])}
               </Link>
-              <Link href="/finance/history" className="bento-button-secondary px-4 py-2.5 text-sm font-medium">
-                History
-              </Link>
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      {trend && chartPeriod ? (
+        <Card className="gap-0 py-5">
+          <CardContent className="space-y-4">
+            <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+              <h2 className="text-base font-semibold">{spendingTitle}</h2>
+              <p className="text-sm text-muted-foreground">
+                <Money value={spentInPeriod} className="font-medium text-foreground" /> {t('in total')}
+              </p>
             </div>
-          </div>
-        </header>
+            <ColumnChart
+              points={chartPoints(chartPeriod, trend.buckets, trend.spent, t.intl)}
+              label={spendingTitle}
+              reference={{ value: trend.budget, label: t('Budget {amount}', { amount: trend.budget }) }}
+            />
+            {trend.budget > 0 ? (
+              <p className="text-sm text-muted-foreground">
+                {bucketsOver === 0
+                  ? byMonth
+                    ? t('No month went over the budget.')
+                    : t('No day went over the budget.')
+                  : byMonth
+                    ? t.plural(
+                        bucketsOver,
+                        '{count} month went over the budget line.',
+                        '{count} months went over the budget line.',
+                      )
+                    : t.plural(
+                        bucketsOver,
+                        '{count} day went over the budget line.',
+                        '{count} days went over the budget line.',
+                      )}
+              </p>
+            ) : null}
+          </CardContent>
+        </Card>
+      ) : null}
 
-        <section className="bento-card p-6">
-          <form method="get" className="flex flex-wrap items-end gap-4">
-            <label className="block text-sm font-medium text-[var(--muted)]">
-              Period
-              <select name="period" defaultValue={selectedPeriod} className="bento-input mt-1 w-40">
-                {PERIOD_OPTIONS.map((option) => (
-                  <option key={option} value={option}>
-                    {option}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <button type="submit" className="bento-button-primary px-4 py-2.5 text-sm font-medium">
-              Apply
-            </button>
-          </form>
-        </section>
+      <Breakdown
+        title={t('Spending by category')}
+        entries={review.categoryBreakdown}
+        empty={t('No expenses in this period.')}
+        t={t}
+      />
 
-        <section className="bento-grid md:grid-cols-2 xl:grid-cols-4">
-          <div className="bento-card p-5">
-            <p className="text-sm text-[var(--muted)]">Planned</p>
-            <p className="mt-2 text-2xl font-semibold tracking-[-0.05em]">{formatCurrency(review.plannedBudget)}</p>
-          </div>
-          <div className="bento-card p-5">
-            <p className="text-sm text-[var(--muted)]">Actual spent</p>
-            <p className="mt-2 text-2xl font-semibold tracking-[-0.05em]">{formatCurrency(review.actualSpent)}</p>
-          </div>
-          <div className="bento-card p-5">
-            <p className="text-sm text-[var(--muted)]">Remaining</p>
-            <p className="mt-2 text-2xl font-semibold tracking-[-0.05em]">{formatCurrency(review.remaining)}</p>
-          </div>
-          <div className="bento-card p-5">
-            <p className="text-sm text-[var(--muted)]">Exceptions</p>
-            <p className="mt-2 text-2xl font-semibold tracking-[-0.05em]">{review.exceptionCount}</p>
-          </div>
-        </section>
-
-        <div className="grid gap-6 lg:grid-cols-2">
-          <section className="bento-card p-6">
-            <h2 className="text-lg font-semibold text-[var(--text)]">Savings summary</h2>
-            <div className="mt-4 space-y-4 text-sm text-[var(--muted)]">
-              <div className="flex items-center justify-between border-b border-[var(--border)] pb-2">
-                <span>Actual savings</span>
-                <span className="font-semibold text-[var(--text)]">{formatCurrency(review.actualSavings)}</span>
-              </div>
-              <div className="flex items-center justify-between border-b border-[var(--border)] pb-2">
-                <span>Weekly buffer</span>
-                <span className="font-semibold text-[var(--text)]">{formatCurrency(review.buffer)}</span>
-              </div>
+      {trend && chartPeriod ? (
+        <Card className="gap-0 py-5">
+          <CardContent className="space-y-4">
+            <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+              <h2 className="text-base font-semibold">{t('Saved in chests')}</h2>
+              <p className="text-sm text-muted-foreground">
+                <Money value={savedNow} className="font-medium text-foreground" /> {t('now,')}{' '}
+                {savedNow >= savedAtStart ? t('up') : t('down')} <Money value={Math.abs(savedNow - savedAtStart)} />
+              </p>
             </div>
-          </section>
+            <LineChart
+              points={chartPoints(chartPeriod, trend.buckets, trend.saved, t.intl)}
+              label={t('Saved in chests over time')}
+            />
+          </CardContent>
+        </Card>
+      ) : null}
 
-          <section className="bento-card p-6">
-            <h2 className="text-lg font-semibold text-[var(--text)]">Category breakdown</h2>
-            {review.categoryBreakdown.length > 0 ? (
-              <ul className="mt-4 space-y-3 text-sm text-[var(--muted)]">
-                {review.categoryBreakdown.map((entry) => (
-                  <li key={entry.category} className="flex items-center justify-between border-b border-[var(--border)] pb-2 last:border-b-0 last:pb-0">
-                    <span>{entry.category}</span>
-                    <span className="font-semibold text-[var(--text)]">{formatCurrency(entry.total)}</span>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p className="mt-4 text-sm text-[var(--muted)]">No expenses in this period yet.</p>
-            )}
-          </section>
-        </div>
+      <Breakdown
+        title={t('Overspend by category')}
+        entries={review.exceptionBreakdown}
+        empty={t('No exceptions in this period.')}
+        t={t}
+      />
 
-        <section className="bento-card p-6">
-          <h2 className="text-lg font-semibold text-[var(--text)]">Deviation by category</h2>
-          {review.exceptionBreakdown.length > 0 ? (
-            <ul className="mt-4 space-y-3 text-sm text-[var(--muted)]">
-              {review.exceptionBreakdown.map((entry) => (
-                <li key={entry.category} className="flex items-center justify-between border-b border-[var(--border)] pb-2 last:border-b-0 last:pb-0">
-                  <span>{entry.category}</span>
-                  <span className="font-semibold text-[var(--text)]">{formatCurrency(entry.total)}</span>
+      <Card className="gap-0 py-5">
+        <CardContent className="space-y-3">
+          <h2 className="text-base font-semibold">{t('Goals')}</h2>
+          {review.goals.length > 0 ? (
+            <ul className="divide-y">
+              {review.goals.map((goal) => (
+                <li key={goal.id} className="space-y-2 py-3 first:pt-0 last:pb-0">
+                  <div className="flex items-start justify-between gap-3">
+                    <p className="min-w-0 text-sm font-medium">
+                      <span className="line-clamp-2">{goal.name}</span>
+                    </p>
+                    <Badge variant={goal.satisfied ? 'default' : 'secondary'} className="shrink-0">
+                      {goal.satisfied ? t('On track') : t('Not yet')}
+                    </Badge>
+                  </div>
+                  <ul className="space-y-1.5">
+                    {goal.conditionResults.map((result, index) => (
+                      <li key={index} className="flex items-start gap-2 text-sm">
+                        <span
+                          className={cn(
+                            'mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full',
+                            result.satisfied ? 'bg-success/15 text-success' : 'bg-muted text-muted-foreground',
+                          )}
+                        >
+                          {result.satisfied ? (
+                            <Check className="size-3.5" aria-label={t('Met')} />
+                          ) : (
+                            <X className="size-3.5" aria-label={t('Not met')} />
+                          )}
+                        </span>
+                        <span>
+                          {t(measurementLabel(result.measurement))}
+                          {t(': ')}
+                          <span className="font-medium">{t.amount(result.actual)}</span>
+                          <span className="text-muted-foreground">
+                            {' '}
+                            ({t(operatorLabel(result.operator))} {t.amount(result.target)})
+                          </span>
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
                 </li>
               ))}
             </ul>
           ) : (
-            <p className="mt-4 text-sm text-[var(--muted)]">No exceptions recorded in this period.</p>
+            <p className="text-sm text-muted-foreground">
+              {t('No goals yet.')}{' '}
+              <Link href="/finance/goals" className="font-medium text-foreground underline underline-offset-4">
+                {t('Create one')}
+              </Link>
+              .
+            </p>
           )}
-        </section>
-      </div>
+        </CardContent>
+      </Card>
     </main>
   )
 }

@@ -2,7 +2,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { getServerSession } from 'next-auth'
 
-import { resolveSessionUserId } from '../../app/finance/setup/actions'
+import { getSessionUserId, resolveSessionUserId } from '@/infrastructure/auth/sessionUser'
+import { prisma } from '@/infrastructure/prisma/client'
 import { summarizeSetupPlan } from './setupFinancePlan'
 
 vi.mock('next-auth', () => ({
@@ -10,9 +11,21 @@ vi.mock('next-auth', () => ({
   getServerSession: vi.fn(),
 }))
 
+vi.mock('@/infrastructure/prisma/client', () => ({
+  prisma: { user: { findUnique: vi.fn() } },
+}))
+
 describe('summarizeSetupPlan', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+  })
+
+  it('rejects a session whose user is not in the database', async () => {
+    vi.mocked(getServerSession).mockResolvedValue({ user: { id: 'gone-user', email: 'a@b.c' } } as never)
+    vi.mocked(prisma.user.findUnique).mockResolvedValue(null)
+
+    await expect(getSessionUserId()).resolves.toBeNull()
+    await expect(resolveSessionUserId()).rejects.toThrow('No authenticated user found')
   })
 
   it('uses the authenticated session user id when present', async () => {
@@ -23,6 +36,7 @@ describe('summarizeSetupPlan', () => {
         name: 'Franklin',
       },
     } as never)
+    vi.mocked(prisma.user.findUnique).mockResolvedValue({ id: 'session-user-123' } as never)
 
     await expect(resolveSessionUserId()).resolves.toBe('session-user-123')
   })

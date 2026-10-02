@@ -1,75 +1,70 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
-import { getServerSession } from 'next-auth'
 
-import { authOptions } from '@/app/api/auth/[...nextauth]/route'
-import { createFinancialGoal } from '@/application/finance/createFinancialGoal'
+import { createCustomGoal } from '@/application/finance/createCustomGoal'
+import { createSavingsGoal } from '@/application/finance/createSavingsGoal'
 import { fundGoal } from '@/application/finance/fundGoal'
-import { prisma } from '@/infrastructure/prisma/client'
+import { getSignedInUserId } from '@/infrastructure/auth/sessionUser'
+import { signedOutState, translateFormState, type FormState } from '@/lib/forms/formState'
+import { getT } from '@/lib/i18n/server'
 
-async function resolveUserId(): Promise<string | null> {
-  const session = await getServerSession(authOptions)
-  const directUserId =
-    session?.user && 'id' in session.user ? String(session.user.id) : null
+import { customGoalForm, fundGoalForm, goalForm } from './schema'
 
-  if (directUserId) {
-    return directUserId
-  }
+export async function createGoalAction(_previousState: FormState, formData: FormData): Promise<FormState> {
+  const [userId, t] = await Promise.all([getSignedInUserId(), getT()])
 
-  const email = session?.user?.email ? String(session.user.email).toLowerCase() : null
-  if (!email) {
-    return null
-  }
-
-  const user = await prisma.user.findUnique({ where: { email } })
-  return user ? user.id : null
-}
-
-export async function createGoalAction(formData: FormData): Promise<void> {
-  const userId = await resolveUserId()
   if (!userId) {
-    throw new Error('You must be signed in to create a goal.')
+    return signedOutState(t)
   }
 
-  const name = String(formData.get('name') ?? '').trim()
-  const targetAmount = Number(formData.get('targetAmount') ?? 0)
-  const currentAmount = Number(formData.get('currentAmount') ?? 0)
-
-  if (!name || targetAmount <= 0) {
-    throw new Error('A goal name and a target amount greater than zero are required.')
-  }
-
-  await createFinancialGoal({
-    userId,
-    name,
-    targetAmount,
-    currentAmount,
+  const state = await goalForm.submit(formData, async (goal) => {
+    await createSavingsGoal(userId, {
+      name: goal.name,
+      targetAmount: goal.targetAmount,
+      alreadySaved: goal.alreadySaved,
+    })
   })
 
-  revalidatePath('/finance')
-  revalidatePath('/finance/goals')
+  if (state.status === 'success') {
+    revalidatePath('/finance', 'layout')
+  }
+
+  return translateFormState(state, t)
 }
 
-export async function fundGoalAction(formData: FormData): Promise<void> {
-  const userId = await resolveUserId()
+export async function fundGoalAction(_previousState: FormState, formData: FormData): Promise<FormState> {
+  const [userId, t] = await Promise.all([getSignedInUserId(), getT()])
+
   if (!userId) {
-    throw new Error('You must be signed in to fund a goal.')
+    return signedOutState(t)
   }
 
-  const goalId = String(formData.get('goalId') ?? '')
-  const amount = Number(formData.get('amount') ?? 0)
+  const state = await fundGoalForm.submit(formData, (funding) =>
+    fundGoal(userId, funding.goalId, funding.amount, funding.sourceChestId),
+  )
 
-  if (!goalId || amount <= 0) {
-    throw new Error('A goal and a positive amount are required.')
+  if (state.status === 'success') {
+    revalidatePath('/finance', 'layout')
   }
 
-  await fundGoal({
-    userId,
-    goalId,
-    amount,
+  return translateFormState(state, t)
+}
+
+export async function createCustomGoalAction(_previousState: FormState, formData: FormData): Promise<FormState> {
+  const [userId, t] = await Promise.all([getSignedInUserId(), getT()])
+
+  if (!userId) {
+    return signedOutState(t)
+  }
+
+  const state = await customGoalForm.submit(formData, async (goal) => {
+    await createCustomGoal(userId, goal)
   })
 
-  revalidatePath('/finance')
-  revalidatePath('/finance/goals')
+  if (state.status === 'success') {
+    revalidatePath('/finance', 'layout')
+  }
+
+  return translateFormState(state, t)
 }

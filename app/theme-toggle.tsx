@@ -1,39 +1,54 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useSyncExternalStore } from 'react'
+import { Moon, Sun } from 'lucide-react'
+
+import { Button } from '@/components/ui/button'
+import { useT } from '@/lib/i18n/client'
+
+type Theme = 'light' | 'dark'
+
+// The theme lives on <html data-theme>, set before paint by the inline script
+// in app/layout.tsx. This component only reads and flips that attribute.
+function subscribe(onChange: () => void) {
+  const observer = new MutationObserver(onChange)
+  observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] })
+  return () => observer.disconnect()
+}
+
+const getTheme = (): Theme => (document.documentElement.dataset.theme === 'dark' ? 'dark' : 'light')
+const getServerTheme = () => null
 
 export function ThemeToggle() {
-  const [theme, setTheme] = useState<'light' | 'dark'>('dark')
-  const [mounted, setMounted] = useState(false)
+  const t = useT()
+  const theme = useSyncExternalStore<Theme | null>(subscribe, getTheme, getServerTheme)
+  const nextTheme: Theme = theme === 'dark' ? 'light' : 'dark'
 
-  useEffect(() => {
-    const saved = window.localStorage.getItem('theme') as 'light' | 'dark' | null
-    const nextTheme =
-      saved ?? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
-
-    setTheme(nextTheme)
+  const toggleTheme = () => {
     document.documentElement.dataset.theme = nextTheme
-    setMounted(true)
-  }, [])
-
-  useEffect(() => {
-    if (!mounted) {
-      return
+    try {
+      window.localStorage.setItem('theme', nextTheme)
+    } catch {
+      // Keep the selected theme for this page view when storage is unavailable.
     }
-
-    document.documentElement.dataset.theme = theme
-    window.localStorage.setItem('theme', theme)
-  }, [mounted, theme])
+  }
 
   return (
-    <button
+    <Button
       type="button"
-      onClick={() => setTheme((current) => (current === 'dark' ? 'light' : 'dark'))}
-      className="fixed right-4 top-4 z-50 inline-flex items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--panel)] px-3 py-2 text-xs font-medium text-[var(--text)] shadow-[var(--shadow-soft)] backdrop-blur-md transition hover:scale-[1.02]"
-      aria-label="Toggle color theme"
+      variant="outline"
+      size="icon"
+      onClick={toggleTheme}
+      className="absolute right-4 top-4 z-50 size-11 rounded-full bg-card shadow-[var(--shadow-soft)]"
+      aria-label={
+        theme === null
+          ? t('Toggle color theme')
+          : nextTheme === 'dark'
+            ? t('Switch to dark theme')
+            : t('Switch to light theme')
+      }
     >
-      <span aria-hidden="true">{theme === 'dark' ? '☀️' : '🌙'}</span>
-      <span>{mounted ? (theme === 'dark' ? 'Light' : 'Dark') : 'Theme'}</span>
-    </button>
+      {theme === 'dark' ? <Sun aria-hidden="true" /> : theme === 'light' ? <Moon aria-hidden="true" /> : null}
+    </Button>
   )
 }

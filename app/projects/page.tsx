@@ -1,14 +1,24 @@
 import Link from 'next/link'
-import { getServerSession } from 'next-auth'
 import { redirect } from 'next/navigation'
+import { ChevronLeft, FolderKanban, Save } from 'lucide-react'
 
-import { authOptions } from '@/app/api/auth/[...nextauth]/route'
 import { createProjectAction } from '@/app/projects/actions'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { getSignedInUserId } from '@/infrastructure/auth/sessionUser'
 import { financeRepository } from '@/infrastructure/repositories/financeRepository'
+import { getT } from '@/lib/i18n/server'
+
+import { SignedInMenu } from '../signed-in-menu'
+
+// 44px touch targets and 16px text on phones (avoids iOS zoom on focus).
+const FIELD_CLASS = 'h-11 text-base sm:text-sm'
 
 export default async function ProjectsPage() {
-  const session = await getServerSession(authOptions)
-  const userId = session?.user && 'id' in session.user ? String(session.user.id) : null
+  const [userId, t] = await Promise.all([getSignedInUserId(), getT()])
 
   if (!userId) {
     redirect('/login')
@@ -17,71 +27,87 @@ export default async function ProjectsPage() {
   const projects = await financeRepository.listProjects(userId)
 
   return (
-    <main className="theme-shell px-4 py-6 md:px-6">
-      <div className="mx-auto max-w-5xl space-y-6">
-        <header className="bento-card p-6">
-          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-            <div>
-              <p className="bento-label">Projects</p>
-              <h1 className="mt-2 text-3xl font-semibold tracking-[-0.05em] text-[var(--text)]">Project list</h1>
-            </div>
-            <Link href="/finance" className="bento-button-secondary px-4 py-2.5 text-sm font-medium">
-              Back to overview
-            </Link>
-          </div>
-        </header>
+    <main className="mx-auto w-full max-w-2xl space-y-4 px-4 py-6 sm:px-6">
+      <SignedInMenu />
+      {/* Right padding keeps the title clear of the account and theme buttons */}
+      <header className="pr-28">
+        <Link
+          href="/finance"
+          className="-ml-2 inline-flex min-h-11 items-center gap-1 rounded-md px-2 text-sm text-muted-foreground hover:text-foreground"
+        >
+          <ChevronLeft className="size-4" aria-hidden="true" />
+          {t('Finance')}
+        </Link>
+        <h1 className="mt-1 text-2xl font-semibold tracking-tight sm:text-3xl">{t('Projects')}</h1>
+        <p className="mt-1 text-sm text-muted-foreground">
+          {projects.length > 0
+            ? t.plural(projects.length, '{count} project.', '{count} projects.')
+            : t('Group income and expenses around what you are building.')}
+        </p>
+      </header>
 
-        <section className="bento-card p-6">
-          <h2 className="text-xl font-semibold text-[var(--text)]">Create a project</h2>
+      <Card className="gap-0 py-5">
+        <CardContent>
+          <h2 className="text-base font-semibold">{t('New project')}</h2>
           <form action={createProjectAction} className="mt-4 space-y-4">
-            <label className="block text-sm font-medium text-[var(--muted)]">
-              Project name
-              <input
+            <div className="grid gap-2">
+              <Label htmlFor="project-name">{t('Name')}</Label>
+              <Input
+                id="project-name"
                 name="name"
-                placeholder="Travel, house, startup..."
-                className="bento-input mt-1"
+                placeholder={t('Travel, house, startup...')}
+                maxLength={80}
                 required
+                className={FIELD_CLASS}
               />
-            </label>
-
-            <label className="block text-sm font-medium text-[var(--muted)]">
-              Notes
-              <textarea
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="project-notes">{t('Notes (optional)')}</Label>
+              <Input
+                id="project-notes"
                 name="notes"
-                rows={3}
-                placeholder="Purpose, timeline, or context"
-                className="bento-input mt-1"
+                placeholder={t('Purpose, timeline, or context')}
+                maxLength={200}
+                className={FIELD_CLASS}
               />
-            </label>
-
-            <button type="submit" className="bento-button-primary px-4 py-2.5 text-sm font-medium">
-              Save project
-            </button>
+            </div>
+            <Button type="submit" className="h-11 w-full sm:w-auto sm:px-6">
+              <Save aria-hidden="true" />
+              {t('Save project')}
+            </Button>
           </form>
-        </section>
+        </CardContent>
+      </Card>
 
-        <section className="bento-card p-6">
-          <h2 className="text-xl font-semibold text-[var(--text)]">Existing projects</h2>
-
-          {projects.length > 0 ? (
-            <ul className="mt-4 space-y-3 text-sm text-[var(--muted)]">
-              {projects.map((project) => (
-                <li key={project.id} className="flex items-start justify-between gap-4 border-b border-[var(--border)] pb-2 last:border-b-0 last:pb-0">
-                  <div>
-                    <p className="font-medium text-[var(--text)]">{project.name}</p>
-                    {project.notes ? <p className="mt-1 text-[var(--muted)]">{project.notes}</p> : null}
+      {projects.length > 0 ? (
+        <ul className="space-y-3">
+          {projects.map((project) => (
+            <li key={project.id}>
+              <Card className="gap-0 py-4">
+                <CardContent className="flex items-start justify-between gap-3 px-4">
+                  <div className="min-w-0">
+                    <p className="font-medium">
+                      <span className="line-clamp-2">{project.name}</span>
+                    </p>
+                    {project.notes ? <p className="mt-1 text-sm text-muted-foreground">{project.notes}</p> : null}
                   </div>
-                  <span className="rounded-full bg-[var(--panel-soft)] px-2.5 py-1 text-xs font-medium text-[var(--muted)]">
-                    Project
-                  </span>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="mt-4 text-sm text-[var(--muted)]">No projects created yet.</p>
-          )}
-        </section>
-      </div>
+                  <Badge variant="secondary" className="shrink-0">
+                    {t('Project')}
+                  </Badge>
+                </CardContent>
+              </Card>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <div className="rounded-xl border border-dashed px-4 py-10 text-center">
+          <FolderKanban className="mx-auto size-8 text-muted-foreground" aria-hidden="true" />
+          <p className="mt-3 text-sm font-medium">{t('No projects yet')}</p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {t('Create one above to start grouping what belongs together.')}
+          </p>
+        </div>
+      )}
     </main>
   )
 }

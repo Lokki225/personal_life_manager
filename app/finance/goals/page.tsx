@@ -1,129 +1,156 @@
-import Link from 'next/link'
-import { getServerSession } from 'next-auth'
 import { redirect } from 'next/navigation'
+import { Check, Target, X } from 'lucide-react'
 
-import { authOptions } from '@/app/api/auth/[...nextauth]/route'
-import { createGoalAction, fundGoalAction } from '@/app/finance/goals/actions'
-import { formatCurrency } from '@/domain/finance/calculations'
-import { financeRepository } from '@/infrastructure/repositories/financeRepository'
+import { Badge } from '@/components/ui/badge'
+import { Card, CardContent } from '@/components/ui/card'
+import { recomputeFinanceState } from '@/application/finance/recomputeFinanceState'
+import { getSignedInUserId } from '@/infrastructure/auth/sessionUser'
+import { getT } from '@/lib/i18n/server'
+import { cn } from '@/lib/utils'
+
+import { measurementLabel, operatorLabel } from '../goal-labels'
+import { Meter, Money } from '../money'
+import { CustomGoalDrawer } from './custom-goal-drawer'
+import { FundGoalDrawer, NewGoalDrawer } from './goal-forms'
 
 export default async function FinanceGoalsPage() {
-  const session = await getServerSession(authOptions)
-  const userId = session?.user && 'id' in session.user ? String(session.user.id) : null
+  const [userId, t] = await Promise.all([getSignedInUserId(), getT()])
 
   if (!userId) {
     redirect('/login')
   }
 
-  const goals = await financeRepository.listFinancialGoals(userId)
+  const state = await recomputeFinanceState({ userId })
+  const reached = state.goals.filter((goal) => goal.satisfied).length
+  // Only goals measured on a chest can receive money.
+  const fundable = state.goals.filter((goal) =>
+    goal.conditionResults.some((result) => result.measurement === 'chest_balance'),
+  )
 
   return (
-    <main className="theme-shell px-4 py-6 md:px-6">
-      <div className="mx-auto max-w-5xl space-y-6">
-        <header className="bento-card p-6">
-          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-            <div>
-              <p className="bento-label">Finance goals</p>
-              <h1 className="mt-2 text-3xl font-semibold tracking-[-0.05em] text-[var(--text)]">Goals & milestones</h1>
-            </div>
-            <Link href="/finance" className="bento-button-secondary px-4 py-2.5 text-sm font-medium">
-              Back to overview
-            </Link>
-          </div>
-        </header>
+    <main className="mx-auto w-full max-w-2xl space-y-4 px-4 py-6 sm:px-6">
+      <header>
+        <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">{t('Goals')}</h1>
+        <p className="mt-1 text-sm text-muted-foreground">
+          {state.goals.length > 0
+            ? t('{reached} of {total} reached.', { reached: String(reached), total: String(state.goals.length) })
+            : t('Give your savings something to aim for.')}
+        </p>
+      </header>
 
-        <section className="grid gap-6 lg:grid-cols-2">
-          <div className="bento-card p-6">
-            <h2 className="text-xl font-semibold text-[var(--text)]">Create a goal</h2>
-            <form action={createGoalAction} className="mt-4 space-y-4">
-              <label className="block text-sm font-medium text-[var(--muted)]">
-                Goal name
-                <input name="name" placeholder="Emergency fund" className="bento-input mt-1" required />
-              </label>
-
-              <label className="block text-sm font-medium text-[var(--muted)]">
-                Target amount
-                <input type="number" name="targetAmount" min="0" step="0.01" className="bento-input mt-1" required />
-              </label>
-
-              <label className="block text-sm font-medium text-[var(--muted)]">
-                Current amount (optional)
-                <input type="number" name="currentAmount" min="0" step="0.01" defaultValue={0} className="bento-input mt-1" />
-              </label>
-
-              <button type="submit" className="bento-button-primary px-4 py-2.5 text-sm font-medium">
-                Save goal
-              </button>
-            </form>
-          </div>
-
-          <div className="bento-card p-6">
-            <h2 className="text-xl font-semibold text-[var(--text)]">Fund an existing goal</h2>
-            <form action={fundGoalAction} className="mt-4 space-y-4">
-              <label className="block text-sm font-medium text-[var(--muted)]">
-                Goal
-                <select name="goalId" className="bento-input mt-1" defaultValue={goals[0]?.id ?? ''}>
-                  {goals.length > 0 ? (
-                    goals.map((goal) => (
-                      <option key={goal.id} value={goal.id}>
-                        {goal.name}
-                      </option>
-                    ))
-                  ) : (
-                    <option value="">No goals yet</option>
-                  )}
-                </select>
-              </label>
-
-              <label className="block text-sm font-medium text-[var(--muted)]">
-                Contribution amount
-                <input type="number" name="amount" min="0" step="0.01" className="bento-input mt-1" required />
-              </label>
-
-              <button
-                type="submit"
-                disabled={goals.length === 0}
-                className="bento-button-primary px-4 py-2.5 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                Fund goal
-              </button>
-            </form>
-          </div>
-        </section>
-
-        <section className="bento-card p-6">
-          <h2 className="text-xl font-semibold text-[var(--text)]">Goal progress</h2>
-
-          {goals.length > 0 ? (
-            <div className="mt-4 space-y-5">
-              {goals.map((goal) => {
-                const target = Number(goal.targetAmount || 0)
-                const current = Number(goal.currentAmount || 0)
-                const progress = target > 0 ? Math.min((current / target) * 100, 100) : 0
-
-                return (
-                  <div key={goal.id} className="rounded-2xl border border-[var(--border)] bg-[var(--panel-soft)] p-4">
-                    <div className="flex items-center justify-between gap-3">
-                      <div>
-                        <p className="font-semibold text-[var(--text)]">{goal.name}</p>
-                        <p className="text-sm text-[var(--muted)]">
-                          {formatCurrency(current)} / {formatCurrency(target)}
-                        </p>
-                      </div>
-                      <span className="text-sm font-medium text-[var(--text)]">{progress.toFixed(0)}%</span>
-                    </div>
-                    <div className="mt-3 h-2.5 w-full rounded-full bg-[var(--panel-muted)]">
-                      <div className="h-2.5 rounded-full bg-[var(--text)]" style={{ width: `${progress}%` }} />
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-          ) : (
-            <p className="mt-4 text-sm text-[var(--muted)]">No goals created yet.</p>
-          )}
-        </section>
+      <div className="flex flex-wrap gap-2">
+        <FundGoalDrawer
+          goals={fundable.map((goal) => ({ id: goal.id, name: goal.name }))}
+          chests={state.chests.map((chest) => ({ id: chest.id, name: chest.name, balance: chest.balance }))}
+        />
+        <NewGoalDrawer />
+        <CustomGoalDrawer chests={state.chests.map((chest) => ({ id: chest.id, name: chest.name }))} />
       </div>
+
+      {state.goals.length > 0 ? (
+        <ul className="space-y-3">
+          {state.goals.map((goal) => {
+            // A single balance target reads honestly as one bar. Anything else
+            // is shown condition by condition.
+            const single =
+              goal.conditionResults.length === 1 &&
+              goal.conditionResults[0].measurement === 'chest_balance' &&
+              goal.conditionResults[0].target > 0
+                ? goal.conditionResults[0]
+                : null
+
+            return (
+              <li key={goal.id}>
+                <Card className="gap-0 py-4">
+                  <CardContent className="space-y-3 px-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <p className="flex min-w-0 items-start gap-2 font-medium">
+                        <Target className="mt-0.5 size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+                        <span className="line-clamp-2">{goal.name}</span>
+                      </p>
+                      <Badge variant={goal.satisfied ? 'default' : 'secondary'} className="shrink-0">
+                        {goal.satisfied ? t('Reached') : t('In progress')}
+                      </Badge>
+                    </div>
+
+                    {single ? (
+                      <>
+                        <Meter
+                          value={(single.actual / single.target) * 100}
+                          tone={goal.satisfied ? 'success' : 'primary'}
+                          label={t('Progress towards {goal}', { goal: goal.name })}
+                        />
+                        <p className="flex flex-wrap justify-between gap-x-4 text-sm text-muted-foreground">
+                          <span>
+                            <Money value={single.actual} className="font-medium text-foreground" /> {t('of')}{' '}
+                            <Money value={single.target} />
+                          </span>
+                          {goal.satisfied ? null : (
+                            <span>
+                              <Money value={single.target - single.actual} className="font-medium text-foreground" />{' '}
+                              {t('to go')}
+                            </span>
+                          )}
+                        </p>
+                      </>
+                    ) : (
+                      <ul className="space-y-2">
+                        {goal.conditionResults.map((result, index) => (
+                          <li key={index} className="flex items-start gap-2 text-sm">
+                            <span
+                              className={cn(
+                                'mt-0.5 flex size-5 shrink-0 items-center justify-center rounded-full',
+                                result.satisfied ? 'bg-success/15 text-success' : 'bg-muted text-muted-foreground',
+                              )}
+                            >
+                              {result.satisfied ? (
+                                <Check className="size-3.5" aria-label={t('Met')} />
+                              ) : (
+                                <X className="size-3.5" aria-label={t('Not met')} />
+                              )}
+                            </span>
+                            <span>
+                              {t(measurementLabel(result.measurement))}
+                              {t(': ')}
+                              <span className="font-medium">{t.amount(result.actual)}</span>
+                              <span className="text-muted-foreground">
+                                {' '}
+                                ({t(operatorLabel(result.operator))} {t.amount(result.target)})
+                              </span>
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+
+                    {goal.borrowed > 0 ? (
+                      <p className="text-sm text-muted-foreground">
+                        {t('Of which')} <Money value={goal.borrowed} /> {t('borrowed')}
+                        {goal.owed > 0 ? (
+                          <>
+                            , <Money value={goal.owed} className="font-medium text-foreground" /> {t('still owed')}
+                          </>
+                        ) : (
+                          `, ${t('fully repaid')}`
+                        )}
+                        .
+                      </p>
+                    ) : null}
+                  </CardContent>
+                </Card>
+              </li>
+            )
+          })}
+        </ul>
+      ) : (
+        <div className="rounded-xl border border-dashed px-4 py-10 text-center">
+          <Target className="mx-auto size-8 text-muted-foreground" aria-hidden="true" />
+          <p className="mt-3 text-sm font-medium">{t('No goals yet')}</p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {t('Create one, such as a phone or an emergency fund, and fund it from your chests.')}
+          </p>
+        </div>
+      )}
     </main>
   )
 }

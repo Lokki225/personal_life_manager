@@ -1,6 +1,9 @@
 import type { Metadata } from 'next'
 import { Geist, Geist_Mono } from 'next/font/google'
 
+import { I18nProvider } from '@/lib/i18n/client'
+import { getLocale } from '@/lib/i18n/server'
+
 import { ThemeToggle } from './theme-toggle'
 import './globals.css'
 
@@ -19,27 +22,27 @@ export const metadata: Metadata = {
   description: 'Finance-first personal life manager MVP',
 }
 
-export default function RootLayout({ children }: LayoutProps<'/'>) {
+const themeScript = `(function(){var t;try{t=localStorage.getItem("theme")}catch(e){}if(t!=="light"&&t!=="dark"){t=window.matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light"}document.documentElement.setAttribute("data-theme",t)})()`
+
+export default async function RootLayout({ children }: LayoutProps<'/'>) {
+  const locale = await getLocale()
+
   return (
     <html
-      lang="en"
+      lang={locale}
+      data-theme="light"
       suppressHydrationWarning
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col bg-[var(--bg)] text-[var(--text)] selection:bg-[var(--accent-soft)] selection:text-[var(--text)]">
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
-              try {
-                const savedTheme = localStorage.getItem('theme');
-                const preferredTheme = savedTheme || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
-                document.documentElement.dataset.theme = preferredTheme;
-              } catch (_) {}
-            `,
-          }}
-        />
-        <ThemeToggle />
-        {children}
+      <head>
+        {/* Apply the saved (or system) theme before first paint to avoid a flash */}
+        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+      </head>
+      <body className="min-h-full flex flex-col bg-background text-foreground selection:bg-[var(--accent-soft)] selection:text-foreground">
+        <I18nProvider locale={locale}>
+          <ThemeToggle />
+          {children}
+        </I18nProvider>
       </body>
     </html>
   )
