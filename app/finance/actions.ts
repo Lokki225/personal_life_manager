@@ -5,7 +5,9 @@ import { revalidatePath } from 'next/cache'
 import { MovementReason } from '@/app/generated/prisma/enums'
 import { consolidateBuffer } from '@/application/finance/consolidateBuffer'
 import { confirmIncome } from '@/application/finance/confirmIncome'
-import { removeAllocation, saveAllocation } from '@/application/finance/managePlan'
+import { coverOverspend } from '@/application/finance/coverOverspend'
+import { editExpense, removeExpense } from '@/application/finance/manageExpense'
+import { removeAllocation, saveAllocation, updateIncome } from '@/application/finance/managePlan'
 import { recordDailyException } from '@/application/finance/recordDailyException'
 import { recordDailyExpense } from '@/application/finance/recordDailyExpense'
 import { saveDailyRemaining } from '@/application/finance/saveDailyRemaining'
@@ -17,7 +19,11 @@ import { getT } from '@/lib/i18n/server'
 
 import {
   confirmIncomeForm,
+  coverForm,
   deleteAllocationForm,
+  deleteExpenseForm,
+  editExpenseForm,
+  incomeForm,
   planAllocationForm,
   consolidateForm,
   exceptionForm,
@@ -185,6 +191,74 @@ export async function deleteAllocationAction(_previousState: FormState, formData
   const state = await deleteAllocationForm.submit(formData, async ({ id }) => {
     await removeAllocation(userId, id)
     await syncPlanToChests(userId)
+  })
+
+  if (state.status === 'success') {
+    refreshFinance()
+  }
+
+  return translateFormState(state, t)
+}
+
+export async function editExpenseAction(_previousState: FormState, formData: FormData): Promise<FormState> {
+  const [userId, t] = await Promise.all([getSignedInUserId(), getT()])
+
+  if (!userId) {
+    return signedOutState(t)
+  }
+
+  const state = await editExpenseForm.submit(formData, (expense) =>
+    editExpense(userId, { ...expense, description: expense.description || null }),
+  )
+
+  if (state.status === 'success') {
+    refreshFinance()
+  }
+
+  return translateFormState(state, t)
+}
+
+export async function deleteExpenseAction(_previousState: FormState, formData: FormData): Promise<FormState> {
+  const [userId, t] = await Promise.all([getSignedInUserId(), getT()])
+
+  if (!userId) {
+    return signedOutState(t)
+  }
+
+  const state = await deleteExpenseForm.submit(formData, ({ id }) => removeExpense(userId, id))
+
+  if (state.status === 'success') {
+    refreshFinance()
+  }
+
+  return translateFormState(state, t)
+}
+
+export async function updateIncomeAction(_previousState: FormState, formData: FormData): Promise<FormState> {
+  const [userId, t] = await Promise.all([getSignedInUserId(), getT()])
+
+  if (!userId) {
+    return signedOutState(t)
+  }
+
+  const state = await incomeForm.submit(formData, (income) => updateIncome(userId, income))
+
+  if (state.status === 'success') {
+    refreshFinance()
+  }
+
+  return translateFormState(state, t)
+}
+
+export async function coverOverspendAction(_previousState: FormState, formData: FormData): Promise<FormState> {
+  const [userId, t] = await Promise.all([getSignedInUserId(), getT()])
+
+  if (!userId) {
+    return signedOutState(t)
+  }
+
+  const state = await coverForm.submit(formData, async () => {
+    await coverOverspend(userId)
   })
 
   if (state.status === 'success') {

@@ -159,14 +159,17 @@ export function AmountField({
 }
 
 // Category choices as large tap targets instead of a dropdown.
-function CategoryChips({
+export function CategoryChips({
   categories,
   legend,
   name = 'category',
+  defaultValue,
 }: {
   categories: readonly string[]
   legend: string
   name?: string
+  // The choice to start on. The first one unless said otherwise.
+  defaultValue?: string
 }) {
   const t = useT()
 
@@ -183,7 +186,7 @@ function CategoryChips({
                 type="radio"
                 name={name}
                 value={category}
-                defaultChecked={index === 0}
+                defaultChecked={defaultValue && categories.includes(defaultValue) ? category === defaultValue : index === 0}
                 className="peer sr-only"
               />
               <span className="flex h-12 items-center gap-2 rounded-md border border-input px-3 text-sm font-medium transition-colors peer-checked:border-primary peer-checked:bg-primary peer-checked:text-primary-foreground peer-focus-visible:ring-[3px] peer-focus-visible:ring-ring/50">

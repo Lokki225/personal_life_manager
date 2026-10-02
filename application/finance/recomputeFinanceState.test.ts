@@ -194,6 +194,27 @@ describe('recomputeFinanceState', () => {
     expect(state.goals[0]).toMatchObject({ satisfied: true, borrowed: 20000, owed: 17000 })
   })
 
+  it('adds what was taken from the Buffer to cover an overspend to the day’s budget', async () => {
+    const state = await recomputeFinanceState({
+      userId: 'user-1',
+      referenceDate: TODAY,
+      repository: repositoryOf({
+        expenses: [{ id: 'expense-1', amount: 2500, category: 'food', description: 'Dinner', date: TODAY }],
+        movements: [
+          movement({ id: 'm-1', reason: 'DAILY_SAVING', destinationChestId: 'buffer', amount: 1000 }),
+          movement({ id: 'm-2', type: 'OUT', reason: 'EXPENSE', date: TODAY, sourceChestId: 'buffer', amount: 500 }),
+        ],
+      }),
+    })
+
+    expect(state.coveredToday).toBe(500)
+    expect(state.dailyBudget).toBe(2500)
+    expect(state.dailyOverspend).toBe(0)
+    expect(state.buffer).toBe(500)
+    // The 500 came from the Buffer, not from the month's budget.
+    expect(state.monthlySpent).toBe(2000)
+  })
+
   it('divides a weekly daily living allocation by seven', async () => {
     const state = await recomputeFinanceState({
       userId: 'user-1',

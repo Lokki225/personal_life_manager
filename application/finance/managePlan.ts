@@ -58,3 +58,30 @@ export async function removeAllocation(userId: string, id: string, deps: ManageP
   await ownAllocation(userId, id, deps)
   await deps.remove(id)
 }
+
+type IncomeDeps = {
+  listIncomes: (userId: string) => Promise<{ id: string }[]>
+  update: (id: string, data: { source: string; amount: number; payDay: number }) => Promise<unknown>
+}
+
+const defaultIncomeDeps: IncomeDeps = {
+  listIncomes: financeRepository.listIncomes,
+  update: financeRepository.updateIncome,
+}
+
+// Corrects an income of the plan. It counts from the next time that income is
+// confirmed: what already arrived this month is not rewritten.
+export async function updateIncome(
+  userId: string,
+  income: { id: string; source: string; amount: number; payDay: number },
+  deps: IncomeDeps = defaultIncomeDeps,
+): Promise<void> {
+  const incomes = await deps.listIncomes(userId)
+
+  // An income that belongs to someone else is reported like a missing one.
+  if (!incomes.some((candidate) => candidate.id === income.id)) {
+    throw new FinanceRuleError('This income no longer exists.')
+  }
+
+  await deps.update(income.id, { source: income.source.trim(), amount: income.amount, payDay: income.payDay })
+}

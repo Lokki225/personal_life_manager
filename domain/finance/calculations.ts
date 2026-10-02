@@ -112,6 +112,19 @@ export function planDeposits(
   }
 }
 
+// For each expense of a day, in the order they were made: the part that went
+// beyond what was left of the day's budget at that moment.
+export function expenseOverages(budget: number, amounts: number[]): number[] {
+  let left = Math.max(budget, 0)
+
+  return amounts.map((amount) => {
+    const over = Math.max(amount - left, 0)
+    left = Math.max(left - amount, 0)
+
+    return over
+  })
+}
+
 export type PlanChestMove = { kind: 'toSavings' | 'toBase' | 'in' | 'out'; amount: number }
 
 // What to move so the chests match the plan again after it changed.

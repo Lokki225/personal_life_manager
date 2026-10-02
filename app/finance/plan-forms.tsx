@@ -8,10 +8,11 @@ import { FieldError } from '@/components/ui/field-error'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select'
+import { CURRENCY_CODE } from '@/domain/finance/calculations'
 import { fieldAttributes, initialFormState } from '@/lib/forms/formState'
 import { useT } from '@/lib/i18n/client'
 
-import { deleteAllocationAction, saveAllocationAction } from './actions'
+import { deleteAllocationAction, saveAllocationAction, updateIncomeAction } from './actions'
 import { ActionDrawer, ActionForm, AmountField, FIELD_CLASS } from './today-actions'
 
 export type PlanAllocation = { id: string; name: string; amount: number; period: string; category: string }
@@ -181,5 +182,71 @@ export function EditAllocationDrawer({ allocation }: { allocation: PlanAllocatio
         </Button>
       }
     />
+  )
+}
+
+export type PlanIncome = { id: string; source: string; amount: number; payDay: number }
+
+export function EditIncomeDrawer({ income }: { income: PlanIncome }) {
+  const t = useT()
+  const scope = `income-${income.id}`
+
+  return (
+    <ActionDrawer
+      title={t('Edit income')}
+      description={t('It counts from the next time this income is confirmed.')}
+      trigger={
+        <Button
+          variant="ghost"
+          size="icon"
+          className="-mr-2 size-11 shrink-0 text-muted-foreground"
+          aria-label={t('Edit {name}', { name: income.source })}
+        >
+          <Pencil aria-hidden="true" />
+        </Button>
+      }
+    >
+      {(close) => (
+        <ActionForm action={updateIncomeAction} submitLabel={t('Save')} onDone={close}>
+          {(state) => (
+            <>
+              <input type="hidden" name="id" value={income.id} />
+              <div className="grid gap-2">
+                <Label htmlFor={`${scope}-source`}>{t('Source')}</Label>
+                <Input
+                  id={`${scope}-source`}
+                  {...fieldAttributes(state, 'source', scope)}
+                  defaultValue={income.source}
+                  maxLength={60}
+                  className={FIELD_CLASS}
+                />
+                <FieldError state={state} name="source" scope={scope} />
+              </div>
+              <AmountField
+                state={state}
+                scope={scope}
+                label={t('Amount ({currency})', { currency: CURRENCY_CODE })}
+                defaultValue={income.amount}
+                autoFocus={false}
+              />
+              <div className="grid gap-2">
+                <Label htmlFor={`${scope}-payDay`}>{t('Pay day (day of the month)')}</Label>
+                <Input
+                  id={`${scope}-payDay`}
+                  {...fieldAttributes(state, 'payDay', scope)}
+                  type="number"
+                  inputMode="numeric"
+                  min={1}
+                  max={31}
+                  defaultValue={income.payDay}
+                  className={FIELD_CLASS}
+                />
+                <FieldError state={state} name="payDay" scope={scope} />
+              </div>
+            </>
+          )}
+        </ActionForm>
+      )}
+    </ActionDrawer>
   )
 }

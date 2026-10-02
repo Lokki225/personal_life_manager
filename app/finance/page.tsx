@@ -17,8 +17,9 @@ import { cn } from '@/lib/utils'
 
 import { LogoTile } from '../logo'
 import { categoryStyle, eventStyle } from './categories'
+import { CoverFromBufferButton, EditExpenseDrawer } from './expense-forms'
 import { Meter, Money } from './money'
-import { AddAllocationDrawer, EditAllocationDrawer } from './plan-forms'
+import { AddAllocationDrawer, EditAllocationDrawer, EditIncomeDrawer } from './plan-forms'
 import { AddExpenseDrawer, ConfirmIncomeDrawer, ExceptionDrawer, SaveRemainingDrawer } from './today-actions'
 import { ensureDaysSettled } from './settle'
 
@@ -95,6 +96,8 @@ export default async function FinanceTodayPage() {
   const status = isOver ? { label: 'Overspent' as const, tone: 'rose' as const } : spendingStatus
   const statusStyle = STATUS_STYLES[status.tone]
   const availableToSave = Math.floor(state.dailySaving)
+  // What the Buffer can pay of today's overspend.
+  const coverable = state.uncoveredDay ? 0 : Math.min(Math.floor(state.dailyOverspend), Math.floor(state.buffer))
 
   const categoryTotals = Object.entries(
     state.dailyExpenses.reduce<Record<string, number>>((totals, expense) => {
@@ -210,6 +213,13 @@ export default async function FinanceTodayPage() {
                         {t("Your plan covers 30 days, so today's budget comes from your Buffer and Base Chest.")}
                       </p>
                     ) : null}
+                    {state.coveredToday > 0 ? (
+                      <p className="text-sm text-muted-foreground">
+                        {t('The budget includes')}{' '}
+                        <Money value={state.coveredToday} className="font-medium text-foreground" />{' '}
+                        {t('taken from your Buffer.')}
+                      </p>
+                    ) : null}
                   </div>
                 </>
               ) : state.uncoveredDay ? (
@@ -242,6 +252,7 @@ export default async function FinanceTodayPage() {
                   />
                 ) : null}
               </div>
+              {coverable >= 1 ? <CoverFromBufferButton amount={coverable} /> : null}
               {isOver && state.overspendExplained ? (
                 <p className="text-sm text-muted-foreground">
                   {t("Today's overspend is explained. See it in Review.")}
@@ -282,7 +293,18 @@ export default async function FinanceTodayPage() {
                               {expense.projectName ? `${t(label)} · ${expense.projectName}` : t(label)}
                             </p>
                           </div>
-                          <Money value={expense.amount} sign="-" className="text-sm font-semibold" />
+                          <Money value={expense.amount} sign="-" className="shrink-0 text-sm font-semibold" />
+                          {state.uncoveredDay ? null : (
+                            <EditExpenseDrawer
+                              expense={{
+                                id: expense.id,
+                                amount: expense.amount,
+                                category: expense.category,
+                                description: expense.description ?? null,
+                              }}
+                              label={expense.description || t(label)}
+                            />
+                          )}
                         </li>
                       )
                     })}
@@ -507,6 +529,22 @@ export default async function FinanceTodayPage() {
                   </>
                 )}
               </p>
+              <ul className="divide-y border-b">
+                {state.incomes.map((income) => (
+                  <li key={income.id} className="flex items-center gap-3 py-1.5 text-sm">
+                    <span className="min-w-0 flex-1">
+                      <span className="block font-medium">
+                        <span className="line-clamp-2">{income.source}</span>
+                      </span>
+                      <span className="text-xs text-muted-foreground">
+                        {t('Income, expected on the {day} of each month', { day: String(income.payDay) })}
+                      </span>
+                    </span>
+                    <Money value={income.amount} className="shrink-0 font-semibold" />
+                    <EditIncomeDrawer income={income} />
+                  </li>
+                ))}
+              </ul>
               {state.allocationBreakdown.length > 0 ? (
                 <ul className="divide-y">
                   {state.allocationBreakdown.map((allocation) => (
