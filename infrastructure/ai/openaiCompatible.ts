@@ -1,4 +1,5 @@
 import {
+  AiBusy,
   AiModelUnavailable,
   AiOutOfCredit,
   type AskModel,
@@ -17,7 +18,12 @@ type ChatMessage =
   | {
       role: 'assistant'
       content: string | null
-      tool_calls?: { id: string; type: 'function'; function: { name: string; arguments: string } }[]
+      tool_calls?: {
+        id: string
+        type: 'function'
+        function: { name: string; arguments: string }
+        extra_content?: unknown
+      }[]
     }
   | { role: 'tool'; tool_call_id: string; content: string }
 
@@ -74,7 +80,15 @@ export function toChatMessages(system: string, messages: ModelMessage[]): ChatMe
     const text = message.content.flatMap((block) => (block.type === 'text' ? [block.text] : [])).join('\n')
     const calls = message.content.flatMap((block) =>
       block.type === 'tool_use'
-        ? [{ id: block.id, type: 'function' as const, function: { name: block.name, arguments: JSON.stringify(block.input ?? {}) } }]
+        ? [
+            {
+              id: block.id,
+              type: 'function' as const,
+              function: { name: block.name, arguments: JSON.stringify(block.input ?? {}) },
+              // Gemini refuses the next step without the signature it gave this call.
+              ...(block.echo !== undefined ? { extra_content: block.echo } : {}),
+            },
+          ]
         : [],
     )
 
@@ -94,7 +108,7 @@ type ChatReply = {
   choices?: {
     message?: {
       content?: string | null
-      tool_calls?: { id: string; function: { name: string; arguments?: string } }[]
+      tool_calls?: { id: string; function: { name: string; arguments?: string }; extra_content?: unknown }[]
     }
   }[]
 }
@@ -116,7 +130,13 @@ export function fromChatReply(reply: ChatReply): (TextBlock | ToolUseBlock)[] {
       // Unreadable arguments: the tool will say what is missing.
     }
 
-    blocks.push({ type: 'tool_use', id: call.id, name: call.function.name, input })
+    blocks.push({
+      type: 'tool_use',
+      id: call.id,
+      name: call.function.name,
+      input,
+      ...(call.extra_content !== undefined ? { echo: call.extra_content } : {}),
+    })
   }
 
   return blocks
@@ -131,8 +151,36 @@ export function openAiCompatibleModel(options: {
   model: string
   // OpenAI's newer models want "max_completion_tokens"; the others "max_tokens".
   tokensField?: 'max_tokens' | 'max_completion_tokens'
+  // How to wait between attempts; replaced in tests.
+  wait?: (ms: number) => Promise<void>
 }): AskModel {
+  const wait = options.wait ?? ((ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms)))
+
   return async (request: ModelRequest) => {
+    for (let attempt = 0; ; attempt += 1) {
+      try {
+        return await askOnce(options, request)
+      } catch (error) {
+        // An overloaded provider often answers a few seconds later.
+        if (!(error instanceof AiBusy) || attempt >= RETRY_DELAYS.length) {
+          throw error
+        }
+
+        await wait(RETRY_DELAYS[attempt])
+      }
+    }
+  }
+}
+
+// Waits before the second and third attempts.
+const RETRY_DELAYS = [1500, 4000]
+const BUSY_STATUSES = new Set([429, 500, 502, 503, 504])
+
+async function askOnce(
+  options: { baseUrl: string; apiKey: string; model: string; tokensField?: 'max_tokens' | 'max_completion_tokens' },
+  request: ModelRequest,
+): Promise<{ content: (TextBlock | ToolUseBlock)[] }> {
+  {
     const response = await fetch(`${options.baseUrl}/chat/completions`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${options.apiKey}` },
@@ -154,6 +202,10 @@ export function openAiCompatibleModel(options: {
 
       if (response.status === 404 || /model[^"]*(not found|no longer available|does not exist)/i.test(detail)) {
         throw new AiModelUnavailable(detail)
+      }
+
+      if (BUSY_STATUSES.has(response.status)) {
+        throw new AiBusy(detail)
       }
 
       throw new Error(`${options.baseUrl} answered ${response.status}: ${detail}`)

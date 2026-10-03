@@ -1,6 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk'
 
-import { AiModelUnavailable, AiOutOfCredit, type AskModel, type TextBlock, type ToolUseBlock } from './model'
+import { AiBusy, AiModelUnavailable, AiOutOfCredit, type AskModel, type TextBlock, type ToolUseBlock } from './model'
 
 // Claude, through Anthropic's API.
 export function claudeModel(apiKey: string, model: string): AskModel {
@@ -21,7 +21,19 @@ export function claudeModel(apiKey: string, model: string): AskModel {
         model,
         max_tokens: request.maxTokens,
         system: [{ type: 'text', text: request.system, cache_control: { type: 'ephemeral' } }],
-        messages: request.messages as Anthropic.MessageParam[],
+        // Without `echo`: Anthropic refuses fields it does not know.
+        messages: request.messages.map((message) =>
+          message.role === 'assistant'
+            ? {
+                role: 'assistant' as const,
+                content: message.content.map((block) =>
+                  block.type === 'tool_use'
+                    ? { type: 'tool_use' as const, id: block.id, name: block.name, input: block.input }
+                    : block,
+                ),
+              }
+            : message,
+        ) as Anthropic.MessageParam[],
         tools,
         ...(request.forceTool ? { tool_choice: { type: 'tool' as const, name: request.forceTool } } : {}),
       })
@@ -42,6 +54,11 @@ export function claudeModel(apiKey: string, model: string): AskModel {
     } catch (error) {
       if (error instanceof Anthropic.APIError && /credit balance/i.test(error.message)) {
         throw new AiOutOfCredit(error.message)
+      }
+
+      // The SDK already tried again twice.
+      if (error instanceof Anthropic.APIError && [429, 500, 503, 529].includes(error.status ?? 0)) {
+        throw new AiBusy(error.message)
       }
 
       if (error instanceof Anthropic.NotFoundError) {
