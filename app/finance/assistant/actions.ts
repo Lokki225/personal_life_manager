@@ -4,14 +4,58 @@ import { revalidatePath } from 'next/cache'
 
 import { isAccountRuleError } from '@/application/account/errors'
 import { askAssistant } from '@/application/assistant/chat'
-import { isAssistantConfigured } from '@/infrastructure/ai/claude'
+import { getAppPersona, savePersonalPersona } from '@/application/assistant/persona'
+import { AiOutOfCredit } from '@/infrastructure/ai/model'
+import { availableProviders, isAssistantConfigured, resolveProvider } from '@/infrastructure/ai/providers'
 import { getSignedInUser } from '@/infrastructure/auth/sessionUser'
 import { assistantRepository } from '@/infrastructure/repositories/assistantRepository'
 import { signedOutState, translateFormState, type FormState } from '@/lib/forms/formState'
 import { setClockZone } from '@/lib/clock'
+import { shortName } from '@/lib/greeting'
 import { getT } from '@/lib/i18n/server'
 
-import { conversationSchema, notesForm } from './schema'
+import { conversationSchema, personaForm, providerSchema } from './schema'
+
+// Everything the assistant window shows, loaded when it opens.
+export type AssistantData = {
+  callName: string | null
+  providers: { id: string; name: string; model: string }[]
+  provider: string | null
+  notesOn: boolean
+  notes: { id: string; kind: string; title: string; body: string; date: string }[]
+  app: { name: string | null; role: string; personalAllowed: boolean }
+  personal: { name: string | null; instructions: string | null }
+}
+
+export async function loadAssistantAction(): Promise<AssistantData | null> {
+  const [user, t] = await Promise.all([getSignedInUser(), getT()])
+
+  if (!user || !isAssistantConfigured()) {
+    return null
+  }
+
+  const [settings, notes, app] = await Promise.all([
+    assistantRepository.settings(user.id),
+    assistantRepository.listNotes(user.id, 10),
+    getAppPersona(),
+  ])
+  const dateFormatter = new Intl.DateTimeFormat(t.intl, {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    ...(user.timeZone ? { timeZone: user.timeZone } : {}),
+  })
+
+  return {
+    callName: shortName(user),
+    providers: availableProviders(),
+    provider: resolveProvider(settings.provider)?.id ?? null,
+    notesOn: settings.notes,
+    notes: notes.map((note) => ({ ...note, date: dateFormatter.format(note.createdAt) })),
+    app: { name: app.name, role: app.role, personalAllowed: app.personalAllowed },
+    personal: { name: settings.assistantName, instructions: settings.assistantInstructions },
+  }
+}
 
 export type AssistantAnswer = { ok: true; reply: string } | { ok: false; error: string }
 
@@ -49,23 +93,55 @@ export async function askAssistantAction(conversation: unknown): Promise<Assista
       return { ok: false, error: t(error.message) }
     }
 
+    if (error instanceof AiOutOfCredit) {
+      return { ok: false, error: t('This AI has no credit left on its account. Choose another one, or add credit.') }
+    }
+
     console.error('The assistant failed:', error)
     return { ok: false, error: t('The assistant is not answering right now. Try again in a moment.') }
   }
 }
 
-export async function setNotesAction(_previousState: FormState, formData: FormData): Promise<FormState> {
+export async function setNotesAction(enabled: boolean): Promise<{ error?: string }> {
+  const [user, t] = await Promise.all([getSignedInUser(), getT()])
+
+  if (!user) {
+    return { error: t('Your session has ended. Sign in again to continue.') }
+  }
+
+  await assistantRepository.setNotesEnabled(user.id, enabled === true)
+
+  return {}
+}
+
+export async function setProviderAction(provider: unknown): Promise<{ error?: string }> {
+  const [user, t] = await Promise.all([getSignedInUser(), getT()])
+
+  if (!user) {
+    return { error: t('Your session has ended. Sign in again to continue.') }
+  }
+
+  const choice = providerSchema.safeParse({ provider })
+
+  if (!choice.success) {
+    return { error: t('Choose an AI.') }
+  }
+
+  await assistantRepository.setProvider(user.id, choice.data.provider)
+
+  return {}
+}
+
+export async function savePersonaAction(_previousState: FormState, formData: FormData): Promise<FormState> {
   const [user, t] = await Promise.all([getSignedInUser(), getT()])
 
   if (!user) {
     return signedOutState(t)
   }
 
-  const state = await notesForm.submit(formData, ({ enabled }) => assistantRepository.setNotesEnabled(user.id, enabled))
-
-  if (state.status === 'success') {
-    revalidatePath('/finance/assistant')
-  }
+  const state = await personaForm.submit(formData, (persona) =>
+    savePersonalPersona(user.id, persona, { appPersona: () => getAppPersona(), save: assistantRepository.setPersona }),
+  )
 
   return translateFormState(state, t)
 }

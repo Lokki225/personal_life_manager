@@ -6,6 +6,7 @@ import { ChevronLeft, EyeOff } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
 import { getAdminDashboard, type FeatureKey } from '@/application/account/adminDashboard'
+import { getAppPersona } from '@/application/assistant/persona'
 import type { ActivityStatus } from '@/domain/account/activity'
 import { getSignedInUser } from '@/infrastructure/auth/sessionUser'
 import { fullName } from '@/lib/greeting'
@@ -17,6 +18,7 @@ import { ColumnChart } from '../finance/charts'
 import { Meter } from '../finance/money'
 import { LANGUAGE_NAMES } from '../language-names'
 import { SignedInMenu } from '../signed-in-menu'
+import { AssistantPersonaForm } from './assistant-form'
 import { ResetLinkButton } from './reset-link'
 import { RoleSelect } from './role-select'
 
@@ -69,7 +71,7 @@ export default async function AdminPage() {
     redirect('/finance')
   }
 
-  const dashboard = await getAdminDashboard(actor)
+  const [dashboard, persona] = await Promise.all([getAdminDashboard(actor), getAppPersona()])
   const total = dashboard.users.length
   const of = t('of {total}', { total: String(total) })
   const dateFormatter = new Intl.DateTimeFormat(t.intl, { day: 'numeric', month: 'short', year: 'numeric' })
@@ -174,6 +176,18 @@ export default async function AdminPage() {
           </CardContent>
         </Card>
       </div>
+
+      <Card className="gap-0 py-5">
+        <CardContent className="space-y-4">
+          <div>
+            <h2 className="text-base font-semibold">{t('Assistant')}</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {t('What the assistant of every person is told about its role. Each person sees it, and may add their own instructions if you allow it.')}
+            </p>
+          </div>
+          <AssistantPersonaForm {...persona} />
+        </CardContent>
+      </Card>
 
       <Card className="gap-0 py-2">
         <CardContent className="px-4">

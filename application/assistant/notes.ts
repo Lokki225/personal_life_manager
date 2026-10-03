@@ -3,10 +3,12 @@ import { z } from 'zod'
 import type { ApiUser } from '../api/operation'
 import { operations } from '../api/operations'
 import { notifyDevices } from '../notifications/notify'
-import { askClaude, isAssistantConfigured, type AskModel } from '../../infrastructure/ai/claude'
+import type { AskModel } from '../../infrastructure/ai/model'
+import { isAssistantConfigured, modelFor } from '../../infrastructure/ai/providers'
 import { assistantRepository, type AssistantRepository } from '../../infrastructure/repositories/assistantRepository'
 import { now as clockNow, withClockZone } from '../../lib/clock'
 import { noteInstructions } from './instructions'
+import { combinePersona, getAppPersona, type AppPersona, type Persona } from './persona'
 
 // The notes the assistant writes on its own, each evening: a note about the
 // day, the review of the week on Sundays, of the month on its last day.
@@ -59,7 +61,7 @@ const cut = (text: string, length: number) => (text.length > length ? `${text.sl
 
 // Writes one note from the person's figures. One call to the model, with the
 // figures given up front: a note costs the same whatever the model decides.
-export async function writeNote(user: ApiUser, kind: NoteKind, now: Date, ask: AskModel = askClaude): Promise<Note> {
+export async function writeNote(user: ApiUser, kind: NoteKind, now: Date, ask: AskModel, persona?: Persona): Promise<Note> {
   const period = kind === 'monthly' ? 'month' : kind === 'weekly' ? 'week' : 'day'
   const [today, review, chests, goals, debts] = await Promise.all([
     operations.getToday.run(user, {}),
@@ -71,7 +73,7 @@ export async function writeNote(user: ApiUser, kind: NoteKind, now: Date, ask: A
   const figures = JSON.stringify({ today, review, chests, goals, debts })
 
   const { content } = await ask({
-    system: noteInstructions(user, now),
+    system: noteInstructions(user, now, persona),
     messages: [{ role: 'user', content: `${ASK[kind]}\n\nTheir figures, as JSON:\n${figures}` }],
     tools: [deliverTool],
     forceTool: DELIVER,
@@ -90,6 +92,8 @@ type SendDeps = {
   configured: () => boolean
   repository: Pick<AssistantRepository, 'listNoteRecipients' | 'addNote' | 'pruneNotes'>
   write: typeof writeNote
+  modelFor: (provider: string | null) => AskModel
+  appPersona: () => Promise<AppPersona>
   notify: typeof notifyDevices
 }
 
@@ -97,6 +101,8 @@ const defaultSendDeps: SendDeps = {
   configured: isAssistantConfigured,
   repository: assistantRepository,
   write: writeNote,
+  modelFor,
+  appPersona: () => getAppPersona(),
   notify: notifyDevices,
 }
 
@@ -111,18 +117,28 @@ export async function sendAssistantNotes(deps: SendDeps = defaultSendDeps): Prom
     return { written, notified }
   }
 
-  for (const person of await deps.repository.listNoteRecipients()) {
+  const recipients = await deps.repository.listNoteRecipients()
+  const app = recipients.length > 0 ? await deps.appPersona() : null
+
+  for (const person of recipients) {
     // One person's trouble must not stop the notes of everyone after them.
     try {
       await withClockZone(person.timeZone, async () => {
         const now = clockNow()
-        const note = await deps.write(person, noteKindFor(now), now)
+        // Written by the provider the person chose.
+        const note = await deps.write(
+          person,
+          noteKindFor(now),
+          now,
+          deps.modelFor(person.assistantProvider),
+          combinePersona(app!, person),
+        )
 
         await deps.repository.addNote(person.id, { kind: note.kind, title: note.title, body: note.details })
         await deps.repository.pruneNotes(person.id, new Date(now.getTime() - KEEP_DAYS * 24 * 60 * 60 * 1000))
         written += 1
 
-        if ((await deps.notify(person.subscriptions, { title: note.title, body: note.summary, url: '/finance/assistant' })) > 0) {
+        if ((await deps.notify(person.subscriptions, { title: note.title, body: note.summary, url: '/finance?assistant=notes' })) > 0) {
           notified.add(person.id)
         }
       })

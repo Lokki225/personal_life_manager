@@ -160,6 +160,11 @@ model User {
   bufferSweepDay Int      @default(0)
   // Whether the assistant writes this person an evening note and reviews.
   assistantNotes Boolean  @default(false)
+  // The AI provider the person chose for the assistant: 'anthropic', 'openai'...
+  assistantProvider String?
+  // What the person asks of their assistant: a name, and instructions.
+  assistantName         String?
+  assistantInstructions String?
   createdAt     DateTime @default(now())
 
   incomes           Income[]
@@ -176,6 +181,14 @@ model User {
   pushSubscriptions PushSubscription[]
   apiTokens         ApiToken[]
   assistantNoteList AssistantNote[]
+}
+
+// Settings of the whole app, changed by administrators. Text by key, e.g.
+// "assistant.role".
+model AppSetting {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt
 }
 
 // What the assistant wrote to a person on its own: an evening note, or the

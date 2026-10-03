@@ -921,6 +921,47 @@ export const FR: Messages = {
     'The assistant is not answering right now. Try again in a moment.':
       "L'assistant ne répond pas pour le moment. Réessayez dans un instant.",
     'Choose on or off.': 'Choisissez activé ou désactivé.',
+    'This AI has no credit left on its account. Choose another one, or add credit.':
+      "Cette IA n'a plus de crédit sur son compte. Choisissez-en une autre, ou ajoutez du crédit.",
+    'Hello {name}, how can I help?': 'Bonjour {name}, comment puis-je vous aider ?',
+    'How can I help?': 'Comment puis-je vous aider ?',
+    'The assistant can make mistakes. Check what it records.':
+      "L'assistant peut se tromper. Vérifiez ce qu'il enregistre.",
+    'They arrive as notifications when notifications are on in My account.':
+      'Elles arrivent en notification si les notifications sont activées dans Mon compte.',
+    'No notes yet.': 'Pas encore de notes.',
+    'Which AI answers': 'Quelle IA répond',
+    'Your assistant': 'Votre assistant',
+    'Give it a name, and tell it how you want it to help you. The rules of the app always come first.':
+      "Donnez-lui un nom, et dites-lui comment vous voulez qu'il vous aide. Les règles de l'application passent toujours en premier.",
+    'Its name': 'Son nom',
+    'Your instructions': 'Vos instructions',
+    'For example: call me Awa, answer in short sentences, remind me I am saving for a laptop.':
+      "Par exemple : appelle-moi Awa, réponds en phrases courtes, rappelle-moi que j'économise pour un ordinateur.",
+    'The administrators have turned off personal instructions.':
+      'Les administrateurs ont désactivé les instructions personnelles.',
+    'Its role in this app': 'Son rôle dans cette application',
+    'Open the assistant': "Ouvrir l'assistant",
+    'With {name}': 'Avec {name}',
+    'Your money assistant': 'Votre assistant financier',
+    'Assistant sections': "Sections de l'assistant",
+    Chat: 'Discussion',
+    Notes: 'Notes',
+    Settings: 'Réglages',
+    Close: 'Fermer',
+    Loading: 'Chargement',
+    'Name of the assistant': "Nom de l'assistant",
+    'Its role': 'Son rôle',
+    'This is the default role.': 'Ceci est le rôle par défaut.',
+    'Written by an administrator.': 'Écrit par un administrateur.',
+    'Leave it empty to use the default. The rules of the app always come first.':
+      "Laissez vide pour utiliser celui par défaut. Les règles de l'application passent toujours en premier.",
+    'Let each person add their own instructions': 'Permettre à chacun d’ajouter ses propres instructions',
+    'Back to the default role': 'Revenir au rôle par défaut',
+    'What the assistant of every person is told about its role. Each person sees it, and may add their own instructions if you allow it.':
+      "Ce que l'assistant de chaque personne sait de son rôle. Chacun peut le lire, et ajouter ses propres instructions si vous le permettez.",
+    'Only an administrator can change this.': 'Seul un administrateur peut modifier ceci.',
+    'Choose an AI.': 'Choisissez une IA.',
 
     // --- API keys ------------------------------------------------------------------
     'API keys': 'Clés API',

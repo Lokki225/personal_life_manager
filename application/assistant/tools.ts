@@ -4,7 +4,7 @@ import { isAccountRuleError } from '../account/errors'
 import { ApiNotFound, type ApiUser, type Operation } from '../api/operation'
 import { operationList } from '../api/operations'
 import { isFinanceRuleError } from '../../domain/finance/errors'
-import type { ModelTool } from '../../infrastructure/ai/claude'
+import type { ModelTool } from '../../infrastructure/ai/model'
 
 // The assistant works through the same operations as the API: what a program
 // can do with a key, the assistant can do in a conversation.
