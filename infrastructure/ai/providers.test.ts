@@ -1,6 +1,7 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import { fromChatReply, simplifySchema, toChatMessages } from './openaiCompatible'
+import { AiBusy } from './model'
+import { fromChatReply, openAiCompatibleModel, simplifySchema, toChatMessages } from './openaiCompatible'
 import { availableProviders, isAssistantConfigured, resolveProvider } from './providers'
 
 describe('AI providers', () => {
@@ -97,5 +98,53 @@ describe('OpenAI-compatible format', () => {
       },
       required: ['amount'],
     })
+  })
+})
+
+describe('Gemini thought signatures', () => {
+  it('are kept from a tool call and sent back with it', () => {
+    const signature = { google: { thought_signature: 'sig-1' } }
+    const [call] = fromChatReply({
+      choices: [
+        { message: { tool_calls: [{ id: 'a', function: { name: 'get_goals', arguments: '{}' }, extra_content: signature }] } },
+      ],
+    })
+
+    expect(call).toEqual({ type: 'tool_use', id: 'a', name: 'get_goals', input: {}, echo: signature })
+    expect(toChatMessages('', [{ role: 'assistant', content: [call] }])[1]).toEqual({
+      role: 'assistant',
+      content: null,
+      tool_calls: [{ id: 'a', type: 'function', function: { name: 'get_goals', arguments: '{}' }, extra_content: signature }],
+    })
+  })
+})
+
+describe('an overloaded provider', () => {
+  afterEach(() => vi.unstubAllGlobals())
+
+  const request = { system: 'Be brief.', messages: [{ role: 'user' as const, content: 'Hi' }], tools: [], maxTokens: 100 }
+  const busy = () => new Response('{"error":{"message":"high demand"}}', { status: 503 })
+  const answer = () => Response.json({ choices: [{ message: { content: 'Hello!' } }] })
+
+  it('is tried again, and answers when it recovers', async () => {
+    const fetch = vi.fn().mockResolvedValueOnce(busy()).mockResolvedValueOnce(answer())
+    const wait = vi.fn(async () => {})
+    vi.stubGlobal('fetch', fetch)
+
+    const ask = openAiCompatibleModel({ baseUrl: 'https://ai.example', apiKey: 'k', model: 'm', wait })
+
+    await expect(ask(request)).resolves.toEqual({ content: [{ type: 'text', text: 'Hello!' }] })
+    expect(fetch).toHaveBeenCalledTimes(2)
+    expect(wait).toHaveBeenCalledTimes(1)
+  })
+
+  it('is reported as busy after three attempts', async () => {
+    const fetch = vi.fn().mockImplementation(async () => busy())
+    vi.stubGlobal('fetch', fetch)
+
+    const ask = openAiCompatibleModel({ baseUrl: 'https://ai.example', apiKey: 'k', model: 'm', wait: async () => {} })
+
+    await expect(ask(request)).rejects.toBeInstanceOf(AiBusy)
+    expect(fetch).toHaveBeenCalledTimes(3)
   })
 })

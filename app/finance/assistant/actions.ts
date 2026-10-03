@@ -5,7 +5,7 @@ import { revalidatePath } from 'next/cache'
 import { isAccountRuleError } from '@/application/account/errors'
 import { askAssistant } from '@/application/assistant/chat'
 import { getAppPersona, savePersonalPersona } from '@/application/assistant/persona'
-import { AiModelUnavailable, AiOutOfCredit } from '@/infrastructure/ai/model'
+import { AiBusy, AiModelUnavailable, AiOutOfCredit } from '@/infrastructure/ai/model'
 import { availableProviders, isAssistantConfigured, resolveProvider } from '@/infrastructure/ai/providers'
 import { getSignedInUser } from '@/infrastructure/auth/sessionUser'
 import { assistantRepository } from '@/infrastructure/repositories/assistantRepository'
@@ -95,6 +95,13 @@ export async function askAssistantAction(conversation: unknown): Promise<Assista
 
     if (error instanceof AiOutOfCredit) {
       return { ok: false, error: t('This AI has no credit left on its account. Choose another one, or add credit.') }
+    }
+
+    if (error instanceof AiBusy) {
+      return {
+        ok: false,
+        error: t('This AI is overloaded right now. Try again in a moment, or choose another AI in Settings.'),
+      }
     }
 
     if (error instanceof AiModelUnavailable) {

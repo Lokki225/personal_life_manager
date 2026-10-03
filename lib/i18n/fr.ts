@@ -962,6 +962,8 @@ export const FR: Messages = {
       "Ce que l'assistant de chaque personne sait de son rôle. Chacun peut le lire, et ajouter ses propres instructions si vous le permettez.",
     'Only an administrator can change this.': 'Seul un administrateur peut modifier ceci.',
     'Choose an AI.': 'Choisissez une IA.',
+    'This AI is overloaded right now. Try again in a moment, or choose another AI in Settings.':
+      'Cette IA est surchargée pour le moment. Réessayez dans un instant, ou choisissez une autre IA dans les Réglages.',
     'The model of this AI is no longer available. Choose another AI, or change its model in the server settings.':
       "Le modèle de cette IA n'est plus disponible. Choisissez une autre IA, ou changez son modèle dans les réglages du serveur.",
 
