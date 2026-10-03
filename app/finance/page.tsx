@@ -286,7 +286,7 @@ export default async function FinanceTodayPage() {
                       const { label, icon: Icon } = categoryStyle(expense.category)
 
                       return (
-                        <li key={expense.id} className="flex items-center gap-3 py-2.5">
+                        <li key={expense.id} className="animate-message-in flex items-center gap-3 py-2.5">
                           <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-muted">
                             <Icon className="size-4 text-muted-foreground" aria-hidden="true" />
                           </span>

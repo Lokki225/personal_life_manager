@@ -58,7 +58,10 @@ export function Meter({
       aria-valuenow={Math.round(clamp(value))}
       className={cn('relative h-2.5 w-full rounded-full bg-muted', className)}
     >
-      <div className={cn('h-full rounded-full transition-[width]', fill)} style={{ width: `${clamp(value)}%` }} />
+      <div
+        className={cn('animate-fill h-full origin-left rounded-full transition-[width] duration-500', fill)}
+        style={{ width: `${clamp(value)}%` }}
+      />
       {marker === undefined ? null : (
         <span
           className="absolute -top-1 h-[18px] w-0.5 rounded-full bg-foreground"
