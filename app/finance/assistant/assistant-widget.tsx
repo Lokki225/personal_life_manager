@@ -124,7 +124,7 @@ function Chat({
             <p className="text-xl font-semibold tracking-tight">
               {callName ? t('Hello {name}, how can I help?', { name: callName }) : t('How can I help?')}
             </p>
-            <div className="grid w-full grid-cols-1 gap-2 sm:grid-cols-2">
+            <div className="stagger grid w-full grid-cols-1 gap-2 sm:grid-cols-2">
               {SUGGESTIONS.map((suggestion) => (
                 <button
                   key={suggestion}
@@ -142,18 +142,18 @@ function Chat({
           <ol className="space-y-5" aria-live="polite">
             {turns.map((turn, index) =>
               turn.role === 'user' ? (
-                <li key={index} className="flex justify-end">
+                <li key={index} className="animate-message-in flex justify-end">
                   <p className="max-w-[85%] rounded-3xl bg-muted px-4 py-2.5 text-sm whitespace-pre-wrap">{turn.text}</p>
                 </li>
               ) : (
-                <li key={index} className="flex gap-3">
+                <li key={index} className="animate-message-in flex gap-3">
                   <Mark className="mt-0.5 size-7" />
                   <p className="min-w-0 flex-1 pt-1 text-sm leading-relaxed whitespace-pre-wrap">{turn.text}</p>
                 </li>
               ),
             )}
             {isPending ? (
-              <li className="flex items-center gap-3">
+              <li className="animate-fade-in flex items-center gap-3">
                 <Mark className="size-7" />
                 <span className="flex gap-1" role="status" aria-label={t('Thinking...')}>
                   {[0, 150, 300].map((delay) => (
@@ -237,7 +237,7 @@ function Notes({ data, reload }: { data: AssistantData; reload: () => void }) {
     })
 
   return (
-    <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-4 py-4">
+    <div className="stagger min-h-0 flex-1 space-y-4 overflow-y-auto px-4 py-4">
       <div className="space-y-2 rounded-2xl border bg-card p-4">
         <p className="text-sm font-semibold">{t('Evening notes')}</p>
         <p className="text-sm text-muted-foreground">
@@ -323,7 +323,7 @@ function Settings({ data, reload }: { data: AssistantData; reload: () => void })
   }
 
   return (
-    <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-4 py-4">
+    <div className="stagger min-h-0 flex-1 space-y-4 overflow-y-auto px-4 py-4">
       {data.providers.length > 1 ? (
         <div className="space-y-2 rounded-2xl border bg-card p-4">
           <Label htmlFor="assistant-provider">{t('Which AI answers')}</Label>
@@ -462,16 +462,16 @@ export function AssistantWidget() {
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Trigger
-        className="fixed right-4 bottom-[calc(max(0.75rem,env(safe-area-inset-bottom))+4.75rem)] z-40 flex size-14 items-center justify-center rounded-full bg-gradient-to-br from-primary to-primary/75 text-primary-foreground shadow-[var(--shadow-soft)] ring-4 ring-background transition-transform outline-none hover:scale-105 focus-visible:ring-ring/50 active:scale-95 sm:right-6 sm:bottom-6"
+        className="animate-pop-in fixed right-4 bottom-[calc(max(0.75rem,env(safe-area-inset-bottom))+4.75rem)] z-40 flex size-14 items-center justify-center rounded-full bg-gradient-to-br from-primary to-primary/75 text-primary-foreground shadow-[var(--shadow-soft)] ring-4 ring-background transition-transform outline-none hover:scale-105 focus-visible:ring-ring/50 active:scale-95 sm:right-6 sm:bottom-6"
         aria-label={t('Open the assistant')}
       >
         <Sparkles className="size-6" aria-hidden="true" />
       </Dialog.Trigger>
 
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-50 bg-black/40 backdrop-blur-[2px] data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:animate-in data-[state=open]:fade-in-0" />
+        <Dialog.Overlay className="fixed inset-0 z-50 bg-black/40 backdrop-blur-[2px] data-[state=closed]:animate-fade-out data-[state=open]:animate-fade-in" />
         <Dialog.Content
-          className="fixed inset-0 z-50 flex flex-col bg-background text-foreground outline-none data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:slide-in-from-bottom-4 sm:inset-auto sm:right-6 sm:bottom-6 sm:h-[min(44rem,calc(100dvh-3rem))] sm:w-[26rem] sm:overflow-hidden sm:rounded-3xl sm:border sm:shadow-2xl"
+          className="fixed inset-0 z-50 flex flex-col bg-background text-foreground outline-none data-[state=closed]:animate-pop-out data-[state=open]:animate-pop-in sm:origin-bottom-right sm:inset-auto sm:right-6 sm:bottom-6 sm:h-[min(44rem,calc(100dvh-3rem))] sm:w-[26rem] sm:overflow-hidden sm:rounded-3xl sm:border sm:shadow-2xl"
           aria-describedby={undefined}
         >
           <header className="flex items-center gap-3 border-b px-4 pt-[max(0.75rem,env(safe-area-inset-top))] pb-3">
@@ -520,7 +520,7 @@ export function AssistantWidget() {
           </nav>
 
           {view === 'chat' ? (
-            <Chat turns={turns} setTurns={setTurns} callName={data?.callName ?? null} />
+            <Chat key="chat" turns={turns} setTurns={setTurns} callName={data?.callName ?? null} />
           ) : !data ? (
             <div className="flex flex-1 items-center justify-center">
               <Loader2 className="size-6 animate-spin text-muted-foreground" aria-label={t('Loading')} />
