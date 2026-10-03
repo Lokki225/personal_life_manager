@@ -95,7 +95,12 @@ const localeOf = (locale: string | null): Locale =>
 
 // Runs once a day. For each person with a device to notify, works out on
 // their own clock what is worth a reminder, and sends it in their language.
-export async function sendDailyReminders(deps: Deps = defaultDeps): Promise<{ people: number; sent: number }> {
+// Those in `notedToday` already got the assistant's note, which covers the
+// reminder to record their spending.
+export async function sendDailyReminders(
+  deps: Deps = defaultDeps,
+  notedToday: ReadonlySet<string> = new Set(),
+): Promise<{ people: number; sent: number }> {
   const recipients = await deps.listRecipients()
   let sent = 0
 
@@ -104,7 +109,9 @@ export async function sendDailyReminders(deps: Deps = defaultDeps): Promise<{ pe
     try {
       sent += await withClockZone(person.timeZone, async () => {
         const today = clockNow()
-        const reminders = dailyReminders({ today, ...(await deps.factsFor(person.id, today)) }).slice(0, MAX_PER_PERSON)
+        const reminders = dailyReminders({ today, ...(await deps.factsFor(person.id, today)) })
+          .filter((reminder) => !(reminder.kind === 'recordSpending' && notedToday.has(person.id)))
+          .slice(0, MAX_PER_PERSON)
         const t = createTranslator(localeOf(person.locale))
         let delivered = 0
 
