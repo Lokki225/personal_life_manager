@@ -1,15 +1,27 @@
 import { z } from 'zod'
 
 import { isAccountRuleError } from '@/application/account/errors'
+import { MAX_INSTRUCTIONS_LENGTH, MAX_NAME_LENGTH } from '@/application/assistant/persona'
+import { PROVIDER_IDS } from '@/infrastructure/ai/providers'
 import { FormHandler } from '@/lib/forms/FormHandler'
 
-export const notesSchema = z.object({
-  enabled: z.enum(['true', 'false'], { error: 'Choose on or off.' }).transform((value) => value === 'true'),
+export const providerSchema = z.object({
+  provider: z.enum(PROVIDER_IDS, { error: 'Choose an AI.' }),
 })
 
-// A conversation as the page sends it.
+// What a person asks of their assistant. Both may be left empty.
+export const personaSchema = z.object({
+  name: z.string().trim().max(MAX_NAME_LENGTH, `Keep it under ${MAX_NAME_LENGTH} characters.`).optional(),
+  instructions: z
+    .string()
+    .trim()
+    .max(MAX_INSTRUCTIONS_LENGTH, `Keep it under ${MAX_INSTRUCTIONS_LENGTH} characters.`)
+    .optional(),
+})
+
+// A conversation as the window sends it.
 export const conversationSchema = z
   .array(z.object({ role: z.enum(['user', 'assistant']), text: z.string().max(10_000) }))
   .max(200)
 
-export const notesForm = new FormHandler(notesSchema, { isRuleError: isAccountRuleError })
+export const personaForm = new FormHandler(personaSchema, { isRuleError: isAccountRuleError })

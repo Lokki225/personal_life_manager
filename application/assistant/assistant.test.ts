@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest'
 import { z } from 'zod'
 
 import { FinanceRuleError } from '../../domain/finance/errors'
-import type { ModelReply, ModelRequest } from '../../infrastructure/ai/claude'
+import type { ModelReply, ModelRequest } from '../../infrastructure/ai/model'
 import { operation } from '../api/operation'
 import { askAssistant, ASSISTANT_DAILY_LIMIT, MAX_TURNS, trimConversation } from './chat'
 import { converse } from './converse'
@@ -169,20 +169,27 @@ describe('askAssistant', () => {
   it('answers within the daily limit, and refuses beyond it', async () => {
     const converseMock = vi.fn().mockResolvedValue({ reply: 'Bonjour !', changed: false })
     const allowAttempt = vi.fn().mockResolvedValue(true)
-    const deps = { security: { allowAttempt }, converse: converseMock }
+    const ask = vi.fn()
+    const persona = { name: 'Koffi', role: 'Be a coach.', personal: null }
+    const deps = { security: { allowAttempt }, converse: converseMock, contextOf: vi.fn().mockResolvedValue({ ask, persona }) }
 
     await expect(askAssistant(user, [{ role: 'user', text: 'Bonjour' }], deps)).resolves.toEqual({
       reply: 'Bonjour !',
       changed: false,
     })
     expect(allowAttempt).toHaveBeenCalledWith('assistant:user-1', ASSISTANT_DAILY_LIMIT, 24 * 60 * 60 * 1000)
+    expect(converseMock).toHaveBeenCalledWith(user, [{ role: 'user', text: 'Bonjour' }], {
+      ask,
+      persona,
+      operations: chatOperations,
+    })
 
     allowAttempt.mockResolvedValue(false)
     await expect(askAssistant(user, [{ role: 'user', text: 'Encore' }], deps)).rejects.toThrow(/for today/)
   })
 
   it('needs something to answer', async () => {
-    const deps = { security: { allowAttempt: vi.fn() }, converse: vi.fn() }
+    const deps = { security: { allowAttempt: vi.fn() }, converse: vi.fn(), contextOf: vi.fn() }
 
     await expect(askAssistant(user, [{ role: 'user', text: '   ' }], deps)).rejects.toThrow('Write a message first.')
     expect(deps.security.allowAttempt).not.toHaveBeenCalled()
@@ -197,7 +204,14 @@ describe('assistant notes', () => {
     expect(noteKindFor(new Date(2026, 9, 3, 19))).toBe('daily')
   })
 
-  const recipient = { ...user, subscriptions: [{ endpoint: 'https://push.example/1', p256dh: 'key', auth: 'auth' }] }
+  const recipient = {
+    ...user,
+    assistantProvider: 'deepseek',
+    assistantName: 'Nana',
+    assistantInstructions: 'Parle-moi simplement.',
+    subscriptions: [{ endpoint: 'https://push.example/1', p256dh: 'key', auth: 'auth' }],
+  }
+  const app = { name: 'Koffi', role: 'Be a coach.', isDefault: false, personalAllowed: true }
   const note = { kind: 'daily' as const, title: 'Belle journée', summary: 'Vous êtes sous le budget.', details: 'Le détail.' }
 
   it('writes, keeps and sends a note to each person who asked for one', async () => {
@@ -209,6 +223,8 @@ describe('assistant notes', () => {
         pruneNotes: vi.fn(),
       },
       write: vi.fn().mockResolvedValue(note),
+      modelFor: vi.fn().mockReturnValue('deepseek model'),
+      appPersona: vi.fn().mockResolvedValue(app),
       notify: vi.fn().mockResolvedValue(1),
     }
 
@@ -216,11 +232,17 @@ describe('assistant notes', () => {
 
     expect(result.written).toBe(1)
     expect([...result.notified]).toEqual(['user-1'])
+    expect(deps.modelFor).toHaveBeenCalledWith('deepseek')
+    expect(deps.write).toHaveBeenCalledWith(recipient, expect.any(String), expect.any(Date), 'deepseek model', {
+      name: 'Nana',
+      role: 'Be a coach.',
+      personal: 'Parle-moi simplement.',
+    })
     expect(deps.repository.addNote).toHaveBeenCalledWith('user-1', { kind: 'daily', title: 'Belle journée', body: 'Le détail.' })
     expect(deps.notify).toHaveBeenCalledWith(recipient.subscriptions, {
       title: 'Belle journée',
       body: 'Vous êtes sous le budget.',
-      url: '/finance/assistant',
+      url: '/finance?assistant=notes',
     })
   })
 
@@ -231,10 +253,15 @@ describe('assistant notes', () => {
     const notify = vi.fn().mockResolvedValue(0)
     vi.spyOn(console, 'error').mockImplementation(() => {})
 
-    await expect(sendAssistantNotes({ configured: () => false, repository, write, notify })).resolves.toMatchObject({ written: 0 })
+    const modelFor = vi.fn()
+    const appPersona = vi.fn().mockResolvedValue(app)
+
+    await expect(sendAssistantNotes({ configured: () => false, repository, write, modelFor, appPersona, notify })).resolves.toMatchObject({
+      written: 0,
+    })
     expect(listNoteRecipients).not.toHaveBeenCalled()
 
-    const result = await sendAssistantNotes({ configured: () => true, repository, write, notify })
+    const result = await sendAssistantNotes({ configured: () => true, repository, write, modelFor, appPersona, notify })
 
     expect(result.written).toBe(1)
     expect(result.notified.size).toBe(0)

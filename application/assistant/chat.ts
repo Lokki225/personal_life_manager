@@ -1,7 +1,12 @@
 import { AccountRuleError } from '../account/errors'
 import type { ApiUser } from '../api/operation'
+import type { AskModel } from '../../infrastructure/ai/model'
+import { modelFor } from '../../infrastructure/ai/providers'
+import { assistantRepository } from '../../infrastructure/repositories/assistantRepository'
 import { securityRepository, type SecurityRepository } from '../../infrastructure/repositories/securityRepository'
 import { converse, type ChatTurn } from './converse'
+import { combinePersona, getAppPersona, type Persona } from './persona'
+import { chatOperations } from './tools'
 
 // Each message costs money at the AI provider: a day's limit per person keeps
 // one account from spending for everyone.
@@ -15,9 +20,19 @@ export const MAX_TURN_LENGTH = 2000
 type ChatDeps = {
   security: Pick<SecurityRepository, 'allowAttempt'>
   converse: typeof converse
+  // The model of the provider the person chose, and who their assistant is.
+  contextOf: (userId: string) => Promise<{ ask: AskModel; persona: Persona }>
 }
 
-const defaultDeps: ChatDeps = { security: securityRepository, converse }
+const defaultDeps: ChatDeps = {
+  security: securityRepository,
+  converse,
+  contextOf: async (userId) => {
+    const [settings, app] = await Promise.all([assistantRepository.settings(userId), getAppPersona()])
+
+    return { ask: modelFor(settings.provider), persona: combinePersona(app, settings) }
+  },
+}
 
 // Keeps what the model can use: the latest turns, starting with the person,
 // ending with what they just said.
@@ -49,5 +64,5 @@ export async function askAssistant(
     throw new AccountRuleError('You have used all your messages to the assistant for today. Try again tomorrow.')
   }
 
-  return deps.converse(user, turns)
+  return deps.converse(user, turns, { ...(await deps.contextOf(user.id)), operations: chatOperations })
 }

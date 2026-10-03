@@ -1,8 +1,9 @@
 import type { ApiUser, Operation } from '../api/operation'
-import { askClaude, type AskModel, type ModelMessage, type ToolResultBlock } from '../../infrastructure/ai/claude'
+import type { AskModel, ModelMessage, ToolResultBlock } from '../../infrastructure/ai/model'
 import { now as clockNow } from '../../lib/clock'
 import { chatInstructions } from './instructions'
-import { chatOperations, runTool, toolsFrom } from './tools'
+import type { Persona } from './persona'
+import { runTool, toolsFrom } from './tools'
 
 export type ChatTurn = { role: 'user' | 'assistant'; text: string }
 
@@ -11,9 +12,8 @@ export type ChatTurn = { role: 'user' | 'assistant'; text: string }
 const MAX_STEPS = 10
 const MAX_TOKENS = 2048
 
-type ConverseDeps = { ask: AskModel; operations: Operation[] }
-
-const defaultDeps: ConverseDeps = { ask: askClaude, operations: chatOperations }
+// The model to talk to, the operations it may use, and who it is.
+export type ConverseDeps = { ask: AskModel; operations: Operation[]; persona?: Persona }
 
 // Answers the last thing the person said. The model reads and changes their
 // data through the tools until it has its answer. `changed` says whether
@@ -21,7 +21,7 @@ const defaultDeps: ConverseDeps = { ask: askClaude, operations: chatOperations }
 export async function converse(
   user: ApiUser,
   history: ChatTurn[],
-  deps: ConverseDeps = defaultDeps,
+  deps: ConverseDeps,
   now: Date = clockNow(),
 ): Promise<{ reply: string | null; changed: boolean }> {
   const messages: ModelMessage[] = history.map((turn) =>
@@ -30,7 +30,7 @@ export async function converse(
       : { role: 'assistant', content: [{ type: 'text', text: turn.text }] },
   )
   const tools = toolsFrom(deps.operations)
-  const system = chatInstructions(user, now)
+  const system = chatInstructions(user, now, deps.persona)
   let changed = false
 
   for (let step = 0; step < MAX_STEPS; step += 1) {

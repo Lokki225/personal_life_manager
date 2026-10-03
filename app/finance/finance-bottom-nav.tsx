@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { CalendarCheck, ChartNoAxesColumn, PiggyBank, Sparkles, type LucideIcon } from 'lucide-react'
+import { CalendarCheck, ChartNoAxesColumn, PiggyBank, type LucideIcon } from 'lucide-react'
 
 import { useT } from '@/lib/i18n/client'
 import { m } from '@/lib/i18n/translate'
@@ -50,14 +50,6 @@ const SECTIONS: Section[] = [
   },
 ]
 
-// Shown only once the assistant is switched on.
-const ASSISTANT: Section = {
-  href: '/finance/assistant',
-  label: m('Assistant'),
-  icon: Sparkles,
-  matches: (pathname) => under(pathname, '/finance/assistant'),
-}
-
 const isSetup = (pathname: string) => under(pathname, '/finance/setup')
 
 // Switches between the pages grouped under the current tab, e.g. Chests and Goals.
@@ -95,10 +87,9 @@ export function FinanceSectionTabs() {
   )
 }
 
-export function FinanceBottomNav({ assistant = false }: { assistant?: boolean }) {
+export function FinanceBottomNav() {
   const t = useT()
   const pathname = usePathname()
-  const sections = assistant ? [...SECTIONS, ASSISTANT] : SECTIONS
 
   if (isSetup(pathname)) {
     return null
@@ -110,7 +101,7 @@ export function FinanceBottomNav({ assistant = false }: { assistant?: boolean })
       aria-label={t('Finance navigation')}
     >
       <div className="flex items-center gap-1 rounded-2xl border bg-card/90 p-1.5 shadow-[var(--shadow-soft)] backdrop-blur-md">
-        {sections.map(({ href, label, icon: Icon, matches }) => {
+        {SECTIONS.map(({ href, label, icon: Icon, matches }) => {
           const isActive = matches(pathname)
 
           return (
