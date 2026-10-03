@@ -4,12 +4,11 @@ import {
   Briefcase,
   CalendarCheck,
   ChartNoAxesColumn,
-  FolderKanban,
   HandCoins,
-  HeartPulse,
   PiggyBank,
   ShieldCheck,
   Target,
+  UserRound,
   Wallet,
   type LucideIcon,
 } from 'lucide-react'
@@ -25,29 +24,28 @@ import { Brand } from './auth-shell'
 import { LanguageCornerButton } from './language'
 import { SignedInMenu } from './signed-in-menu'
 
-const NODES: { icon: LucideIcon; name: string; text: string; available: boolean }[] = [
+// The three parts of a life the app covers. Each is built on the same loop of
+// intent, reality and adjustment.
+const NODES: { icon: LucideIcon; name: string; text: string; status: string; available: boolean }[] = [
   {
     icon: Wallet,
     name: m('Finance'),
     text: m('Income, allocations, a daily budget, savings chests, goals and debts.'),
+    status: m('Available'),
     available: true,
-  },
-  {
-    icon: FolderKanban,
-    name: m('Projects'),
-    text: m('What you are building, and what it costs and brings in.'),
-    available: false,
   },
   {
     icon: Briefcase,
     name: m('Career'),
-    text: m('Where your work is going, and the steps to get there.'),
+    text: m('Where your work is going: where you stand, what you want, and the paths between the two.'),
+    status: m('Coming next'),
     available: false,
   },
   {
-    icon: HeartPulse,
-    name: m('Health'),
-    text: m('The habits that keep the rest of the plan standing.'),
+    icon: UserRound,
+    name: m('Personal'),
+    text: m('Your reflections, priorities and vision: the reasons behind your choices.'),
+    status: m('Planned'),
     available: false,
   },
 ]
@@ -172,16 +170,16 @@ export default async function Home() {
         <section aria-labelledby="nodes-title" className="space-y-5">
           <div>
             <h2 id="nodes-title" className="text-2xl font-semibold tracking-tight">
-              {t('One node at a time')}
+              {t('Three nodes, one life')}
             </h2>
             <p className="mt-2 max-w-2xl text-sm text-muted-foreground sm:text-base">
               {t(
-                'Each part of your life is a node, built on the same loop of intent, reality and adjustment. Finance is the first one, and the only one you can use today.',
+                'Finance, Career and Personal: each is a node, built on the same loop of intent, reality and adjustment, and linked to the others. Finance is the first one, and the one you can use today.',
               )}
             </p>
           </div>
-          <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            {NODES.map(({ icon: Icon, name, text, available }) => (
+          <ul className="stagger grid gap-3 md:grid-cols-3">
+            {NODES.map(({ icon: Icon, name, text, status, available }) => (
               <li key={name}>
                 <Card className={available ? 'h-full gap-0 border-primary/40 py-5' : 'h-full gap-0 py-5 opacity-80'}>
                   <CardContent className="space-y-3 px-5">
@@ -195,9 +193,7 @@ export default async function Home() {
                       >
                         <Icon className="size-5" aria-hidden="true" />
                       </span>
-                      <Badge variant={available ? 'default' : 'secondary'}>
-                        {available ? t('Available') : t('Planned')}
-                      </Badge>
+                      <Badge variant={available ? 'default' : 'secondary'}>{t(status)}</Badge>
                     </div>
                     <p className="font-semibold">{t(name)}</p>
                     <p className="text-sm text-muted-foreground">{t(text)}</p>
