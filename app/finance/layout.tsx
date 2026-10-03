@@ -1,5 +1,7 @@
 import type { PropsWithChildren } from 'react'
 
+import { isAssistantConfigured } from '@/infrastructure/ai/claude'
+
 import { SignedInMenu } from '../signed-in-menu'
 import { FinanceBottomNav, FinanceSectionTabs } from './finance-bottom-nav'
 
@@ -10,7 +12,7 @@ export default function FinanceLayout({ children }: PropsWithChildren) {
       <FinanceSectionTabs />
       {/* Clears the fixed bottom navigation */}
       <div className="pb-28">{children}</div>
-      <FinanceBottomNav />
+      <FinanceBottomNav assistant={isAssistantConfigured()} />
     </div>
   )
 }

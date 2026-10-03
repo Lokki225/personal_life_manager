@@ -886,6 +886,42 @@ export const FR: Messages = {
     'A loan is late coming back': 'Un prêt tarde à revenir',
     '{name} still owes you {amount}.': '{name} vous doit encore {amount}.',
 
+    // --- Assistant -----------------------------------------------------------------
+    Assistant: 'Assistant',
+    'Ask about your money, or tell it what you spent. It reads and records for you.':
+      'Posez vos questions sur votre argent, ou dites-lui ce que vous avez dépensé. Il lit et enregistre pour vous.',
+    'The assistant is not switched on yet.': "L'assistant n'est pas encore activé.",
+    'It needs an AI key on the server. Once it is set, you can talk to it here.':
+      "Il lui faut une clé d'IA sur le serveur. Une fois ajoutée, vous pourrez lui parler ici.",
+    'To answer, the assistant reads your figures and sends them to the AI provider. Check what it records.':
+      "Pour répondre, l'assistant lit vos chiffres et les envoie au fournisseur d'IA. Vérifiez ce qu'il enregistre.",
+    'Evening notes': 'Notes du soir',
+    'Every evening, a short note on your day. On Sundays, the review of your week; on the last day of the month, the review of your month.':
+      'Chaque soir, une courte note sur votre journée. Le dimanche, le bilan de votre semaine ; le dernier jour du mois, le bilan de votre mois.',
+    'They arrive as notifications when notifications are on in': 'Elles arrivent en notification si les notifications sont activées dans',
+    'Turn on evening notes': 'Activer les notes du soir',
+    'Turn off evening notes': 'Désactiver les notes du soir',
+    'Evening note': 'Note du soir',
+    'Week review': 'Bilan de la semaine',
+    'Month review': 'Bilan du mois',
+    'How is my month going?': 'Comment se passe mon mois ?',
+    'I spent 1500 on lunch': "J'ai dépensé 1500 pour le déjeuner",
+    'How much can I still spend today?': "Combien puis-je encore dépenser aujourd'hui ?",
+    'Am I on track with my goals?': 'Suis-je en bonne voie pour mes objectifs ?',
+    'Thinking...': 'Réflexion...',
+    'Your message': 'Votre message',
+    'Ask anything, or say what you spent...': 'Demandez ce que vous voulez, ou dites ce que vous avez dépensé...',
+    Send: 'Envoyer',
+    'New conversation': 'Nouvelle conversation',
+    'Write a message first.': "Écrivez d'abord un message.",
+    'You have used all your messages to the assistant for today. Try again tomorrow.':
+      "Vous avez utilisé tous vos messages à l'assistant pour aujourd'hui. Réessayez demain.",
+    'I could not finish this. Try asking in smaller steps.':
+      "Je n'ai pas pu terminer. Essayez de demander en plusieurs étapes.",
+    'The assistant is not answering right now. Try again in a moment.':
+      "L'assistant ne répond pas pour le moment. Réessayez dans un instant.",
+    'Choose on or off.': 'Choisissez activé ou désactivé.',
+
     // --- API keys ------------------------------------------------------------------
     'API keys': 'Clés API',
     'A key lets a program, such as an assistant, use the app as you. Give one only to something you trust, and delete it when you stop using it.':

@@ -158,6 +158,8 @@ model User {
   settledThrough DateTime?
   // The weekday the Buffer is emptied into the Base Chest. 0 is Sunday.
   bufferSweepDay Int      @default(0)
+  // Whether the assistant writes this person an evening note and reviews.
+  assistantNotes Boolean  @default(false)
   createdAt     DateTime @default(now())
 
   incomes           Income[]
@@ -173,6 +175,22 @@ model User {
   passwordResets    PasswordResetToken[]
   pushSubscriptions PushSubscription[]
   apiTokens         ApiToken[]
+  assistantNoteList AssistantNote[]
+}
+
+// What the assistant wrote to a person on its own: an evening note, or the
+// review of a week or a month.
+model AssistantNote {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // 'daily', 'weekly' or 'monthly'.
+  kind      String
+  title     String
+  body      String
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
 }
 
 enum ApiScope {
