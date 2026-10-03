@@ -1,11 +1,21 @@
 import { expenseOverages } from '../../domain/finance/calculations'
+import { chestWithdrawalBlocker, isPaidFromChest } from '../../domain/finance/chests'
 import { FinanceRuleError } from '../../domain/finance/errors'
 import { financeRepository } from '../../infrastructure/repositories/financeRepository'
 import { createBudgetException } from './createBudgetException'
+import { getChestsWithBalances } from './getChestsWithBalances'
 import { recomputeFinanceState } from './recomputeFinanceState'
 import { now as clockNow } from '../../lib/clock'
 
-type ExpenseRow = { id: string; amount: unknown; date: Date; createdAt: Date }
+type ExpenseRow = {
+  id: string
+  amount: unknown
+  date: Date
+  createdAt: Date
+  paidFromChestId?: string | null
+  paidFromChestName?: string | null
+}
+type ChestRow = { id: string; name: string; type: string; lockedUntil: Date | null; balance: number }
 type ExceptionRow = { id: string; expenseId: string | null }
 
 type ManageExpenseDeps = {
@@ -26,6 +36,8 @@ type ManageExpenseDeps = {
     data: { plannedAmount: number; actualAmount: number; difference: number },
   ) => Promise<unknown>
   deleteException: (id: string) => Promise<unknown>
+  listChests: (userId: string) => Promise<ChestRow[]>
+  updateChestExpense: (id: string, data: { amount: number; category: string; description: string | null }) => Promise<unknown>
 }
 
 const defaultDeps: ManageExpenseDeps = {
@@ -37,6 +49,8 @@ const defaultDeps: ManageExpenseDeps = {
   createException: createBudgetException,
   updateException: financeRepository.updateBudgetException,
   deleteException: financeRepository.deleteBudgetException,
+  listChests: getChestsWithBalances,
+  updateChestExpense: financeRepository.updateChestExpense,
 }
 
 const sameDay = (left: Date, right: Date) =>
@@ -58,11 +72,12 @@ async function changeableExpense(userId: string, id: string, deps: ManageExpense
     throw new FinanceRuleError('An expense can only be changed the day it was made.')
   }
 
-  if (state.uncoveredDay) {
+  // A chest expense gives its money back exactly; the 31st does not matter.
+  if (state.uncoveredDay && !isPaidFromChest(expense)) {
     throw new FinanceRuleError('Expenses of a 31st cannot be changed.')
   }
 
-  return state
+  return { state, expense }
 }
 
 // After today's expenses changed, each one's exception is brought back in
@@ -75,8 +90,9 @@ async function syncTodayExceptions(
   today: Date,
 ) {
   const [expenses, exceptions] = await Promise.all([deps.listExpenses(userId), deps.listExceptions(userId)])
+  // Only what was paid from the day's budget can go over it.
   const todays = expenses
-    .filter((expense) => sameDay(new Date(expense.date), today))
+    .filter((expense) => sameDay(new Date(expense.date), today) && !isPaidFromChest(expense))
     .sort((left, right) => left.createdAt.getTime() - right.createdAt.getTime())
   const amounts = todays.map((expense) => Number(expense.amount))
   // Measured against the plan's budget: money taken from the Buffer to cover
@@ -119,13 +135,31 @@ export async function editExpense(
   deps: ManageExpenseDeps = defaultDeps,
   today: Date = clockNow(),
 ): Promise<void> {
-  const state = await changeableExpense(userId, expense.id, deps, today)
+  const { state, expense: current } = await changeableExpense(userId, expense.id, deps, today)
+  const change = { amount: expense.amount, category: expense.category, description: expense.description?.trim() || null }
 
-  await deps.updateExpense(expense.id, {
-    amount: expense.amount,
-    category: expense.category,
-    description: expense.description?.trim() || null,
-  })
+  if (isPaidFromChest(current)) {
+    const extra = expense.amount - Number(current.amount)
+
+    if (extra > 0) {
+      const chest = (await deps.listChests(userId)).find((candidate) => candidate.id === current.paidFromChestId)
+
+      if (!chest) {
+        throw new FinanceRuleError('The chest that paid for this expense no longer exists.', 'amount')
+      }
+
+      const blocker = chestWithdrawalBlocker(chest, extra, today)
+
+      if (blocker) {
+        throw new FinanceRuleError(blocker.message, 'amount')
+      }
+    }
+
+    await deps.updateChestExpense(expense.id, change)
+    return
+  }
+
+  await deps.updateExpense(expense.id, change)
   await syncTodayExceptions(userId, state, deps, today)
 }
 
@@ -135,7 +169,7 @@ export async function removeExpense(
   deps: ManageExpenseDeps = defaultDeps,
   today: Date = clockNow(),
 ): Promise<void> {
-  const state = await changeableExpense(userId, id, deps, today)
+  const { state } = await changeableExpense(userId, id, deps, today)
   const exceptions = await deps.listExceptions(userId)
 
   // Its exception goes with it, rather than staying behind with no expense.

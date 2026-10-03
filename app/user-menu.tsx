@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { signOut } from 'next-auth/react'
-import { BookOpen, Check, Languages, LogOut, ShieldCheck, UserRound, Wallet } from 'lucide-react'
+import { BookOpen, Check, Languages, LogOut, MessageSquareHeart, ShieldCheck, UserRound, Wallet } from 'lucide-react'
 import { DropdownMenu } from 'radix-ui'
 
 import { LOCALES } from '@/lib/i18n/config'
@@ -62,6 +62,12 @@ export function UserMenu({ user }: { user: MenuUser }) {
             <Link href="/learn">
               <BookOpen aria-hidden="true" />
               {t('How it works')}
+            </Link>
+          </DropdownMenu.Item>
+          <DropdownMenu.Item asChild className={ITEM_CLASS}>
+            <Link href="/feedback">
+              <MessageSquareHeart aria-hidden="true" />
+              {t('Give my opinion')}
             </Link>
           </DropdownMenu.Item>
           {user.isAdmin ? (

@@ -20,6 +20,8 @@ const expenseView = (expense: FinanceState['dailyExpenses'][number]) => ({
   category: expense.category,
   description: expense.description ?? null,
   at: localTime(expense.date),
+  // The chest that paid for it; null when today's budget did.
+  paidFromChest: expense.paidFromChest,
 })
 
 export function todayView(state: FinanceState, pendingIncomes: PendingIncome[], now: Date) {
@@ -29,6 +31,7 @@ export function todayView(state: FinanceState, pendingIncomes: PendingIncome[], 
     // 'none' when the plan gives no daily budget.
     status: state.dailyBudget <= 0 ? 'none' : state.dailyOverspend > 0 ? 'over' : 'within',
     budget: state.dailyBudget,
+    // What today's budget paid for; expenses paid from chests are not in it.
     spent: state.dailySpent,
     saved: state.savedToday,
     left: state.dailyRemaining,
@@ -138,6 +141,8 @@ export function reviewView(review: GetReviewResult) {
       exceptions: review.exceptionCount,
     },
     savedInChests: review.actualSavings + review.buffer,
+    // Expenses paid with money from chests over the period, outside the budget.
+    paidFromChests: review.paidFromChests,
     ofWhichBuffer: review.buffer,
     spendingByCategory: review.categoryBreakdown,
     overspendByCategory: review.exceptionBreakdown,

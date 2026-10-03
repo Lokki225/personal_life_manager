@@ -1,4 +1,5 @@
 import { dailyLivingBudget, isUncoveredDay, type BudgetPeriod } from '../../domain/finance/calculations'
+import { isPaidFromChest } from '../../domain/finance/chests'
 import { settlementActions } from '../../domain/finance/settlement'
 import { financeRepository } from '../../infrastructure/repositories/financeRepository'
 import { userRepository } from '../../infrastructure/repositories/userRepository'
@@ -14,7 +15,7 @@ type SettleDeps = {
   claim: (userId: string, previous: Date | null, through: Date) => Promise<boolean>
   listIncomes: (userId: string) => Promise<{ createdAt: Date }[]>
   listAllocations: (userId: string) => Promise<{ name: string; amount: unknown; period: string; category: string }[]>
-  listExpenses: (userId: string) => Promise<{ amount: unknown; date: Date }[]>
+  listExpenses: (userId: string) => Promise<{ amount: unknown; date: Date; paidFromChestName?: string | null }[]>
   listMovements: (userId: string) => Promise<{ reason: string; amount: unknown; date: Date }[]>
   listChests: (userId: string) => Promise<{ id: string; name: string; isSystem: boolean; balance: number }[]>
   createMovement: typeof financeRepository.createMovement
@@ -106,6 +107,8 @@ export async function settleDays(
   const totalOn = (entries: { amount: unknown; date: Date }[], day: Date) =>
     entries.filter((entry) => sameDay(new Date(entry.date), day)).reduce((sum, entry) => sum + Number(entry.amount || 0), 0)
   const savings = movements.filter((movement) => movement.reason === 'DAILY_SAVING')
+  // What a chest paid for left the day's budget untouched.
+  const budgetExpenses = expenses.filter((expense) => !isPaidFromChest(expense))
 
   const actions = settlementActions({
     firstDay,
@@ -117,7 +120,7 @@ export async function settleDays(
       // still in them, so there is nothing to put aside.
       isUncoveredDay(day)
         ? 0
-        : Math.max(dailyLivingBudget(living, day) - totalOn(expenses, day) - totalOn(savings, day), 0),
+        : Math.max(dailyLivingBudget(living, day) - totalOn(budgetExpenses, day) - totalOn(savings, day), 0),
   })
 
   for (const action of actions) {

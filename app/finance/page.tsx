@@ -246,7 +246,16 @@ export default async function FinanceTodayPage() {
               )}
 
               <div className="grid gap-2 sm:grid-cols-2 sm:[&>*:only-child]:col-span-2">
-                <AddExpenseDrawer left={Math.floor(state.dailyRemaining)} hasBudget={hasDailyBudget} />
+                <AddExpenseDrawer
+                  left={Math.floor(state.dailyRemaining)}
+                  hasBudget={hasDailyBudget}
+                  chests={state.chests
+                    .filter(
+                      (chest) =>
+                        chest.balance >= 1 && !(chest.type === 'SECURE' && chest.lockedUntil && chest.lockedUntil > now),
+                    )
+                    .map((chest) => ({ id: chest.id, name: chest.name, balance: Math.floor(chest.balance) }))}
+                />
                 {isOver && !state.overspendExplained ? <ExceptionDrawer overspend={state.dailyOverspend} /> : null}
                 {!isOver && availableToSave >= 1 ? (
                   <SaveRemainingDrawer
@@ -293,11 +302,17 @@ export default async function FinanceTodayPage() {
                           <div className="min-w-0 flex-1">
                             <p className="truncate text-sm font-medium">{expense.description || t(label)}</p>
                             <p className="truncate text-xs text-muted-foreground">
-                              {expense.projectName ? `${t(label)} · ${expense.projectName}` : t(label)}
+                              {[
+                                t(label),
+                                expense.projectName,
+                                expense.paidFromChest ? t('From {chest}', { chest: t(expense.paidFromChest) }) : null,
+                              ]
+                                .filter(Boolean)
+                                .join(' · ')}
                             </p>
                           </div>
                           <Money value={expense.amount} sign="-" className="shrink-0 text-sm font-semibold" />
-                          {state.uncoveredDay ? null : (
+                          {state.uncoveredDay && !expense.paidFromChest ? null : (
                             <EditExpenseDrawer
                               expense={{
                                 id: expense.id,

@@ -118,7 +118,7 @@ matching `GET`. In a `PATCH`, what is left out stays as it was.
 
 | Endpoint | Body | Does |
 | --- | --- | --- |
-| `POST /finance/expenses` | `amount`, `category`, `description`?, `cause`?, `reason`? | Records an expense made today. |
+| `POST /finance/expenses` | `amount`, `category`, `description`?, `cause`?, `reason`?, `chestId`? | Records an expense made today. With `chestId`, that chest pays at once and today's budget is left alone. |
 | `PATCH /finance/expenses/{id}` | any of `amount`, `category`, `description` | Corrects one of today's expenses. |
 | `DELETE /finance/expenses/{id}` | | Deletes one of today's expenses. |
 | `POST /finance/savings` | `amount`, `chestId`? | Puts part of what is left today into a chest (the Buffer by default). No more than `savable`. |
@@ -129,6 +129,10 @@ matching `GET`. In a `PATCH`, what is left out stays as it was.
 - `cause`: `transport`, `food`, `emergency` or `other`.
 - An expense larger than what was left is recorded as an exception too; give
   its `cause` in the same request.
+- An expense paid from a chest never goes over the day and is never an
+  exception; it cannot take more than the chest holds, nor come out of a
+  locked chest. In `/finance/today` it carries `paidFromChest`, and it is not
+  in `spent`; `/finance/review` totals them in `paidFromChests`.
 - Past days cannot be changed.
 
 ```json

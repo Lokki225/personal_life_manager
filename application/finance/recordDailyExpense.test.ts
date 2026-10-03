@@ -19,6 +19,7 @@ const depsOf = (today: Record<string, unknown> = {}) => ({
   recordExpense: vi.fn().mockResolvedValue({ id: 'expense-1' }),
   recordMovement: vi.fn(),
   createException: vi.fn(),
+  payFromChest: vi.fn(),
 })
 
 const expense = { userId: 'user-1', amount: 1500, category: 'food', description: 'Lunch' }
@@ -94,5 +95,24 @@ describe('recordDailyExpense', () => {
 
     expect(deps.recordMovement).toHaveBeenCalledTimes(1)
     expect(deps.recordMovement).toHaveBeenCalledWith(expect.objectContaining({ amount: 300, sourceChestId: 'buffer' }))
+  })
+})
+
+describe('an expense paid from a chest', () => {
+  it('goes to the chest, and leaves the day and its exceptions alone', async () => {
+    const deps = depsOf({ dailyRemaining: 0 })
+
+    await recordDailyExpense({ ...expense, amount: 90000, chestId: 'laptop' }, deps, today)
+
+    expect(deps.payFromChest).toHaveBeenCalledWith({
+      userId: 'user-1',
+      chestId: 'laptop',
+      amount: 90000,
+      category: 'food',
+      description: 'Lunch',
+    })
+    expect(deps.recordExpense).not.toHaveBeenCalled()
+    expect(deps.createException).not.toHaveBeenCalled()
+    expect(deps.recordMovement).not.toHaveBeenCalled()
   })
 })

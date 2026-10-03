@@ -6,6 +6,7 @@ import { ChevronLeft, EyeOff } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
 import { getAdminDashboard, type FeatureKey } from '@/application/account/adminDashboard'
+import { getFeedbackInbox } from '@/application/account/feedback'
 import { getAppPersona } from '@/application/assistant/persona'
 import type { ActivityStatus } from '@/domain/account/activity'
 import { getSignedInUser } from '@/infrastructure/auth/sessionUser'
@@ -19,6 +20,7 @@ import { Meter } from '../finance/money'
 import { LANGUAGE_NAMES } from '../language-names'
 import { SignedInMenu } from '../signed-in-menu'
 import { AssistantPersonaForm } from './assistant-form'
+import { FeedbackInbox } from './feedback-inbox'
 import { ResetLinkButton } from './reset-link'
 import { RoleSelect } from './role-select'
 
@@ -71,7 +73,11 @@ export default async function AdminPage() {
     redirect('/finance')
   }
 
-  const [dashboard, persona] = await Promise.all([getAdminDashboard(actor), getAppPersona()])
+  const [dashboard, persona, inbox] = await Promise.all([
+    getAdminDashboard(actor),
+    getAppPersona(),
+    getFeedbackInbox(actor),
+  ])
   const total = dashboard.users.length
   const of = t('of {total}', { total: String(total) })
   const dateFormatter = new Intl.DateTimeFormat(t.intl, { day: 'numeric', month: 'short', year: 'numeric' })
@@ -176,6 +182,39 @@ export default async function AdminPage() {
           </CardContent>
         </Card>
       </div>
+
+      <Card className="gap-0 py-5">
+        <CardContent className="space-y-4">
+          <div>
+            <h2 className="flex items-center gap-2 text-base font-semibold">
+              {t('Opinions')}
+              {inbox.summary.unread > 0 ? <Badge>{inbox.summary.unread}</Badge> : null}
+            </h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {inbox.summary.averageRating !== null
+                ? t('{count} opinions, {rating} stars on average.', {
+                    count: inbox.summary.count,
+                    rating: inbox.summary.averageRating.toLocaleString(t.intl, { maximumFractionDigits: 1 }),
+                  })
+                : t.plural(inbox.summary.count, '{count} opinion.', '{count} opinions.')}
+            </p>
+          </div>
+          <FeedbackInbox
+            unread={inbox.summary.unread}
+            items={inbox.items.map((item) => ({
+              id: item.id,
+              rating: item.rating,
+              kind: item.kind,
+              message: item.message,
+              date: dateFormatter.format(item.createdAt),
+              unread: item.readAt === null,
+              name: fullName(item.author),
+              email: item.author.email,
+            }))}
+            newsReaders={inbox.newsReaders.map((reader) => ({ name: fullName(reader), email: reader.email }))}
+          />
+        </CardContent>
+      </Card>
 
       <Card className="gap-0 py-5">
         <CardContent className="space-y-4">
