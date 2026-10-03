@@ -5,7 +5,7 @@ import { revalidatePath } from 'next/cache'
 import { isAccountRuleError } from '@/application/account/errors'
 import { askAssistant } from '@/application/assistant/chat'
 import { getAppPersona, savePersonalPersona } from '@/application/assistant/persona'
-import { AiOutOfCredit } from '@/infrastructure/ai/model'
+import { AiModelUnavailable, AiOutOfCredit } from '@/infrastructure/ai/model'
 import { availableProviders, isAssistantConfigured, resolveProvider } from '@/infrastructure/ai/providers'
 import { getSignedInUser } from '@/infrastructure/auth/sessionUser'
 import { assistantRepository } from '@/infrastructure/repositories/assistantRepository'
@@ -95,6 +95,11 @@ export async function askAssistantAction(conversation: unknown): Promise<Assista
 
     if (error instanceof AiOutOfCredit) {
       return { ok: false, error: t('This AI has no credit left on its account. Choose another one, or add credit.') }
+    }
+
+    if (error instanceof AiModelUnavailable) {
+      console.error('The assistant model is unavailable:', error.message)
+      return { ok: false, error: t('The model of this AI is no longer available. Choose another AI, or change its model in the server settings.') }
     }
 
     console.error('The assistant failed:', error)

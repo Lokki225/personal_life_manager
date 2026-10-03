@@ -27,3 +27,6 @@ export type AskModel = (request: ModelRequest) => Promise<ModelReply>
 
 // The provider's account has no credit left: nothing will work until it is topped up.
 export class AiOutOfCredit extends Error {}
+
+// The model asked for does not exist, or no longer does: its setting needs changing.
+export class AiModelUnavailable extends Error {}
