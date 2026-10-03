@@ -962,6 +962,15 @@ export const FR: Messages = {
       "Ce que l'assistant de chaque personne sait de son rôle. Chacun peut le lire, et ajouter ses propres instructions si vous le permettez.",
     'Only an administrator can change this.': 'Seul un administrateur peut modifier ceci.',
     'Choose an AI.': 'Choisissez une IA.',
+    'Where your work is going: where you stand, what you want, and the paths between the two.':
+      'Où va votre travail : où vous en êtes, ce que vous voulez, et les chemins entre les deux.',
+    'Your reflections, priorities and vision: the reasons behind your choices.':
+      'Vos réflexions, priorités et votre vision : les raisons de vos choix.',
+    'Coming next': 'Bientôt',
+    Personal: 'Personnel',
+    'Three nodes, one life': 'Trois nœuds, une vie',
+    'Finance, Career and Personal: each is a node, built on the same loop of intent, reality and adjustment, and linked to the others. Finance is the first one, and the one you can use today.':
+      "Finance, Carrière et Personnel : chacun est un nœud, bâti sur la même boucle d'intention, de réalité et d'ajustement, et relié aux autres. Finance est le premier, et celui que vous pouvez utiliser aujourd'hui.",
     'Your opinion': 'Votre avis',
     'Give my opinion': 'Donner mon avis',
     'The app is young and grows with what its users say. Tell us what works, what does not, and what you would like.':
