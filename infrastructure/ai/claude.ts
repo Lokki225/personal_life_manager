@@ -1,6 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk'
 
-import { AiOutOfCredit, type AskModel, type TextBlock, type ToolUseBlock } from './model'
+import { AiModelUnavailable, AiOutOfCredit, type AskModel, type TextBlock, type ToolUseBlock } from './model'
 
 // Claude, through Anthropic's API.
 export function claudeModel(apiKey: string, model: string): AskModel {
@@ -42,6 +42,10 @@ export function claudeModel(apiKey: string, model: string): AskModel {
     } catch (error) {
       if (error instanceof Anthropic.APIError && /credit balance/i.test(error.message)) {
         throw new AiOutOfCredit(error.message)
+      }
+
+      if (error instanceof Anthropic.NotFoundError) {
+        throw new AiModelUnavailable(error.message)
       }
 
       throw error

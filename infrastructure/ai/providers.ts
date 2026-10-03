@@ -50,7 +50,7 @@ const PROVIDERS: Provider[] = [
     name: 'Gemini',
     keyVariable: 'GEMINI_API_KEY',
     modelVariable: 'GEMINI_MODEL',
-    defaultModel: 'gemini-2.5-flash',
+    defaultModel: 'gemini-3.8-flash',
     create: (apiKey, model) =>
       openAiCompatibleModel({ baseUrl: 'https://generativelanguage.googleapis.com/v1beta/openai', apiKey, model }),
   },

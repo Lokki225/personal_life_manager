@@ -30,7 +30,7 @@ first one with a key is used otherwise.
 | Claude | `ANTHROPIC_API_KEY` | `ANTHROPIC_MODEL` | `claude-opus-5-5` |
 | GPT | `OPENAI_API_KEY` | `OPENAI_MODEL` | `gpt-5` |
 | DeepSeek | `DEEPSEEK_API_KEY` | `DEEPSEEK_MODEL` | `deepseek-chat` |
-| Gemini | `GEMINI_API_KEY` | `GEMINI_MODEL` | `gemini-2.5-flash` |
+| Gemini | `GEMINI_API_KEY` | `GEMINI_MODEL` | `gemini-3.8-flash` |
 
 Keys stay on the server; they are never stored in the database or shown in
 the app. When a provider's account runs out of credit, the person is told to

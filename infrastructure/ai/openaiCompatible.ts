@@ -1,4 +1,5 @@
 import {
+  AiModelUnavailable,
   AiOutOfCredit,
   type AskModel,
   type ModelMessage,
@@ -149,6 +150,10 @@ export function openAiCompatibleModel(options: {
 
       if (response.status === 402 || OUT_OF_CREDIT.test(detail)) {
         throw new AiOutOfCredit(detail)
+      }
+
+      if (response.status === 404 || /model[^"]*(not found|no longer available|does not exist)/i.test(detail)) {
+        throw new AiModelUnavailable(detail)
       }
 
       throw new Error(`${options.baseUrl} answered ${response.status}: ${detail}`)
