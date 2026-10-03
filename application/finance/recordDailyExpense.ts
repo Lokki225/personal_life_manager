@@ -1,4 +1,5 @@
 import { splitReserveDraw } from '../../domain/finance/calculations'
+import { recordChestExpense } from './chestExpense'
 import { createBudgetException } from './createBudgetException'
 import { recomputeFinanceState } from './recomputeFinanceState'
 import { recordExpense } from './recordExpense'
@@ -19,6 +20,7 @@ type RecordDailyExpenseDeps = {
   recordExpense: (input: Parameters<typeof recordExpense>[0]) => Promise<{ id: string }>
   recordMovement: typeof recordMovement
   createException: (input: Parameters<typeof createBudgetException>[0]) => Promise<unknown>
+  payFromChest: (input: Parameters<typeof recordChestExpense>[0]) => Promise<void>
 }
 
 const defaultDeps: RecordDailyExpenseDeps = {
@@ -26,6 +28,7 @@ const defaultDeps: RecordDailyExpenseDeps = {
   recordExpense,
   recordMovement,
   createException: createBudgetException,
+  payFromChest: (input) => recordChestExpense(input),
 }
 
 // Records an expense made today.
@@ -45,11 +48,25 @@ export async function recordDailyExpense(
     // Why it went over, when it does.
     cause?: string | null
     reason?: string | null
+    // Paid with the money of this chest instead of today's budget.
+    chestId?: string | null
   },
   deps: RecordDailyExpenseDeps = defaultDeps,
   today: Date = clockNow(),
 ): Promise<void> {
   const { userId, amount } = input
+
+  if (input.chestId) {
+    await deps.payFromChest({
+      userId,
+      chestId: input.chestId,
+      amount,
+      category: input.category,
+      description: input.description,
+    })
+    return
+  }
+
   const state = await deps.getToday(userId, today)
 
   const expense = await deps.recordExpense({

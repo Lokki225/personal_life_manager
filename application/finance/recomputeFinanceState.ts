@@ -8,7 +8,7 @@ import {
   uncoveredDayBudget,
   type BudgetPeriod,
 } from '../../domain/finance/calculations'
-import { chestBalance, DEBTS_CHEST_NAME, type MovementForBalance } from '../../domain/finance/chests'
+import { chestBalance, DEBTS_CHEST_NAME, isPaidFromChest, type MovementForBalance } from '../../domain/finance/chests'
 import { evaluateGoal } from './evaluateGoal'
 import {
   financeRepository,
@@ -76,9 +76,10 @@ export async function recomputeFinanceState(input: RecomputeFinanceStateInput): 
     date: Date
     description?: string | null
     projectName?: string | null
+    paidFromChest: string | null
   }>
   allocationBreakdown: Array<{ id: string; name: string; amount: number; category: string; period: string }>
-  chests: Array<{ id: string; name: string; type: string; isSystem: boolean; balance: number }>
+  chests: Array<{ id: string; name: string; type: string; isSystem: boolean; lockedUntil: Date | null; balance: number }>
   goals: Array<{
     id: string
     name: string
@@ -167,9 +168,14 @@ export async function recomputeFinanceState(input: RecomputeFinanceStateInput): 
       date: new Date(expense.date ?? new Date()),
       description: expense.description ?? null,
       projectName: expense.project?.name ?? null,
+      // The chest that paid for it, when it was not the day's budget.
+      paidFromChest: expense.paidFromChestName ?? null,
     }))
 
-  const dailySpent = dailyExpenses.reduce<number>((sum, expense) => sum + expense.amount, 0)
+  // Only what the day's budget paid for counts against it.
+  const dailySpent = dailyExpenses
+    .filter((expense) => !expense.paidFromChest)
+    .reduce<number>((sum, expense) => sum + expense.amount, 0)
 
   const isToday = (value: Date | string) => {
     const date = new Date(value)
@@ -196,7 +202,7 @@ export async function recomputeFinanceState(input: RecomputeFinanceStateInput): 
     expenses
       .filter((expense) => {
         const expenseDate = new Date(expense.date ?? new Date())
-        return expenseDate >= startOfPeriod && expenseDate <= endOfPeriod
+        return expenseDate >= startOfPeriod && expenseDate <= endOfPeriod && !isPaidFromChest(expense)
       })
       .reduce<number>((sum, expense) => sum + Number(expense.amount || 0), 0) - drawnThisMonth
 
@@ -212,6 +218,7 @@ export async function recomputeFinanceState(input: RecomputeFinanceStateInput): 
     name: chest.name,
     type: chest.type,
     isSystem: chest.isSystem,
+    lockedUntil: chest.lockedUntil ?? null,
     balance: chestBalance(chest.id, movements),
   }))
 

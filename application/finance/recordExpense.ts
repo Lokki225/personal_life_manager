@@ -18,7 +18,7 @@ export type RecordExpenseInput = {
 
 export async function recordExpense(
   input: RecordExpenseInput,
-  repository: ExpenseRepository = financeRepository,
+  repository: Pick<ExpenseRepository, 'createExpense'> = financeRepository,
 ): Promise<ExpenseRecord> {
   const { userId, ...rest } = input
 

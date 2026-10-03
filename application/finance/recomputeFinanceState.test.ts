@@ -308,8 +308,8 @@ describe('recomputeFinanceState', () => {
     expect(state.buffer).toBe(600)
     expect(state.actualSavings).toBe(200)
     expect(state.chests).toEqual([
-      { id: 'buffer', name: 'Buffer', type: 'AVAILABLE', isSystem: true, balance: 600 },
-      { id: 'base', name: 'Base Chest', type: 'AVAILABLE', isSystem: true, balance: 200 },
+      { id: 'buffer', name: 'Buffer', type: 'AVAILABLE', isSystem: true, lockedUntil: null, balance: 600 },
+      { id: 'base', name: 'Base Chest', type: 'AVAILABLE', isSystem: true, lockedUntil: null, balance: 200 },
     ])
   })
 })

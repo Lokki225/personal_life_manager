@@ -19,6 +19,8 @@ export const expenseSchema = z.object({
   // Asked when the expense is larger than what is left of the day.
   cause: z.enum(EXCEPTION_CATEGORIES, { error: 'Choose a category.' }).optional(),
   reason: optionalText(160),
+  // The chest that pays for it. Empty: today's budget does.
+  chestId: z.string().trim().optional(),
 })
 
 export const saveRemainingSchema = z.object({

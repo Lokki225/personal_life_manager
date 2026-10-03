@@ -201,13 +201,29 @@ export function CategoryChips({
   )
 }
 
+// A chest that can pay for an expense now: it holds money and is not locked.
+export type PayingChest = { id: string; name: string; balance: number }
+
 // The fields of an expense. When the amount is larger than what is left of
 // the day, the expense is an exception, and its cause is asked right here.
-function ExpenseFields({ state, left, hasBudget }: { state: FormState; left: number; hasBudget: boolean }) {
+// Paid from a chest, it leaves the day alone and cannot go over it.
+function ExpenseFields({
+  state,
+  left,
+  hasBudget,
+  chests,
+}: {
+  state: FormState
+  left: number
+  hasBudget: boolean
+  chests: PayingChest[]
+}) {
   const t = useT()
   const scope = 'expense'
   const [amount, setAmount] = useState(0)
-  const over = hasBudget ? Math.max(amount - left, 0) : 0
+  const [chestId, setChestId] = useState('')
+  const chest = chests.find((candidate) => candidate.id === chestId)
+  const over = hasBudget && !chest ? Math.max(amount - left, 0) : 0
 
   return (
     <>
@@ -224,6 +240,32 @@ function ExpenseFields({ state, left, hasBudget }: { state: FormState; left: num
         />
         <FieldError state={state} name="description" scope={scope} />
       </div>
+
+      {chests.length > 0 ? (
+        <div className="grid gap-2">
+          <Label htmlFor="expense-chest">{t('Paid with')}</Label>
+          <NativeSelect
+            id="expense-chest"
+            {...fieldAttributes(state, 'chestId', scope)}
+            value={chestId}
+            onChange={(event) => setChestId(event.target.value)}
+            className={FIELD_CLASS}
+          >
+            <NativeSelectOption value="">{t("Today's budget")}</NativeSelectOption>
+            {chests.map((candidate) => (
+              <NativeSelectOption key={candidate.id} value={candidate.id}>
+                {t(candidate.name)} · {t.amount(candidate.balance)} {CURRENCY_CODE}
+              </NativeSelectOption>
+            ))}
+          </NativeSelect>
+          {chest ? (
+            <p className="text-sm text-muted-foreground">
+              {t("The money leaves {chest} now. Today's budget stays as it is.", { chest: t(chest.name) })}
+            </p>
+          ) : null}
+          <FieldError state={state} name="chestId" scope={scope} />
+        </div>
+      ) : null}
 
       {over > 0 ? (
         <div className="space-y-4 rounded-lg border border-warning/40 bg-warning/10 p-3">
@@ -255,13 +297,26 @@ function ExpenseFields({ state, left, hasBudget }: { state: FormState; left: num
 
 // `left` is what remains of today's budget. `hasBudget` is false when the plan
 // gives no daily budget, in which case nothing can go over.
-export function AddExpenseDrawer({ left, hasBudget }: { left: number; hasBudget: boolean }) {
+export function AddExpenseDrawer({
+  left,
+  hasBudget,
+  chests = [],
+}: {
+  left: number
+  hasBudget: boolean
+  // The chests that could pay for it instead of today's budget.
+  chests?: PayingChest[]
+}) {
   const t = useT()
 
   return (
     <ActionDrawer
       title={t('Add an expense')}
-      description={t("It counts against today's budget.")}
+      description={
+        chests.length > 0
+          ? t("It counts against today's budget, unless one of your chests pays for it.")
+          : t("It counts against today's budget.")
+      }
       trigger={
         <Button className="h-12 w-full text-base">
           <Plus aria-hidden="true" />
@@ -271,7 +326,7 @@ export function AddExpenseDrawer({ left, hasBudget }: { left: number; hasBudget:
     >
       {(close) => (
         <ActionForm action={addExpense} submitLabel={t('Add expense')} onDone={close}>
-          {(state) => <ExpenseFields state={state} left={left} hasBudget={hasBudget} />}
+          {(state) => <ExpenseFields state={state} left={left} hasBudget={hasBudget} chests={chests} />}
         </ActionForm>
       )}
     </ActionDrawer>

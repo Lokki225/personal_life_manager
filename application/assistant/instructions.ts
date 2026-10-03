@@ -9,7 +9,7 @@ import { DEFAULT_ROLE, type Persona } from './persona'
 
 const HOW_THE_APP_WORKS = `How the app works:
 - The plan: monthly incomes, and allocations that split them (rent, subscriptions, savings...). The "daily_living" allocations, spread over the days of the month, make the daily budget.
-- Each day, expenses are recorded against the daily budget. Spending more than what is left is an overspend: it becomes an exception, with a cause. An overspend can be covered from the Buffer.
+- Each day, expenses are recorded against the daily budget, unless a chest pays for one: then its money leaves that chest at once and the day is not touched (use this when they say they paid with money set aside, for example from a goal's chest). Spending more than what is left is an overspend: it becomes an exception, with a cause. An overspend can be covered from the Buffer.
 - At the end of each day, what is left goes into the Buffer. Once a week the Buffer is emptied into the Base Chest.
 - Chests hold money: the Base Chest (what the plan leaves unallocated), the Buffer, the Debts Chest (borrowed money) and the person's own chests. A SECURE chest can be locked until a date. Savings allocations fill their chest when an income is confirmed.
 - Goals: a savings goal has its own chest and a target; a custom goal is built from conditions.

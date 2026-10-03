@@ -169,6 +169,12 @@ export default async function FinanceReviewPage({ searchParams }: PageProps<'/fi
               <dd className="font-semibold">{review.exceptionCount}</dd>
             </div>
           </dl>
+          {review.paidFromChests > 0 ? (
+            <p className="mt-3 text-sm text-muted-foreground">
+              {t('Paid from chests, outside the budget:')}{' '}
+              <Money value={review.paidFromChests} className="font-medium text-foreground" />
+            </p>
+          ) : null}
         </CardContent>
       </Card>
 

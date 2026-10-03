@@ -22,6 +22,8 @@ export type HistoryEvent = {
   resolution?: string | null
   projectName?: string | null
   movementType?: 'IN' | 'OUT' | 'TRANSFER'
+  // For an expense: the chest that paid for it, when not the day's budget.
+  paidFromChest?: string | null
   sourceChestName?: string | null
   destinationChestName?: string | null
 }
@@ -32,7 +34,9 @@ export type GetHistoryInput = {
   type?: HistoryTypeFilter
   category?: string | null
   referenceDate?: Date
-  repository?: ExpenseRepository & BudgetExceptionRepository & MovementRepository
+  repository?: Pick<ExpenseRepository, 'listExpenses'> &
+    Pick<BudgetExceptionRepository, 'listBudgetExceptions'> &
+    Pick<MovementRepository, 'listMovements'>
 }
 
 // The amounts of the listed events over the period: per day for a week or a
@@ -113,6 +117,7 @@ export async function getHistory(input: GetHistoryInput): Promise<HistoryEvent[]
       category: expense.category,
       description: expense.description,
       projectName: expense.project?.name ?? null,
+      paidFromChest: expense.paidFromChestName ?? null,
     }))
 
   const exceptionEvents = budgetExceptions
@@ -134,7 +139,8 @@ export async function getHistory(input: GetHistoryInput): Promise<HistoryEvent[]
   const movementEvents = movements
     .filter((movement) => {
       const date = new Date(movement.date)
-      return date >= start && date <= end
+      // Money a chest paid for an expense shows as that expense.
+      return date >= start && date <= end && !movement.expenseId
     })
     .map((movement) => ({
       id: String(movement.id),

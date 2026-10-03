@@ -215,7 +215,7 @@ export const operations = {
     method: 'POST',
     path: '/finance/expenses',
     needs: 'WRITE',
-    does: 'Records an expense made today. When it is more than what is left, it becomes an exception: give its "cause".',
+    does: 'Records an expense made today. By default today\'s budget pays: when it is more than what is left, it becomes an exception, so give its "cause". With "chestId", that chest pays at once instead and the day is left alone (for example a purchase saved for in a goal\'s chest).',
     status: 201,
     input: z.object({
       amount: amountField,
@@ -224,6 +224,8 @@ export const operations = {
       // Only used when the expense goes beyond what is left today: why it did.
       cause: overspendCause.optional(),
       reason: reason.optional(),
+      // The chest that pays for it instead of today's budget.
+      chestId: chestId.optional(),
     }),
     run: async (user, expense) => {
       // Closes the days that ended first, so the expense lands on a settled day.
@@ -235,6 +237,7 @@ export const operations = {
         description: expense.description || null,
         cause: expense.cause ?? null,
         reason: expense.reason || null,
+        chestId: expense.chestId ?? null,
       })
 
       return today(user)

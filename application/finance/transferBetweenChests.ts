@@ -1,5 +1,5 @@
 import { MovementReason } from '@/app/generated/prisma/enums'
-import { formatAmount } from '@/domain/finance/calculations'
+import { chestWithdrawalBlocker } from '@/domain/finance/chests'
 import { FinanceRuleError } from '@/domain/finance/errors'
 
 import { getChestsWithBalances } from './getChestsWithBalances'
@@ -33,16 +33,9 @@ export async function transferBetweenChests(
   if (!source) throw new FinanceRuleError('Choose one of your chests.', 'sourceChestId')
   if (!destination) throw new FinanceRuleError('Choose one of your chests.', 'destinationChestId')
 
-  const isLocked = source.type === 'SECURE' && source.lockedUntil && source.lockedUntil > today
-  if (isLocked) {
-    throw new FinanceRuleError(
-      `${source.name} is locked until ${source.lockedUntil!.toLocaleDateString('en-GB')}.`,
-      'sourceChestId',
-    )
-  }
-
-  if (amount > source.balance) {
-    throw new FinanceRuleError(`${source.name} only holds ${formatAmount(source.balance)}.`, 'amount')
+  const blocker = chestWithdrawalBlocker(source, amount, today)
+  if (blocker) {
+    throw new FinanceRuleError(blocker.message, blocker.reason === 'locked' ? 'sourceChestId' : 'amount')
   }
 
   await deps.record({

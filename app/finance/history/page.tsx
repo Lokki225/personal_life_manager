@@ -206,7 +206,12 @@ export default async function FinanceHistoryPage({ searchParams }: PageProps<'/f
                 <ul className="divide-y">
                   {day.events.map((event) => {
                     const { icon: Icon, kind, tone, where } = eventStyle(event, t)
-                    const details = [event.projectName, event.reason && t(event.reason), event.resolution && t(event.resolution)].filter(
+                    const details = [
+                      event.projectName,
+                      event.paidFromChest && t('From {chest}', { chest: t(event.paidFromChest) }),
+                      event.reason && t(event.reason),
+                      event.resolution && t(event.resolution),
+                    ].filter(
                       Boolean,
                     )
 

@@ -162,6 +162,19 @@ export interface ExpenseRepository {
   listExpenses: (userId: string) => Promise<ExpenseRecordWithProject[]>
   updateExpense: (id: string, data: UpdateExpenseData) => Promise<ExpenseRecord>
   deleteExpense: (id: string) => Promise<ExpenseRecord>
+  // An expense paid from a chest, with the money leaving that chest, together.
+  createChestExpense: (userId: string, data: ChestExpenseData) => Promise<void>
+  // Changes it, and the money taken from the chest with it.
+  updateChestExpense: (id: string, data: { amount: number; category: string; description: string | null }) => Promise<void>
+}
+
+export type ChestExpenseData = {
+  amount: number
+  category: string
+  description: string | null
+  date: Date
+  chestId: string
+  chestName: string
 }
 
 
@@ -208,7 +221,15 @@ export type UpdateChestData = Partial<Omit<CreateChestData, 'isSystem'>>
 export type CreateMovementData = {
   amount: number | string
   type: 'IN' | 'OUT' | 'TRANSFER'
-  reason: 'DAILY_SAVING' | 'PLANNED_SAVING' | 'BUFFER_CONSOLIDATION' | 'GOAL_FUNDING' | 'WITHDRAWAL' | 'EXPENSE' | 'DEBT'
+  reason:
+    | 'DAILY_SAVING'
+    | 'PLANNED_SAVING'
+    | 'BUFFER_CONSOLIDATION'
+    | 'GOAL_FUNDING'
+    | 'WITHDRAWAL'
+    | 'EXPENSE'
+    | 'DEBT'
+    | 'CHEST_SPENDING'
   date: Date | string
   sourceChestId?: string | null
   destinationChestId?: string | null
@@ -672,7 +693,44 @@ export const financeRepository: SetupPlanRepository &
   },
 
   deleteExpense: async (id: string) => {
+    // The money it took from a chest goes back with it (the movement cascades).
     return prisma.expense.delete({ where: { id } })
+  },
+
+  createChestExpense: async (userId: string, data: ChestExpenseData) => {
+    await prisma.$transaction(async (tx) => {
+      const expense = await tx.expense.create({
+        data: {
+          userId,
+          amount: data.amount,
+          category: data.category,
+          description: data.description,
+          date: data.date,
+          paidFromChestId: data.chestId,
+          paidFromChestName: data.chestName,
+        },
+      })
+
+      await tx.moneyMovement.create({
+        data: {
+          userId,
+          amount: data.amount,
+          type: 'OUT',
+          reason: 'CHEST_SPENDING',
+          sourceChestId: data.chestId,
+          date: data.date,
+          notes: data.description,
+          expenseId: expense.id,
+        },
+      })
+    })
+  },
+
+  updateChestExpense: async (id: string, data: { amount: number; category: string; description: string | null }) => {
+    await prisma.$transaction([
+      prisma.expense.update({ where: { id }, data }),
+      prisma.moneyMovement.updateMany({ where: { expenseId: id }, data: { amount: data.amount, notes: data.description } }),
+    ])
   },
 
 

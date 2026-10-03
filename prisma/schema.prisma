@@ -31,6 +31,8 @@ enum MovementReason {
   WITHDRAWAL 
   EXPENSE 
   DEBT
+  // Money taken out of a chest to pay for an expense (linked by expenseId).
+  CHEST_SPENDING
 }
 
 enum DebtDirection {
@@ -80,6 +82,7 @@ model Chest {
   createdAt    DateTime  @default(now())
   movementsOut MoneyMovement[] @relation("SourceChest")
   movementsIn  MoneyMovement[] @relation("DestinationChest")
+  expensesPaid Expense[]       @relation("ChestExpenses")
   conditions   GoalCondition[]
 }
 
@@ -100,6 +103,9 @@ model MoneyMovement {
   relatedProjectId   String?
   relatedProject     Project?       @relation(fields: [relatedProjectId], references: [id])
   notes              String?
+  // The expense this money paid for, when it was paid from a chest.
+  expenseId          String?        @unique
+  expense            Expense?       @relation(fields: [expenseId], references: [id], onDelete: Cascade)
   createdAt          DateTime       @default(now())
 }
 
@@ -165,6 +171,8 @@ model User {
   // What the person asks of their assistant: a name, and instructions.
   assistantName         String?
   assistantInstructions String?
+  // Whether the person wants to hear about what is new in the app.
+  wantsNews     Boolean  @default(false)
   createdAt     DateTime @default(now())
 
   incomes           Income[]
@@ -181,6 +189,24 @@ model User {
   pushSubscriptions PushSubscription[]
   apiTokens         ApiToken[]
   assistantNoteList AssistantNote[]
+  feedback          Feedback[]
+}
+
+// What a person thinks of the app, for the administrators to read.
+model Feedback {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // From 1 to 5 stars, when given.
+  rating    Int?
+  // 'idea', 'problem', 'praise' or 'other'.
+  kind      String
+  message   String
+  // When an administrator read it.
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([createdAt])
 }
 
 // Settings of the whole app, changed by administrators. Text by key, e.g.
@@ -358,6 +384,13 @@ model Expense {
   notes         String?
   // The exception this expense caused by going over the day's budget.
   exceptions    BudgetException[]
+  // Paid with money from a chest instead of the day's budget. The name stays
+  // when the chest is deleted, so the expense keeps saying how it was paid.
+  paidFromChestId   String?
+  paidFromChest     Chest?         @relation("ChestExpenses", fields: [paidFromChestId], references: [id], onDelete: SetNull)
+  paidFromChestName String?
+  // The money that left the chest for it.
+  chestMovement     MoneyMovement?
   createdAt     DateTime   @default(now())
 }
 

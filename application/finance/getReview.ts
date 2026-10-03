@@ -69,6 +69,8 @@ export type GetReviewResult = {
   goals: ReviewGoalStatus[]
   // Null for a single day, which has nothing to plot over time.
   trend: ReviewTrend | null
+  // Expenses paid with money from chests over the period, not from the budget.
+  paidFromChests: number
 }
 
 export async function getReview(input: GetReviewInput): Promise<GetReviewResult> {
@@ -88,7 +90,11 @@ export async function getReview(input: GetReviewInput): Promise<GetReviewResult>
     readRepository.listChests(userId),
   ])
 
-  const rangeExpenses = history.filter((event) => event.type === 'expense')
+  // Measured against the plan: only what the day's budget paid for.
+  const rangeExpenses = history.filter((event) => event.type === 'expense' && !event.paidFromChest)
+  const paidFromChests = history
+    .filter((event) => event.type === 'expense' && event.paidFromChest)
+    .reduce((sum, event) => sum + Number(event.amount || 0), 0)
   const categoryMap = new Map<string, number>()
 
   for (const event of rangeExpenses) {
@@ -154,5 +160,6 @@ export async function getReview(input: GetReviewInput): Promise<GetReviewResult>
     exceptionBreakdown,
     goals: state.goals,
     trend,
+    paidFromChests,
   }
 }
