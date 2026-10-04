@@ -310,3 +310,66 @@ textarea {
     scroll-behavior: auto !important;
   }
 }
+
+/* --- Life graph --------------------------------------------------------------
+   The desktop overlay of the nodes (Ressources/life-graph-overlay-specification.md).
+   It grows as a circle from the node button and shrinks back into it; it stays
+   mounted while closed so both directions animate. */
+.graph-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  background:
+    radial-gradient(circle, color-mix(in srgb, var(--text) 8%, transparent) 1px, transparent 1.2px) 0 0 / 22px 22px,
+    var(--bg);
+  clip-path: circle(0px at var(--cx, 60px) var(--cy, 36px));
+  visibility: hidden;
+  transition:
+    clip-path 0.55s cubic-bezier(0.2, 0.8, 0.2, 1),
+    visibility 0s linear 0.55s;
+}
+
+.graph-overlay[data-open='true'] {
+  clip-path: circle(150% at var(--cx, 60px) var(--cy, 36px));
+  visibility: visible;
+  transition:
+    clip-path 0.55s cubic-bezier(0.2, 0.8, 0.2, 1),
+    visibility 0s;
+}
+
+.graph-chip {
+  opacity: 0;
+  transform: scale(0.6);
+  transform-box: fill-box;
+  transform-origin: center;
+  transition:
+    opacity 0.3s,
+    transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.graph-overlay[data-open='true'] .graph-chip {
+  opacity: 1;
+  transform: none;
+  transition-delay: calc(0.25s + var(--i) * 30ms);
+}
+
+.graph-item {
+  cursor: pointer;
+  outline: none;
+}
+
+.graph-item[aria-disabled='true'] {
+  cursor: default;
+  opacity: 0.4;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .graph-overlay,
+  .graph-overlay[data-open='true'],
+  .graph-chip,
+  .graph-overlay[data-open='true'] .graph-chip {
+    transition: none !important;
+  }
+}

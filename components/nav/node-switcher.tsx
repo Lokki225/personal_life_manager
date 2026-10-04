@@ -1,8 +1,8 @@
 'use client'
 
-import type { CSSProperties } from 'react'
+import type { CSSProperties, Ref } from 'react'
 import { useRouter } from 'next/navigation'
-import { Check, ChevronDown } from 'lucide-react'
+import { Check, ChevronDown, Waypoints } from 'lucide-react'
 import { DropdownMenu } from 'radix-ui'
 
 import { useT } from '@/lib/i18n/client'
@@ -73,5 +73,38 @@ export function NodeSwitcher({ current, isAdmin }: { current: NodeDef; isAdmin: 
         </DropdownMenu.Content>
       </DropdownMenu.Portal>
     </DropdownMenu.Root>
+  )
+}
+
+// On wide screens the node button opens the life graph instead of a list.
+export function GraphTrigger({
+  ref,
+  current,
+  expanded,
+  onOpen,
+}: {
+  ref: Ref<HTMLButtonElement>
+  current: NodeDef
+  expanded: boolean
+  onOpen: () => void
+}) {
+  const t = useT()
+
+  return (
+    <button
+      ref={ref}
+      type="button"
+      onClick={onOpen}
+      aria-expanded={expanded}
+      aria-controls="life-graph"
+      title={t('Open the life graph (G)')}
+      className="group flex h-11 items-center gap-2 rounded-full border bg-card pr-3 pl-1.5 text-sm font-semibold shadow-[var(--shadow-soft)] outline-none transition-colors hover:border-node-accent/50 focus-visible:ring-[3px] focus-visible:ring-node-accent/40"
+    >
+      <span className="flex size-8 items-center justify-center rounded-full bg-node-accent/15 text-node-accent">
+        <NodeIcon name={current.icon} className="size-4" />
+      </span>
+      {t(current.label)}
+      <Waypoints className="size-4 text-muted-foreground" aria-hidden="true" />
+    </button>
   )
 }

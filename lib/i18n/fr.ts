@@ -1482,6 +1482,25 @@ export const FR: Messages = {
     "Ticked a task.": "Une tâche cochée.",
     "Logged a session.": "Une séance notée.",
     "Wrote a journal entry.": "Une note de journal écrite.",
+
+    // --- Life graph --------------------------------------------------------------
+    "{amount} left today": "{amount} restants aujourd'hui",
+    "{count} task open": "{count} tâche ouverte",
+    "{count} tasks open": "{count} tâches ouvertes",
+    "funds goals": "finance les objectifs",
+    "skills feed career": "les compétences nourrissent la carrière",
+    "ideas graduate": "les idées mûrissent",
+    "commitment check": "vérifier l'engagement",
+    "graph": "graphe",
+    "nodes": "nœuds",
+    "Life graph": "Graphe de vie",
+    "Pick a node to return to its last view, or jump straight to any view.": "Choisissez un nœud pour revenir à sa dernière vue, ou allez directement à une vue.",
+    "Esc · close": "Échap · fermer",
+    "Open {node}, last view": "Ouvrir {node}, dernière vue",
+    "{node}, coming soon": "{node}, bientôt disponible",
+    "Go to {node} {view}": "Aller à {node} · {view}",
+    "{from} to {to}: {label}": "De {from} à {to} : {label}",
+    "Open the life graph (G)": "Ouvrir le graphe de vie (G)",
   },
 
   // Text that arrives already filled in. More specific patterns come first.
