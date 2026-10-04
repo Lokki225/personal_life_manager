@@ -153,6 +153,7 @@ model Goal {
   abandonReason String?
   groups        ConditionGroup[]
   milestones    Milestone[]
+  tasks         Task[]
   movements     MoneyMovement[]
   debts         Debt[]
   createdAt     DateTime         @default(now())
@@ -207,8 +208,77 @@ model Milestone {
   order       Int?
   completedAt DateTime?
   groups      ConditionGroup[]
+  tasks       Task[]
 
   @@index([goalId])
+}
+
+// --- Personal ----------------------------------------------------------------
+
+enum TaskStatus {
+  OPEN
+  DONE
+  CARRIED_OVER
+  DROPPED
+}
+
+// An optional label shared by tasks (and later goals and sessions). Used to
+// filter and group, never for logic.
+model Category {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  name      String
+  color     String?
+  icon      String?
+  createdAt DateTime @default(now())
+  tasks     Task[]
+
+  @@unique([userId, name])
+}
+
+// A completable unit of action. Without a date or a recurrence it waits in
+// the inbox.
+model Task {
+  id          String           @id @default(cuid())
+  userId      String
+  user        User             @relation(fields: [userId], references: [id])
+  title       String
+  categoryId  String?
+  category    Category?        @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  goalId      String?
+  goal        Goal?            @relation(fields: [goalId], references: [id], onDelete: SetNull)
+  milestoneId String?
+  milestone   Milestone?       @relation(fields: [milestoneId], references: [id], onDelete: SetNull)
+  // Midnight of the day it is due, on the person's clock.
+  dueDate     DateTime?
+  // { "kind": "daily" } | { "kind": "weekly", "days": [1, 3, 5] } (1 is Monday)
+  // | { "kind": "everyN", "n": 3 }. Counted from dueDate, or from creation.
+  recurrence  Json?
+  status      TaskStatus       @default(OPEN)
+  // Days it slipped to a later day, and why it slipped the last time.
+  carryCount  Int              @default(0)
+  carryReason String?
+  sortOrder   Int              @default(0)
+  // Who recorded it when not the person: "assistant" or "api:<key name>".
+  origin      String?
+  completions TaskCompletion[]
+  createdAt   DateTime         @default(now())
+
+  @@index([userId, dueDate])
+  @@index([userId, status])
+}
+
+// One completion per day a task is done; a recurring task has one per
+// occurrence.
+model TaskCompletion {
+  id             String   @id @default(cuid())
+  taskId         String
+  task           Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  occurrenceDate DateTime
+  completedAt    DateTime @default(now())
+
+  @@unique([taskId, occurrenceDate])
 }
 
 model User {
@@ -238,6 +308,10 @@ model User {
   settledThrough        DateTime?
   // The weekday the Buffer is emptied into the Base Chest. 0 is Sunday.
   bufferSweepDay        Int       @default(0)
+  // Personal: how many tasks a day can hold before a warning (never a block),
+  // and the last day whose unfinished tasks were moved to the next day.
+  dailyTaskCapacity     Int       @default(5)
+  tasksSettledThrough   DateTime?
   // Whether the assistant writes this person an evening note and reviews.
   assistantNotes        Boolean   @default(false)
   // The AI provider the person chose for the assistant: 'anthropic', 'openai'...
@@ -269,6 +343,8 @@ model User {
   assistantNoteList AssistantNote[]
   feedback          Feedback[]
   notificationLog   NotificationLog[]
+  categories        Category[]
+  tasks             Task[]
 }
 
 // What was already sent to a person, so the same event is never sent twice.
