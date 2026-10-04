@@ -8,6 +8,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { getSignedInUser } from '@/infrastructure/auth/sessionUser'
 import { pushPublicKey } from '@/infrastructure/push/sendPush'
 import { apiTokenRepository } from '@/infrastructure/repositories/apiTokenRepository'
+import { notificationRepository } from '@/infrastructure/repositories/notificationRepository'
 import { userRepository } from '@/infrastructure/repositories/userRepository'
 import { getT } from '@/lib/i18n/server'
 
@@ -15,6 +16,7 @@ import { SignOutButton } from '../sign-out-button'
 import { SignedInMenu } from '../signed-in-menu'
 import { CredentialsForm, ProfileForm } from './account-form'
 import { ApiKeys } from './api-keys'
+import { NotificationChoices } from './notification-choices'
 import { NotificationSettings } from './notifications'
 
 export const metadata: Metadata = {
@@ -34,9 +36,10 @@ export default async function AccountPage() {
     redirect('/login?callbackUrl=/account')
   }
 
-  const [profile, apiTokens] = await Promise.all([
+  const [profile, apiTokens, notificationChoices] = await Promise.all([
     userRepository.getProfile(user.id),
     apiTokenRepository.listTokens(user.id),
+    notificationRepository.preferences(user.id),
   ])
   const dayFormatter = new Intl.DateTimeFormat(t.intl, { day: 'numeric', month: 'short', year: 'numeric' })
 
@@ -101,12 +104,11 @@ export default async function AccountPage() {
           <div>
             <h2 className="text-base font-semibold">{t('Notifications')}</h2>
             <p className="mt-1 text-sm text-muted-foreground">
-              {t(
-                'An evening reminder when nothing was recorded, when an income is waiting to be confirmed, and when a debt or a loan comes due.',
-              )}
+              {t('Turn them on for this device, then choose what you want to hear about.')}
             </p>
           </div>
           <NotificationSettings publicKey={pushPublicKey()} />
+          <NotificationChoices {...notificationChoices} isAdmin={user.role === 'ADMIN'} />
         </CardContent>
       </Card>
 

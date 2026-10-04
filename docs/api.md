@@ -24,6 +24,9 @@ Authorization: Bearer plm_...
 
 A key may make 120 requests a minute. Deleting it in the app stops it at once.
 
+What a key changes is marked with its name in the history, and its owner gets
+a notification about it (at most one an hour per key).
+
 ## Answers
 
 Everything is JSON. A success wraps the result in `data`:
@@ -103,6 +106,9 @@ What was recorded, newest first.
 | `period` | `day`, `week`, `month`, `year` | `month` |
 | `type` | `all`, `expense`, `exception`, `movement` | `all` |
 | `category` | an expense category | all |
+
+Each entry has `recordedBy`: `"assistant"`, `"api:<key name>"`, or null when
+the person recorded it in the app (or the app did, like closing a day).
 
 ### `GET /finance/review`
 Planned against actual. `period` as above. Includes spending and overspend by

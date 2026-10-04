@@ -1,3 +1,4 @@
+import { UNEXPLAINED_CAUSE } from '../../domain/finance/options'
 import { splitReserveDraw } from '../../domain/finance/calculations'
 import { recordChestExpense } from './chestExpense'
 import { createBudgetException } from './createBudgetException'
@@ -87,7 +88,8 @@ export async function recordDailyExpense(
       plannedAmount: state.dailyRemaining,
       actualAmount: amount,
       difference: over,
-      category: input.cause || 'other',
+      // Without a cause it waits to be explained.
+      category: input.cause || UNEXPLAINED_CAUSE,
       reason: input.reason || 'Unplanned spending',
       resolution: 'Review next cycle',
       expenseId: expense.id,

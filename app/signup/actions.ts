@@ -1,7 +1,9 @@
 'use server'
 
+import { notifyLater } from '@/app/notify-later'
 import { limitAttempts } from '@/application/account/passwordReset'
 import { registerUser } from '@/application/account/registerUser'
+import { notifyAdmins } from '@/application/notifications/instant'
 import { clientIp } from '@/infrastructure/auth/request'
 import { translateFormState, type FormState } from '@/lib/forms/formState'
 import { getT } from '@/lib/i18n/server'
@@ -19,7 +21,7 @@ export async function signUpAction(_previousState: FormState, formData: FormData
 
   const state = await signUpForm.submit(formData, async (account) => {
     await limitAttempts('signUp', ip)
-    await registerUser({
+    const created = await registerUser({
       email: account.email,
       password: account.password,
       firstName: account.firstName,
@@ -27,6 +29,9 @@ export async function signUpAction(_previousState: FormState, formData: FormData
       username: account.username,
       timeZone: account.timeZone,
     })
+    const name = `${account.firstName} ${account.lastName}`.trim() || created.email
+
+    notifyLater(() => notifyAdmins({ kind: 'newAccount', name, email: created.email }))
   })
 
   // The form keeps what was typed itself, so the passwords are never sent back.

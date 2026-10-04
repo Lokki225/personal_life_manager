@@ -1,4 +1,5 @@
 import { now as clockNow } from '../../lib/clock'
+import { currentOrigin } from '../../lib/origin'
 import { prisma } from '../prisma/client'
 
 export type IncomeRecord = NonNullable<Awaited<ReturnType<typeof prisma.income.findFirst>>>
@@ -424,6 +425,7 @@ export const financeRepository: SetupPlanRepository &
             await tx.moneyMovement.createMany({
               data: movements.map((movement) => ({
                 userId,
+                origin: currentOrigin(),
                 type: 'IN' as const,
                 reason: 'PLANNED_SAVING' as const,
                 date: data.receivedAt,
@@ -464,6 +466,7 @@ export const financeRepository: SetupPlanRepository &
         await tx.moneyMovement.create({
           data: {
             userId,
+            origin: currentOrigin(),
             amount: data.principal,
             type: movement.type,
             reason: 'DEBT',
@@ -480,6 +483,7 @@ export const financeRepository: SetupPlanRepository &
         await tx.moneyMovement.create({
           data: {
             userId,
+            origin: currentOrigin(),
             amount: data.principal,
             type: 'TRANSFER',
             reason: 'GOAL_FUNDING',
@@ -507,6 +511,7 @@ export const financeRepository: SetupPlanRepository &
       await tx.moneyMovement.create({
         data: {
           userId,
+          origin: currentOrigin(),
           amount: payment.amount,
           type: movement.type,
           reason: 'DEBT',
@@ -659,6 +664,8 @@ export const financeRepository: SetupPlanRepository &
       createData.notes = data.notes
     }
 
+    createData.origin = currentOrigin()
+
     return prisma.expense.create({
       data: createData as Parameters<typeof prisma.expense.create>[0]['data'],
     })
@@ -702,6 +709,7 @@ export const financeRepository: SetupPlanRepository &
       const expense = await tx.expense.create({
         data: {
           userId,
+          origin: currentOrigin(),
           amount: data.amount,
           category: data.category,
           description: data.description,
@@ -714,6 +722,7 @@ export const financeRepository: SetupPlanRepository &
       await tx.moneyMovement.create({
         data: {
           userId,
+          origin: currentOrigin(),
           amount: data.amount,
           type: 'OUT',
           reason: 'CHEST_SPENDING',
@@ -759,6 +768,8 @@ export const financeRepository: SetupPlanRepository &
     if (data.resolution !== undefined && data.resolution !== null) {
       createData.resolution = data.resolution
     }
+
+    createData.origin = currentOrigin()
 
     return prisma.budgetException.create({
       data: createData as Parameters<typeof prisma.budgetException.create>[0]['data'],
@@ -903,6 +914,8 @@ export const financeRepository: SetupPlanRepository &
     if (data.relatedProjectId) createData.relatedProject = { connect: { id: data.relatedProjectId } }
     if (data.notes !== undefined && data.notes !== null) createData.notes = data.notes
 
+    createData.origin = currentOrigin()
+
     return prisma.moneyMovement.create({
       data: createData as Parameters<typeof prisma.moneyMovement.create>[0]['data'],
     })
@@ -973,6 +986,7 @@ export const financeRepository: SetupPlanRepository &
         await tx.moneyMovement.create({
           data: {
             userId,
+            origin: currentOrigin(),
             amount: data.alreadySaved,
             type: 'IN',
             reason: 'GOAL_FUNDING',

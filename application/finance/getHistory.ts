@@ -24,6 +24,8 @@ export type HistoryEvent = {
   movementType?: 'IN' | 'OUT' | 'TRANSFER'
   // For an expense: the chest that paid for it, when not the day's budget.
   paidFromChest?: string | null
+  // Who recorded it, when not the person: "assistant" or "api:<key name>".
+  origin?: string | null
   sourceChestName?: string | null
   destinationChestName?: string | null
 }
@@ -118,6 +120,7 @@ export async function getHistory(input: GetHistoryInput): Promise<HistoryEvent[]
       description: expense.description,
       projectName: expense.project?.name ?? null,
       paidFromChest: expense.paidFromChestName ?? null,
+      origin: expense.origin ?? null,
     }))
 
   const exceptionEvents = budgetExceptions
@@ -134,6 +137,7 @@ export async function getHistory(input: GetHistoryInput): Promise<HistoryEvent[]
       category: exception.category,
       reason: exception.reason,
       resolution: exception.resolution,
+      origin: exception.origin ?? null,
     }))
 
   const movementEvents = movements
@@ -154,6 +158,7 @@ export async function getHistory(input: GetHistoryInput): Promise<HistoryEvent[]
       movementType: movement.type,
       sourceChestName: movement.sourceChest?.name ?? null,
       destinationChestName: movement.destinationChest?.name ?? null,
+      origin: movement.origin ?? null,
     }))
 
     const allEvents: HistoryEvent[] = [...expenseEvents, ...exceptionEvents, ...movementEvents]

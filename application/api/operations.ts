@@ -15,6 +15,7 @@ import { pushRepository } from '@/infrastructure/repositories/pushRepository'
 import { userRepository } from '@/infrastructure/repositories/userRepository'
 import { now } from '@/lib/clock'
 import { fullName, shortName } from '@/lib/greeting'
+import { m } from '@/lib/i18n/translate'
 
 import { confirmIncome, listPendingIncomes } from '../finance/confirmIncome'
 import { coverOverspend } from '../finance/coverOverspend'
@@ -735,3 +736,29 @@ export const operations = {
 }
 
 export const operationList = Object.values(operations)
+
+// What a change made through the API reads like in the notification sent to
+// the key's owner, by operation name. {amount} is the amount of the request.
+export const DONE: Record<string, string> = {
+  record_expense: m('Recorded an expense of {amount}.'),
+  edit_expense: m('Changed an expense of today.'),
+  delete_expense: m('Deleted an expense of today.'),
+  save_from_today: m('Saved {amount} from today.'),
+  explain_overspend: m("Explained today's overspend."),
+  cover_overspend: m("Covered today's overspend from the Buffer."),
+  add_income: m('Added an income.'),
+  edit_income: m('Changed an income.'),
+  delete_income: m('Removed an income.'),
+  confirm_income: m('Confirmed an income.'),
+  add_allocation: m('Added an allocation.'),
+  edit_allocation: m('Changed an allocation.'),
+  delete_allocation: m('Removed an allocation.'),
+  create_chest: m('Created a chest.'),
+  delete_chest: m('Deleted a chest.'),
+  transfer_between_chests: m('Moved {amount} between chests.'),
+  set_buffer_transfer_day: m('Changed the day the Buffer is emptied.'),
+  create_goal: m('Created a goal.'),
+  fund_goal: m('Put {amount} towards a goal.'),
+  record_debt: m('Recorded a debt or a loan of {amount}.'),
+  repay_debt: m('Recorded a repayment of {amount}.'),
+}

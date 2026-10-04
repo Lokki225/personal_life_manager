@@ -2,15 +2,18 @@
 
 import { revalidatePath } from 'next/cache'
 
+import { notifyLater } from '@/app/notify-later'
 import { createApiToken, deleteApiToken } from '@/application/account/apiTokens'
 import { changeCredentials, updateProfile } from '@/application/account/profile'
+import { notifyPerson } from '@/application/notifications/instant'
 import { notifyDevices } from '@/application/notifications/notify'
 import { getSignedInUser } from '@/infrastructure/auth/sessionUser'
 import { isPushConfigured } from '@/infrastructure/push/sendPush'
 import { pushRepository } from '@/infrastructure/repositories/pushRepository'
 import { userRepository } from '@/infrastructure/repositories/userRepository'
-import { signedOutState, translateFormState, type FormState } from '@/lib/forms/formState'
+import { notificationRepository } from '@/infrastructure/repositories/notificationRepository'
 import { isValidTimeZone, setClockZone } from '@/lib/clock'
+import { signedOutState, translateFormState, type FormState } from '@/lib/forms/formState'
 import { getT } from '@/lib/i18n/server'
 
 import { apiTokenForm, credentialsForm, deleteApiTokenForm, profileForm, REMOVE_PICTURE } from './schema'
@@ -60,16 +63,26 @@ export async function changeCredentialsAction(_previousState: FormState, formDat
     return signedOutState(t)
   }
 
-  const state = await credentialsForm.submit(formData, (credentials) =>
-    changeCredentials(userId, {
+  let changed = { email: false, password: false }
+  const state = await credentialsForm.submit(formData, async (credentials) => {
+    await changeCredentials(userId, {
       currentPassword: credentials.currentPassword,
       email: credentials.email,
       newPassword: credentials.newPassword || null,
-    }),
-  )
+    })
+    changed = {
+      email: credentials.email.trim().toLowerCase() !== user!.email,
+      password: Boolean(credentials.newPassword),
+    }
+  })
 
   if (state.status === 'success') {
     revalidatePath('/', 'layout')
+
+    // A security notice to every device of the account.
+    if (changed.email || changed.password) {
+      notifyLater(() => notifyPerson(userId, { kind: 'credentialsChanged', ...changed }))
+    }
   }
 
   return translateFormState(withoutValues(state), t)
@@ -157,12 +170,15 @@ export async function createApiTokenAction(_previousState: CreateTokenState, for
   }
 
   let token: string | undefined
+  let name = ''
   const state = await apiTokenForm.submit(formData, async (input) => {
     token = await createApiToken(user.id, input)
+    name = input.name.trim()
   })
 
   if (state.status === 'success') {
     revalidatePath('/account')
+    notifyLater(() => notifyPerson(user.id, { kind: 'apiKeyCreated', name }))
   }
 
   return { ...translateFormState(state, t), token }
@@ -182,4 +198,22 @@ export async function deleteApiTokenAction(_previousState: FormState, formData: 
   }
 
   return translateFormState(state, t)
+}
+
+// Turns one kind of notification on or off for the signed-in person.
+export async function setNotificationChoiceAction(choice: unknown, enabled: unknown): Promise<{ error?: string }> {
+  const [user, t] = await Promise.all([getSignedInUser(), getT()])
+
+  if (!user) {
+    return { error: t('Your session has ended. Sign in again to continue.') }
+  }
+
+  // Administration alerts only mean something to an administrator.
+  if ((choice !== 'notifyMoney' && choice !== 'notifyAdmin') || (choice === 'notifyAdmin' && user.role !== 'ADMIN')) {
+    return { error: t('Choose on or off.') }
+  }
+
+  await notificationRepository.setPreferences(user.id, { [choice]: enabled === true })
+
+  return {}
 }

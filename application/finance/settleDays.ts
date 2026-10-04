@@ -1,4 +1,5 @@
 import { dailyLivingBudget, isUncoveredDay, type BudgetPeriod } from '../../domain/finance/calculations'
+import { withOrigin } from '../../lib/origin'
 import { isPaidFromChest } from '../../domain/finance/chests'
 import { settlementActions } from '../../domain/finance/settlement'
 import { financeRepository } from '../../infrastructure/repositories/financeRepository'
@@ -50,6 +51,16 @@ export async function settleDays(
   user: { id: string; settledThrough: Date | null; bufferSweepDay: number },
   now: Date = clockNow(),
   deps: SettleDeps = defaultDeps,
+): Promise<void> {
+  // Closing days is the app's doing, even inside a request made by the
+  // assistant or a key.
+  return withOrigin(null, () => settle(user, now, deps))
+}
+
+async function settle(
+  user: { id: string; settledThrough: Date | null; bufferSweepDay: number },
+  now: Date,
+  deps: SettleDeps,
 ): Promise<void> {
   if (isSettled(user.settledThrough, now)) {
     return

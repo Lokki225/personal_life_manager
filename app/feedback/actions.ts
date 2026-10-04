@@ -2,10 +2,13 @@
 
 import { revalidatePath } from 'next/cache'
 
+import { notifyLater } from '@/app/notify-later'
 import { isAccountRuleError } from '@/application/account/errors'
 import { markFeedbackRead, sendFeedback } from '@/application/account/feedback'
+import { notifyAdmins } from '@/application/notifications/instant'
 import { getSignedInUser } from '@/infrastructure/auth/sessionUser'
 import { signedOutState, translateFormState, type FormState } from '@/lib/forms/formState'
+import { fullName } from '@/lib/greeting'
 import { getT } from '@/lib/i18n/server'
 
 import { feedbackForm } from './schema'
@@ -17,10 +20,15 @@ export async function sendFeedbackAction(_previousState: FormState, formData: Fo
     return signedOutState(t)
   }
 
-  const state = await feedbackForm.submit(formData, (feedback) => sendFeedback(user.id, feedback))
+  let message = ''
+  const state = await feedbackForm.submit(formData, async (feedback) => {
+    await sendFeedback(user.id, feedback)
+    message = feedback.message.trim()
+  })
 
   if (state.status === 'success') {
     revalidatePath('/admin')
+    notifyLater(() => notifyAdmins({ kind: 'newFeedback', name: fullName(user), message }))
   }
 
   return translateFormState(state, t)

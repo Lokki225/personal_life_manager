@@ -127,6 +127,8 @@ export function historyView(events: HistoryEvent[]) {
     movement: event.type === 'movement' ? (event.movementType ?? null) : null,
     fromChest: event.sourceChestName ?? null,
     toChest: event.destinationChestName ?? null,
+    // "assistant" or "api:<key name>" when not recorded by the person in the app.
+    recordedBy: event.origin ?? null,
   }))
 }
 

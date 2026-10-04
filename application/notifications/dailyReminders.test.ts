@@ -38,12 +38,19 @@ describe('reminderMessage', () => {
 })
 
 describe('sendDailyReminders', () => {
-  const person = (id: string, locale: string | null = 'en') => ({ id, locale, timeZone: 'Africa/Abidjan', subscriptions: [phone] })
+  const person = (id: string, locale: string | null = 'en', notifyMoney = true) => ({
+    id,
+    locale,
+    timeZone: 'Africa/Abidjan',
+    notifyMoney,
+    subscriptions: [phone],
+  })
 
   it('sends each person what applies to them, and nothing to someone in order', async () => {
     const deps = {
       listRecipients: vi.fn().mockResolvedValue([person('awa', 'fr'), person('ben')]),
       factsFor: vi.fn(async (userId: string) => (userId === 'awa' ? { ...inOrder, expensesToday: 0 } : inOrder)),
+      claim: vi.fn().mockResolvedValue(true),
       notify: vi.fn().mockResolvedValue(1),
     }
 
@@ -64,6 +71,7 @@ describe('sendDailyReminders', () => {
         }
         return many
       }),
+      claim: vi.fn().mockResolvedValue(true),
       notify: vi.fn().mockResolvedValue(1),
     }
 
@@ -71,5 +79,19 @@ describe('sendDailyReminders', () => {
     expect(deps.notify).toHaveBeenCalledTimes(3)
     expect(logged).toHaveBeenCalledTimes(1)
     logged.mockRestore()
+  })
+
+  it('sends nothing twice, and nothing to someone who turned money reminders off', async () => {
+    const deps = {
+      listRecipients: vi.fn().mockResolvedValue([person('awa'), person('quiet', 'en', false)]),
+      factsFor: vi.fn(async () => ({ ...inOrder, expensesToday: 0 })),
+      // Already sent by an earlier run.
+      claim: vi.fn().mockResolvedValue(false),
+      notify: vi.fn().mockResolvedValue(1),
+    }
+
+    await expect(sendDailyReminders(deps)).resolves.toEqual({ people: 2, sent: 0 })
+    expect(deps.notify).not.toHaveBeenCalled()
+    expect(deps.factsFor).toHaveBeenCalledTimes(1)
   })
 })

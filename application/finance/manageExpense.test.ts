@@ -65,7 +65,7 @@ describe('editExpense', () => {
     const over = depsOf([{ ...lunch, amount: 2500 }, taxi])
     await editExpense('user-1', { id: 'lunch', amount: 2500, category: 'food' }, over, today)
     expect(over.createException).toHaveBeenCalledWith(
-      expect.objectContaining({ expenseId: 'lunch', difference: 500, category: 'other', date: today }),
+      expect.objectContaining({ expenseId: 'lunch', difference: 500, category: 'unexplained', date: today }),
     )
     expect(over.updateException).toHaveBeenCalledWith('x-taxi', { plannedAmount: 0, actualAmount: 800, difference: 800 })
   })

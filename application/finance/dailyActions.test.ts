@@ -64,6 +64,8 @@ describe('recordDailyException', () => {
         dailyOverspend: 600,
         overspendExplained: false,
       }),
+      listExceptions: vi.fn().mockResolvedValue([]),
+      update: vi.fn(),
       create: vi.fn(),
     }
 
@@ -89,6 +91,8 @@ describe('recordDailyException', () => {
         dailyOverspend: 0,
         overspendExplained: false,
       }),
+      listExceptions: vi.fn().mockResolvedValue([]),
+      update: vi.fn(),
       create: vi.fn(),
     }
 
@@ -106,12 +110,36 @@ describe('recordDailyException', () => {
         dailyOverspend: 600,
         overspendExplained: true,
       }),
+      listExceptions: vi.fn().mockResolvedValue([]),
+      update: vi.fn(),
       create: vi.fn(),
     }
 
     await expect(recordDailyException({ userId: 'user-1', category: 'food' }, deps, today)).rejects.toThrow(
       "Today's overspend is already explained.",
     )
+    expect(deps.create).not.toHaveBeenCalled()
+  })
+  it('gives its cause to an overspend recorded without one, instead of counting it twice', async () => {
+    const deps = {
+      getToday: vi.fn().mockResolvedValue({
+        dailyBudget: 2000,
+        dailySpent: 2600,
+        dailyOverspend: 600,
+        overspendExplained: false,
+      }),
+      listExceptions: vi.fn().mockResolvedValue([
+        { id: 'waiting', date: new Date(2026, 8, 15, 12), category: 'unexplained' },
+        { id: 'yesterday', date: new Date(2026, 8, 14, 12), category: 'unexplained' },
+      ]),
+      update: vi.fn(),
+      create: vi.fn(),
+    }
+
+    await recordDailyException({ userId: 'user-1', category: 'food', reason: 'Dinner out' }, deps, today)
+
+    expect(deps.update).toHaveBeenCalledTimes(1)
+    expect(deps.update).toHaveBeenCalledWith('waiting', { category: 'food', reason: 'Dinner out' })
     expect(deps.create).not.toHaveBeenCalled()
   })
 })

@@ -1,47 +1,67 @@
 import { CURRENCY_CODE } from '../../domain/finance/calculations'
-import { dailyReminders, type Reminder } from '../../domain/finance/reminders'
+import { eveningReminders, type Reminder } from '../../domain/finance/reminders'
 import type { PushMessage } from '../../infrastructure/push/sendPush'
 import { financeRepository } from '../../infrastructure/repositories/financeRepository'
+import { notificationRepository } from '../../infrastructure/repositories/notificationRepository'
 import { pushRepository, type PushRecipient } from '../../infrastructure/repositories/pushRepository'
 import { now as clockNow, withClockZone } from '../../lib/clock'
 import { DEFAULT_LOCALE, LOCALES, type Locale } from '../../lib/i18n/config'
 import { createTranslator, type Translator } from '../../lib/i18n/translate'
 import { listPendingIncomes } from '../finance/confirmIncome'
 import { listDebtsWithStatus } from '../finance/debts'
+import { recomputeFinanceState } from '../finance/recomputeFinanceState'
+import { reachedSavingsGoals } from './instant'
 import { notifyDevices } from './notify'
 
 // Never more than this many notifications for one person in one run.
 const MAX_PER_PERSON = 3
 
-type ReminderFacts = Omit<Parameters<typeof dailyReminders>[0], 'today'>
+type ReminderFacts = Omit<Parameters<typeof eveningReminders>[0], 'today'>
 
 type Deps = {
   listRecipients: () => Promise<PushRecipient[]>
   // What is true for one person right now, on their own clock.
   factsFor: (userId: string, today: Date) => Promise<ReminderFacts>
+  // Notes that this was sent; false when it already was.
+  claim: (userId: string, key: string) => Promise<boolean>
   notify: typeof notifyDevices
 }
 
-const sameDay = (left: Date, right: Date) =>
-  left.getFullYear() === right.getFullYear() && left.getMonth() === right.getMonth() && left.getDate() === right.getDate()
+// The weekly transfers this run can still announce: made since about the last run.
+const SWEEP_WINDOW = 25 * 60 * 60 * 1000
 
 const defaultDeps: Deps = {
   listRecipients: pushRepository.listRecipients,
   factsFor: async (userId, today) => {
-    const [incomes, expenses, pendingIncomes, debts] = await Promise.all([
-      financeRepository.listIncomes(userId),
-      financeRepository.listExpenses(userId),
+    const [state, pendingIncomes, debts, movements] = await Promise.all([
+      recomputeFinanceState({ userId, referenceDate: today }),
       listPendingIncomes(userId, today),
       listDebtsWithStatus(userId),
+      financeRepository.listMovements(userId),
     ])
+    const since = new Date(Date.now() - SWEEP_WINDOW)
 
     return {
-      hasPlan: incomes.length > 0,
-      expensesToday: expenses.filter((expense) => sameDay(new Date(expense.date), today)).length,
+      hasPlan: state.incomes.length > 0,
+      expensesToday: state.dailyExpenses.length,
       pendingIncomes,
       debts,
+      // On a 31st the day is paid out of the chests and cannot go over.
+      overspend: state.uncoveredDay
+        ? undefined
+        : { amount: Math.floor(state.dailyOverspend), explained: state.overspendExplained },
+      month: { spent: state.monthlySpent, budget: state.periodBudget },
+      sweeps: movements
+        .filter((movement) => movement.reason === 'BUFFER_CONSOLIDATION' && movement.createdAt >= since)
+        .map((movement) => ({ id: movement.id, amount: Number(movement.amount) })),
+      goalsReached: reachedSavingsGoals(state.goals),
+      lockedChests: state.chests.flatMap((chest) =>
+        chest.type === 'SECURE' && chest.lockedUntil ? [{ id: chest.id, name: chest.name, lockedUntil: chest.lockedUntil }] : [],
+      ),
+      dailyBudget: state.dailyBudget - state.coveredToday,
     }
   },
+  claim: notificationRepository.claim,
   notify: notifyDevices,
 }
 
@@ -87,14 +107,64 @@ export function reminderMessage(reminder: Reminder, t: Translator): PushMessage 
         body: t('{name} still owes you {amount}.', { name: reminder.counterparty, amount: money(reminder.amount) }),
         url: '/finance/debts',
       }
+    case 'overspendUnexplained':
+      return {
+        title: t('Today went {amount} over budget', { amount: money(reminder.amount) }),
+        body: t('Say why, or cover it from the Buffer, before the day ends.'),
+        url: '/finance',
+      }
+    case 'monthPace':
+      return reminder.threshold === 100
+        ? {
+            title: t("This month's budget is used up"),
+            body: t.plural(
+              reminder.daysLeft,
+              '{count} day is left. What you spend now goes beyond the plan.',
+              '{count} days are left. What you spend now goes beyond the plan.',
+            ),
+            url: '/finance/review',
+          }
+        : {
+            title: t("You have used 80% of this month's budget"),
+            body: t('Only {share}% of the month has passed. Slowing down now keeps the month on plan.', {
+              share: reminder.elapsedShare,
+            }),
+            url: '/finance/review',
+          }
+    case 'bufferSwept':
+      return {
+        title: t('{amount} moved to your Base Chest', { amount: money(reminder.amount) }),
+        body: t("The week's leftovers left the Buffer for the Base Chest."),
+        url: '/finance/chests',
+      }
+    case 'goalReached':
+      return {
+        title: t('Goal reached: {name}', { name: reminder.name }),
+        body: t('Its chest has reached its target. Well done!'),
+        url: '/finance/goals',
+      }
+    case 'chestUnlocks':
+      return {
+        title: t('{chest} unlocks tomorrow', { chest: t(reminder.name) }),
+        body: t('From tomorrow, the money in it can be used.'),
+        url: '/finance/chests',
+      }
+    case 'monthStart':
+      return {
+        title: t('A new month begins'),
+        body: t('Your daily budget this month is {amount}.', { amount: money(reminder.dailyBudget) }),
+        url: '/finance',
+      }
   }
 }
 
 const localeOf = (locale: string | null): Locale =>
   LOCALES.includes(locale as Locale) ? (locale as Locale) : DEFAULT_LOCALE
 
-// Runs once a day. For each person with a device to notify, works out on
-// their own clock what is worth a reminder, and sends it in their language.
+// Runs once a day. For each person with a device to notify who wants money
+// reminders, works out on their own clock what is worth telling, most
+// important first, and sends it in their language. What was already sent
+// (by an earlier run, or the moment it happened) is not sent again.
 // Those in `notedToday` already got the assistant's note, which covers the
 // reminder to record their spending.
 export async function sendDailyReminders(
@@ -105,17 +175,31 @@ export async function sendDailyReminders(
   let sent = 0
 
   for (const person of recipients) {
+    if (!person.notifyMoney) {
+      continue
+    }
+
     // One person's trouble must not stop the reminders of everyone after them.
     try {
       sent += await withClockZone(person.timeZone, async () => {
         const today = clockNow()
-        const reminders = dailyReminders({ today, ...(await deps.factsFor(person.id, today)) })
-          .filter((reminder) => !(reminder.kind === 'recordSpending' && notedToday.has(person.id)))
-          .slice(0, MAX_PER_PERSON)
+        const reminders = eveningReminders({ today, ...(await deps.factsFor(person.id, today)) }).filter(
+          (reminder) => !(reminder.kind === 'recordSpending' && notedToday.has(person.id)),
+        )
         const t = createTranslator(localeOf(person.locale))
         let delivered = 0
+        let told = 0
 
         for (const reminder of reminders) {
+          if (told >= MAX_PER_PERSON) {
+            break
+          }
+
+          if (!(await deps.claim(person.id, reminder.key))) {
+            continue
+          }
+
+          told += 1
           delivered += await deps.notify(person.subscriptions, reminderMessage(reminder, t))
         }
 

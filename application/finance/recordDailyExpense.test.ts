@@ -64,7 +64,7 @@ describe('recordDailyExpense', () => {
     await recordDailyExpense({ ...expense, amount: 300 }, deps, today)
 
     expect(deps.createException).toHaveBeenCalledWith(
-      expect.objectContaining({ difference: 300, category: 'other', reason: 'Unplanned spending' }),
+      expect.objectContaining({ difference: 300, category: 'unexplained', reason: 'Unplanned spending' }),
     )
   })
 
