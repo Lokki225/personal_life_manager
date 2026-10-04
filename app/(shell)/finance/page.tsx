@@ -16,7 +16,7 @@ import { getT } from '@/lib/i18n/server'
 import { m } from '@/lib/i18n/translate'
 import { cn } from '@/lib/utils'
 
-import { LogoTile } from '../logo'
+import { LogoTile } from '../../logo'
 import { categoryStyle, eventStyle } from './categories'
 import { CoverFromBufferButton, EditExpenseDrawer } from './expense-forms'
 import { Meter, Money } from './money'
@@ -118,8 +118,7 @@ export default async function FinanceTodayPage() {
 
   return (
     <main className="mx-auto w-full max-w-5xl space-y-4 px-4 py-6 sm:px-6">
-      {/* Right margin keeps the brand clear of the account and theme buttons */}
-      <header className="space-y-4 [&>a]:mr-28">
+      <header className="space-y-4">
         <Link href="/" className="inline-flex min-h-11 items-center gap-2.5">
           <LogoTile className="size-8" />
           <span className="text-sm font-semibold tracking-tight">Personal Life Manager</span>
