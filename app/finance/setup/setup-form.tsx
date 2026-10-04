@@ -88,7 +88,8 @@ const createAllocation = (name: string, amount: string, period: 'monthly' | 'wee
 export function SetupForm({ initialData }: SetupFormProps = {}) {
   const t = useT()
   const [incomeSource, setIncomeSource] = useState(initialData?.incomeSource ?? t(DEFAULT_INCOME_SOURCE))
-  const [incomeAmount, setIncomeAmount] = useState(initialData?.incomeAmount ?? DEFAULT_INCOME_AMOUNT)
+  // Kept as typed, so the field can be emptied and retyped; read as a number only where one is needed.
+  const [incomeAmount, setIncomeAmount] = useState(String(initialData?.incomeAmount ?? DEFAULT_INCOME_AMOUNT))
   const [incomeFrequency, setIncomeFrequency] = useState<IncomeFrequency>(
     initialData?.incomeFrequency ?? DEFAULT_INCOME_FREQUENCY,
   )
@@ -177,7 +178,7 @@ export function SetupForm({ initialData }: SetupFormProps = {}) {
                   inputMode="decimal"
                   {...fieldAttributes(state, 'incomeAmount')}
                   value={incomeAmount}
-                  onChange={(event) => setIncomeAmount(Number(event.target.value || 0))}
+                  onChange={(event) => setIncomeAmount(event.target.value)}
                   className={FIELD_CLASS}
                 />
                 <FieldError state={state} name="incomeAmount" />
@@ -386,7 +387,7 @@ export function SetupForm({ initialData }: SetupFormProps = {}) {
                   {t(incomeFrequency)}
                 </Badge>
               </div>
-              <Amount value={incomeAmount} className="text-xl font-semibold" />
+              <Amount value={Number(incomeAmount) || 0} className="text-xl font-semibold" />
             </div>
 
             <Separator className="my-4" />
