@@ -5,12 +5,16 @@ import { ArrowLeft, Check, Circle } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Meter } from '@/components/ui/meter'
 import { getPersonalGoal } from '@/application/personal/goals'
+import { linkedEntries, linkOptions } from '@/application/personal/journal'
+import { linkToken } from '@/domain/personal/journal'
 import { getSignedInUser } from '@/infrastructure/auth/sessionUser'
 import { now as clockNow, setClockZone } from '@/lib/clock'
 import { getT } from '@/lib/i18n/server'
 import { cn } from '@/lib/utils'
 
 import { TaskMeta, TaskMenu, TaskRow } from '../../tasks/task-forms'
+import { NewEntryDrawer } from '../../journal/entry-forms'
+import { EntryCard } from '../../journal/entry-view'
 import { toTaskView } from '../../tasks/task-view'
 import { conditionLine, MetricChart } from '../goal-display'
 import { AbandonDrawer, AddMilestoneForm, GoalTaskForm, LogValueForm } from '../goal-forms'
@@ -26,7 +30,11 @@ export default async function PersonalGoalPage({ params }: PageProps<'/personal/
   }
 
   const now = clockNow()
-  const goal = await getPersonalGoal(user.id, id, now)
+  const [goal, entries, links] = await Promise.all([
+    getPersonalGoal(user.id, id, now),
+    linkedEntries(user.id, 'goal', id),
+    linkOptions(user.id),
+  ])
 
   if (!goal) {
     notFound()
@@ -181,6 +189,31 @@ export default async function PersonalGoalPage({ params }: PageProps<'/personal/
           </>
         ) : (
           <p className="text-sm text-muted-foreground">{t('No sessions in the last 7 days. Start one from Today.')}</p>
+        )}
+      </section>
+
+      <section aria-labelledby="goal-journal-title" className="space-y-2">
+        <div className="flex items-center justify-between gap-3">
+          <h2 id="goal-journal-title" className="font-semibold">
+            {t('Journal')}
+          </h2>
+          <NewEntryDrawer
+            links={links}
+            today={`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`}
+            label={t('Write about it')}
+            initialBody={`${linkToken({ targetType: 'goal', targetId: goal.id, label: goal.name })} `}
+          />
+        </div>
+        {entries.length > 0 ? (
+          <ul className="space-y-2">
+            {entries.map((entry) => (
+              <li key={entry.id}>
+                <EntryCard entry={entry} t={t} />
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="text-sm text-muted-foreground">{t('No entries mention this goal yet.')}</p>
         )}
       </section>
 

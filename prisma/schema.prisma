@@ -352,6 +352,7 @@ model User {
   tasks             Task[]
   sessions          Session[]
   metricSeries      MetricSeries[]
+  journalEntries    JournalEntry[]
 }
 
 // What was already sent to a person, so the same event is never sent twice.
@@ -657,4 +658,50 @@ model MetricEntry {
   createdAt  DateTime     @default(now())
 
   @@index([seriesId, recordedAt])
+}
+
+enum JournalType {
+  FREE
+  DAILY
+  DECISION
+  IDEA
+  REVIEW
+}
+
+// A journal entry. Open by default; a secured one asks for its password
+// before its text is shown (friction, not encryption).
+model JournalEntry {
+  id           String        @id @default(cuid())
+  userId       String
+  user         User          @relation(fields: [userId], references: [id])
+  type         JournalType   @default(FREE)
+  title        String?
+  // Links to goals and tasks are written in the text as @[Label](goal:id).
+  body         String
+  mood         Int?
+  energy       Int?
+  isSecured    Boolean       @default(false)
+  passwordHash String?
+  // The day it is about, at midnight on the person's clock.
+  entryDate    DateTime
+  // For a decision: when to look at it again.
+  reviewOn     DateTime?
+  origin       String?
+  links        JournalLink[]
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  @@index([userId, entryDate])
+}
+
+// What an entry mentions, so the goal's or task's page can list it.
+model JournalLink {
+  id         String       @id @default(cuid())
+  entryId    String
+  entry      JournalEntry @relation(fields: [entryId], references: [id], onDelete: Cascade)
+  targetType String
+  targetId   String
+
+  @@index([targetType, targetId])
+  @@index([entryId])
 }
