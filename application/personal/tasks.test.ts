@@ -59,7 +59,7 @@ function fakeRepository(rows: Partial<Row>[], settledThrough: Date | null = null
       Object.assign(tasks.find((t) => t.id === id)!, data)
       return true
     }),
-    carryTasks: vi.fn(async (_u: string, moves: { id: string; dueDate: Date; carryCount: number }[]) => {
+    carryTasks: vi.fn(async (_u: string, moves: { id: string; dueDate: Date; carryCount: number; days: number }[]) => {
       for (const move of moves) Object.assign(tasks.find((t) => t.id === move.id)!, { ...move, status: 'CARRIED_OVER' })
     }),
     setCompletion: vi.fn(async (_u: string, taskId: string, occurrenceDate: Date, done: boolean, status: Row['status'] | null) => {
@@ -67,6 +67,7 @@ function fakeRepository(rows: Partial<Row>[], settledThrough: Date | null = null
       if (status) tasks.find((t) => t.id === taskId)!.status = status
     }),
     deleteTask: async () => true,
+    setLatestCarryReason: vi.fn(async () => {}),
   }
 
   return { repo: repo as unknown as PersonalRepository & typeof repo, tasks }
@@ -83,6 +84,7 @@ describe('carryOverTasks', () => {
     expect(tasks[1].status).toBe('DONE')
     expect(tasks[2]).toMatchObject({ dueDate: day(7), carryCount: 0, status: 'OPEN' })
     expect(repo.carryTasks).toHaveBeenCalledTimes(1)
+    expect(repo.carryTasks.mock.calls[0][1]).toEqual([{ id: 't0', dueDate: day(7), carryCount: 2, days: 2 }])
   })
 
   it('does nothing when another request already claimed the day', async () => {
@@ -137,6 +139,7 @@ describe('setCarryReason', () => {
 
     expect(tasks[0]).toMatchObject({ carryReason: 'Waiting on a call back', status: 'CARRIED_OVER' })
     expect(tasks[1]).toMatchObject({ carryReason: 'not_relevant', status: 'DROPPED' })
+    expect(repo.setLatestCarryReason).toHaveBeenCalledWith('u', 't1', 'not_relevant')
     await expect(setCarryReason('u', 't0', '  ', repo)).rejects.toMatchObject({ field: 'reason' })
   })
 })

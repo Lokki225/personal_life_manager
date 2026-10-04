@@ -98,6 +98,24 @@ export const journalRepository = {
     return count > 0
   },
 
+  // Today's open daily note, if there is one.
+  findDailyNote: async (userId: string, day: Date) => {
+    return prisma.journalEntry.findFirst({
+      where: { userId, type: 'DAILY', entryDate: day, isSecured: false },
+      select: ENTRY_SELECT,
+      orderBy: { createdAt: 'asc' },
+    })
+  },
+
+  // The entries about a period, for a review.
+  listEntriesBetween: async (userId: string, from: Date, to: Date) => {
+    return prisma.journalEntry.findMany({
+      where: { userId, entryDate: { gte: from, lt: to } },
+      select: ENTRY_SELECT,
+      orderBy: { entryDate: 'asc' },
+    })
+  },
+
   // What an entry can link to: Personal goals still going, and open tasks.
   linkOptions: async (userId: string) => {
     const [goals, tasks] = await Promise.all([

@@ -51,6 +51,7 @@ import {
   text,
   type ApiUser,
 } from './operation'
+import { personalOperations } from './personalOperations'
 import { chestsView, debtsView, goalsView, historyView, planView, reviewView, todayView } from './views'
 
 // What the finance operations start from. As on the pages, the days that ended
@@ -735,6 +736,10 @@ export const operations = {
       return { delivered, devices: devices.length }
     },
   }),
+
+  // --- Personal --------------------------------------------------------------
+
+  ...personalOperations,
 }
 
 export const operationList = Object.values(operations)
@@ -763,4 +768,8 @@ export const DONE: Record<string, string> = {
   fund_goal: m('Put {amount} towards a goal.'),
   record_debt: m('Recorded a debt or a loan of {amount}.'),
   repay_debt: m('Recorded a repayment of {amount}.'),
+  add_task: m('Added a task.'),
+  complete_task: m('Ticked a task.'),
+  log_session: m('Logged a session.'),
+  write_journal_entry: m('Wrote a journal entry.'),
 }

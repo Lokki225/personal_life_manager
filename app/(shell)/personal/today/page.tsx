@@ -5,6 +5,7 @@ import { ArrowRight, ListChecks } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Meter } from '@/components/ui/meter'
 import { listPersonalGoals } from '@/application/personal/goals'
+import { getDailyNote } from '@/application/personal/journal'
 import { getSessionsToday } from '@/application/personal/sessions'
 import { ensureDefaultCategories, getTodayTasks } from '@/application/personal/tasks'
 import { getSignedInUser } from '@/infrastructure/auth/sessionUser'
@@ -12,6 +13,7 @@ import { now as clockNow, setClockZone } from '@/lib/clock'
 import { getT } from '@/lib/i18n/server'
 import { cn } from '@/lib/utils'
 
+import { DailyLine } from '../journal/entry-forms'
 import { SessionCard } from '../sessions/session-card'
 import { AddTaskDrawer, CapacityForm, CarryReasons, QuickAdd, TaskRow } from '../tasks/task-forms'
 import { toTaskView } from '../tasks/task-view'
@@ -26,11 +28,12 @@ export default async function PersonalTodayPage() {
   }
 
   const now = clockNow()
-  const [{ entries, load, awaitingReason }, categories, sessions, goals] = await Promise.all([
+  const [{ entries, load, awaitingReason }, categories, sessions, goals, dailyNote] = await Promise.all([
     getTodayTasks(user.id, now),
     ensureDefaultCategories(user.id),
     getSessionsToday(user.id, now),
     listPersonalGoals(user.id, now),
+    getDailyNote(user.id, now),
   ])
   // Goals timed by sessions can be started from here.
   const timedGoals = goals
@@ -108,6 +111,8 @@ export default async function PersonalTodayPage() {
           <ArrowRight className="size-4" aria-hidden="true" />
         </Link>
       </div>
+
+      <DailyLine body={dailyNote?.body ?? null} />
 
       <CapacityForm capacity={load.capacity} />
     </main>

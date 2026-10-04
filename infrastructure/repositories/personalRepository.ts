@@ -134,16 +134,35 @@ export const personalRepository = {
     return count > 0
   },
 
-  // Moves each task to its new day, in one transaction.
-  carryTasks: async (userId: string, moves: { id: string; dueDate: Date; carryCount: number }[]) => {
-    await prisma.$transaction(
-      moves.map((move) =>
+  // Moves each task to its new day and notes the slip, in one transaction.
+  carryTasks: async (userId: string, moves: { id: string; dueDate: Date; carryCount: number; days: number }[]) => {
+    await prisma.$transaction([
+      ...moves.map((move) =>
         prisma.task.updateMany({
           where: { id: move.id, userId },
           data: { dueDate: move.dueDate, carryCount: move.carryCount, status: 'CARRIED_OVER', carryReason: null },
         }),
       ),
-    )
+      prisma.taskCarry.createMany({ data: moves.map((move) => ({ taskId: move.id, carriedTo: move.dueDate, days: move.days })) }),
+    ])
+  },
+
+  // Gives the latest slip of a task its reason.
+  setLatestCarryReason: async (userId: string, taskId: string, reason: string) => {
+    const latest = await prisma.taskCarry.findFirst({
+      where: { taskId, task: { userId } },
+      orderBy: { createdAt: 'desc' },
+      select: { id: true },
+    })
+    if (latest) await prisma.taskCarry.update({ where: { id: latest.id }, data: { reason } })
+  },
+
+  // The slips of a period, with their tasks.
+  listCarries: async (userId: string, from: Date, to: Date) => {
+    return prisma.taskCarry.findMany({
+      where: { task: { userId }, carriedTo: { gte: from, lt: to } },
+      select: { taskId: true, carriedTo: true, days: true, reason: true, task: { select: { title: true } } },
+    })
   },
 
   // Ticks or unticks one day of a task, and sets the task's status with it.
@@ -244,6 +263,25 @@ export const personalRepository = {
       select: { id: true, value: true, recordedAt: true, source: true },
     })
   },
+}
+
+// Everything a person recorded in Personal, for their data export. Journal
+// password hashes stay out; locked entries come with their text, since the
+// export is the person's own copy.
+export async function exportPersonal(userId: string) {
+  const [categories, tasks, goals, sessions, measures, journal] = await Promise.all([
+    prisma.category.findMany({ where: { userId } }),
+    prisma.task.findMany({ where: { userId }, include: { completions: true, carries: true } }),
+    prisma.goal.findMany({
+      where: { userId, domain: { not: 'finance' } },
+      include: { groups: { include: { conditions: true } }, milestones: true },
+    }),
+    prisma.session.findMany({ where: { userId } }),
+    prisma.metricSeries.findMany({ where: { userId }, include: { entries: true } }),
+    prisma.journalEntry.findMany({ where: { userId }, omit: { passwordHash: true }, include: { links: true } }),
+  ])
+
+  return { categories, tasks, goals, sessions, measures, journal }
 }
 
 export type PersonalRepository = typeof personalRepository

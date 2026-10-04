@@ -1,4 +1,5 @@
 import { financeRepository } from '../../infrastructure/repositories/financeRepository'
+import { exportPersonal } from '../../infrastructure/repositories/personalRepository'
 import { userRepository } from '../../infrastructure/repositories/userRepository'
 
 type ExportDeps = {
@@ -15,9 +16,10 @@ type ExportDeps = {
     | 'listDebts'
     | 'listProjects'
   >
+  personal?: typeof exportPersonal
 }
 
-const defaultDeps: ExportDeps = { getProfile: userRepository.getProfile, finance: financeRepository }
+const defaultDeps: ExportDeps = { getProfile: userRepository.getProfile, finance: financeRepository, personal: exportPersonal }
 
 // A chest's password hash is a secret, not the person's data.
 const withoutSecrets = (row: object) =>
@@ -26,7 +28,7 @@ const withoutSecrets = (row: object) =>
 // Everything one person recorded, in one object: their own backup, and what
 // they would take with them. It holds no password and nobody else's data.
 export async function exportUserData(userId: string, deps: ExportDeps = defaultDeps, now: Date = new Date()) {
-  const [profile, incomes, allocations, expenses, exceptions, chests, movements, goals, debts, projects] =
+  const [profile, incomes, allocations, expenses, exceptions, chests, movements, goals, debts, projects, personal] =
     await Promise.all([
       deps.getProfile(userId),
       deps.finance.listIncomes(userId),
@@ -38,6 +40,7 @@ export async function exportUserData(userId: string, deps: ExportDeps = defaultD
       deps.finance.listGoals(userId),
       deps.finance.listDebts(userId),
       deps.finance.listProjects(userId),
+      deps.personal ? deps.personal(userId) : Promise.resolve(null),
     ])
 
   return {
@@ -55,5 +58,6 @@ export async function exportUserData(userId: string, deps: ExportDeps = defaultD
       debts,
     },
     projects,
+    personal,
   }
 }

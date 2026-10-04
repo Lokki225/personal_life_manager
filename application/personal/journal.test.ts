@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 
-import { createEntry, deleteEntry, lockEntry, removeLock, updateEntry, visibleEntry } from './journal'
+import { createEntry, deleteEntry, lockEntry, removeLock, saveDailyNote, updateEntry, visibleEntry } from './journal'
 
 const day = new Date(2026, 9, 7, 21, 30)
 const input = { type: 'FREE' as const, title: null, body: 'A good day.', mood: null, energy: null, entryDate: day, reviewOn: null }
@@ -97,5 +97,22 @@ describe('locked entries', () => {
     const shown = visibleEntry(entry({ isSecured: true }), false)
     expect(shown).toMatchObject({ locked: true, title: null, body: null, preview: null, mood: null, type: 'FREE' })
     expect(visibleEntry(entry({ isSecured: true }), true)).toMatchObject({ locked: false, preview: 'Secret thoughts about Chess' })
+  })
+})
+
+describe('saveDailyNote', () => {
+  it('writes today’s daily note the first time', async () => {
+    const r = repo({ findDailyNote: vi.fn(async () => null) })
+    await saveDailyNote('u', 'Quiet day.', day, r as never)
+
+    expect(r.createEntry).toHaveBeenCalledWith('u', expect.objectContaining({ type: 'DAILY', body: 'Quiet day.', entryDate: new Date(2026, 9, 7) }), [], null)
+  })
+
+  it('replaces its text afterwards, keeping the mood already given', async () => {
+    const r = repo({ findDailyNote: vi.fn(async () => entry({ type: 'DAILY', mood: 4, title: null })) })
+    await saveDailyNote('u', 'Better than expected.', day, r as never)
+
+    expect(r.createEntry).not.toHaveBeenCalled()
+    expect(r.updateEntry).toHaveBeenCalledWith('u', 'e', expect.objectContaining({ body: 'Better than expected.', mood: 4 }), [])
   })
 })
