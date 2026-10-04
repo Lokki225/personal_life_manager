@@ -4,12 +4,15 @@ import { ArrowRight, ListChecks } from 'lucide-react'
 
 import { Card, CardContent } from '@/components/ui/card'
 import { Meter } from '@/components/ui/meter'
+import { listPersonalGoals } from '@/application/personal/goals'
+import { getSessionsToday } from '@/application/personal/sessions'
 import { ensureDefaultCategories, getTodayTasks } from '@/application/personal/tasks'
 import { getSignedInUser } from '@/infrastructure/auth/sessionUser'
 import { now as clockNow, setClockZone } from '@/lib/clock'
 import { getT } from '@/lib/i18n/server'
 import { cn } from '@/lib/utils'
 
+import { SessionCard } from '../sessions/session-card'
 import { AddTaskDrawer, CapacityForm, CarryReasons, QuickAdd, TaskRow } from '../tasks/task-forms'
 import { toTaskView } from '../tasks/task-view'
 
@@ -23,10 +26,16 @@ export default async function PersonalTodayPage() {
   }
 
   const now = clockNow()
-  const [{ entries, load, awaitingReason }, categories] = await Promise.all([
+  const [{ entries, load, awaitingReason }, categories, sessions, goals] = await Promise.all([
     getTodayTasks(user.id, now),
     ensureDefaultCategories(user.id),
+    getSessionsToday(user.id, now),
+    listPersonalGoals(user.id, now),
   ])
+  // Goals timed by sessions can be started from here.
+  const timedGoals = goals
+    .filter((g) => g.usesSessions && g.evaluation.status !== 'ABANDONED' && g.evaluation.status !== 'ACHIEVED')
+    .map((g) => ({ id: g.id, name: g.name }))
   const dateLine = new Intl.DateTimeFormat(t.intl, { weekday: 'long', day: 'numeric', month: 'long' }).format(now)
   // Open tasks first, done ones after, each group in its own order.
   const ordered = [...entries.filter((e) => !e.done), ...entries.filter((e) => e.done)]
@@ -60,6 +69,16 @@ export default async function PersonalTodayPage() {
           </p>
         </CardContent>
       </Card>
+
+      <SessionCard
+        running={
+          sessions.running
+            ? { goalName: sessions.running.goal?.name ?? null, elapsedSeconds: sessions.running.elapsedSeconds }
+            : null
+        }
+        goals={timedGoals}
+        totalMinutes={sessions.totalMinutes}
+      />
 
       {awaitingReason.length > 0 ? <CarryReasons tasks={awaitingReason.map(toTaskView)} /> : null}
 

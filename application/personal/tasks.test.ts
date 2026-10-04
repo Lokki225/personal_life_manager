@@ -146,7 +146,14 @@ describe('addTask, scheduleTask and capacity', () => {
     const { repo } = fakeRepository([])
 
     await addTask('u', { title: '  Call home ', dueDate: day(7, 15), recurrence: null, categoryId: 'cat' }, repo)
-    expect(repo.createTask).toHaveBeenCalledWith('u', { title: 'Call home', dueDate: day(7), recurrence: null, categoryId: 'cat' })
+    expect(repo.createTask).toHaveBeenCalledWith('u', {
+      title: 'Call home',
+      dueDate: day(7),
+      recurrence: null,
+      categoryId: 'cat',
+      goalId: null,
+      milestoneId: null,
+    })
 
     await expect(addTask('u', { title: ' ', dueDate: null, recurrence: null, categoryId: null }, repo)).rejects.toMatchObject({ field: 'title' })
     await expect(
