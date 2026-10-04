@@ -77,7 +77,8 @@ export const NODES: NodeDef[] = [
     label: m('Personal'),
     icon: 'user',
     defaultView: 'today',
-    access: 'none',
+    // Administrators only while it is built; 'all' at launch.
+    access: 'admin',
     views: [
       view('today', m('Today'), 'calendar-check', '/personal/today'),
       view('goals', m('Goals'), 'target', '/personal/goals'),
