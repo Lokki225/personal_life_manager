@@ -12,24 +12,24 @@ datasource db {
   provider = "postgresql"
 }
 
-enum ChestType { 
+enum ChestType {
   AVAILABLE
-  SECURE 
+  SECURE
 }
 
-enum MovementType { 
-  IN 
-  OUT 
-  TRANSFER 
+enum MovementType {
+  IN
+  OUT
+  TRANSFER
 }
 
-enum MovementReason { 
-  DAILY_SAVING 
-  PLANNED_SAVING 
-  BUFFER_CONSOLIDATION 
-  GOAL_FUNDING 
-  WITHDRAWAL 
-  EXPENSE 
+enum MovementReason {
+  DAILY_SAVING
+  PLANNED_SAVING
+  BUFFER_CONSOLIDATION
+  GOAL_FUNDING
+  WITHDRAWAL
+  EXPENSE
   DEBT
   // Money taken out of a chest to pay for an expense (linked by expenseId).
   CHEST_SPENDING
@@ -51,39 +51,63 @@ enum UserRole {
   ADMIN
 }
 
-enum GoalLogic { 
-  ALL 
-  ANY 
+enum GoalLogic {
+  ALL
+  ANY
 }
-enum ConditionOperator { 
-  GTE 
-  LTE 
-  EQ 
-  GT 
-  LT 
+
+enum ConditionOperator {
+  GTE
+  LTE
+  EQ
+  GT
+  LT
 }
-enum EvalPeriod { 
-  NONE 
-  DAILY 
-  WEEKLY 
-  MONTHLY 
-  YEARLY 
+
+// The shared goal engine (Ressources/goal-completion-mechanism.md): a goal is
+// achieved when its condition tree holds. Every node uses the same tables.
+enum GoalLifecycle {
+  TERMINAL
+  ONGOING
+  MAINTENANCE
+}
+
+enum GoalHorizon {
+  WEEK
+  QUARTER
+  YEAR
+  SOMEDAY
+}
+
+enum ConditionRole {
+  COMPLETION
+  HEALTH
+}
+
+enum Aggregation {
+  LATEST
+  SUM
+  COUNT
+  MAX
+  MIN
+  AVG
+  STREAK
+  RATIO
 }
 
 model Chest {
-  id           String    @id @default(cuid())
+  id           String          @id @default(cuid())
   userId       String
-  user         User      @relation(fields: [userId], references: [id])
+  user         User            @relation(fields: [userId], references: [id])
   name         String
   type         ChestType
-  isSystem     Boolean   @default(false)
+  isSystem     Boolean         @default(false)
   passwordHash String?
   lockedUntil  DateTime?
-  createdAt    DateTime  @default(now())
+  createdAt    DateTime        @default(now())
   movementsOut MoneyMovement[] @relation("SourceChest")
   movementsIn  MoneyMovement[] @relation("DestinationChest")
   expensesPaid Expense[]       @relation("ChestExpenses")
-  conditions   GoalCondition[]
 }
 
 model MoneyMovement {
@@ -113,74 +137,121 @@ model MoneyMovement {
 }
 
 model Goal {
-  id         String          @id @default(cuid())
-  userId     String
-  user       User            @relation(fields: [userId], references: [id])
-  name       String
-  domain     String          @default("finance")
-  logic      GoalLogic       @default(ALL)
-  conditions GoalCondition[]
-  movements  MoneyMovement[]
-  debts      Debt[]
-  createdAt  DateTime        @default(now())
+  id            String           @id @default(cuid())
+  userId        String
+  user          User             @relation(fields: [userId], references: [id])
+  name          String
+  domain        String           @default("finance")
+  horizon       GoalHorizon      @default(SOMEDAY)
+  lifecycle     GoalLifecycle    @default(TERMINAL)
+  // Once achieved, stays achieved even if the measurement drops later.
+  latch         Boolean          @default(true)
+  startDate     DateTime         @default(now())
+  deadline      DateTime?
+  achievedAt    DateTime?
+  abandonedAt   DateTime?
+  abandonReason String?
+  groups        ConditionGroup[]
+  milestones    Milestone[]
+  movements     MoneyMovement[]
+  debts         Debt[]
+  createdAt     DateTime         @default(now())
 }
 
-model GoalCondition {
+// ALL or ANY of its conditions and child groups. A goal's root groups have
+// no parent; a milestone can have its own.
+model ConditionGroup {
+  id            String           @id @default(cuid())
+  goalId        String?
+  goal          Goal?            @relation(fields: [goalId], references: [id], onDelete: Cascade)
+  milestoneId   String?
+  milestone     Milestone?       @relation(fields: [milestoneId], references: [id], onDelete: Cascade)
+  parentGroupId String?
+  parent        ConditionGroup?  @relation("GroupTree", fields: [parentGroupId], references: [id], onDelete: Cascade)
+  children      ConditionGroup[] @relation("GroupTree")
+  logic         GoalLogic        @default(ALL)
+  role          ConditionRole    @default(COMPLETION)
+  conditions    Condition[]
+
+  @@index([goalId])
+  @@index([milestoneId])
+}
+
+// One number compared to a target: a source (where the values come from),
+// an aggregation over a window, an operator.
+model Condition {
   id          String            @id @default(cuid())
-  goalId      String
-  goal        Goal              @relation(fields: [goalId], references: [id])
-  measurement String
-  chestId     String?
-  chest       Chest?            @relation(fields: [chestId], references: [id])
+  groupId     String
+  group       ConditionGroup    @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  // "CHEST_BALANCE" | "BUDGET_EXCEPTIONS" | later "METRIC_SERIES", "SESSIONS"...
+  source      String
+  // What the source reads, e.g. { "chestId": "..." }.
+  sourceRef   Json              @default("{}")
+  aggregation Aggregation
+  // { "type": "ALL_TIME" } | { "type": "CALENDAR", "unit": "month" } | ...
+  window      Json
   operator    ConditionOperator
-  targetValue Decimal
+  target      Decimal
   unit        String?
-  period      EvalPeriod        @default(NONE)
+  floor       Decimal?
+  stretch     Decimal?
+
+  @@index([groupId])
 }
 
+model Milestone {
+  id          String           @id @default(cuid())
+  goalId      String
+  goal        Goal             @relation(fields: [goalId], references: [id], onDelete: Cascade)
+  name        String
+  order       Int?
+  completedAt DateTime?
+  groups      ConditionGroup[]
 
+  @@index([goalId])
+}
 
 model User {
-  id            String   @id @default(cuid())
-  email         String   @unique
-  passwordHash  String
-  firstName     String?
-  lastName      String?
+  id                    String    @id @default(cuid())
+  email                 String    @unique
+  passwordHash          String
+  firstName             String?
+  lastName              String?
   // An optional nickname, shown in place of the first name. Sign-in is by email.
-  username      String?
+  username              String?
   // What the person chose to say about themselves. All optional.
-  bio           String?
-  occupation    String?
-  phone         String?
-  country       String?
-  city          String?
-  birthDate     DateTime?
+  bio                   String?
+  occupation            String?
+  phone                 String?
+  country               String?
+  city                  String?
+  birthDate             DateTime?
   // A small image as a data URL, shrunk by the browser before upload.
-  picture       String?
-  role          UserRole @default(USER)
+  picture               String?
+  role                  UserRole  @default(USER)
   // The last day the person opened the app, and the language it was shown in.
-  lastSeenAt    DateTime?
-  locale        String?
+  lastSeenAt            DateTime?
+  locale                String?
   // Where the person's days begin and end, e.g. "Africa/Abidjan".
-  timeZone      String?
+  timeZone              String?
   // The last day whose leftover was moved to the Buffer.
-  settledThrough DateTime?
+  settledThrough        DateTime?
   // The weekday the Buffer is emptied into the Base Chest. 0 is Sunday.
-  bufferSweepDay Int      @default(0)
+  bufferSweepDay        Int       @default(0)
   // Whether the assistant writes this person an evening note and reviews.
-  assistantNotes Boolean  @default(false)
+  assistantNotes        Boolean   @default(false)
   // The AI provider the person chose for the assistant: 'anthropic', 'openai'...
-  assistantProvider String?
+  assistantProvider     String?
   // What the person asks of their assistant: a name, and instructions.
   assistantName         String?
   assistantInstructions String?
   // Whether the person wants to hear about what is new in the app.
-  wantsNews     Boolean  @default(false)
+  wantsNews             Boolean   @default(false)
   // Which notifications the person wants. Security notices are always sent.
-  notifyMoney   Boolean  @default(true)
+  notifyMoney           Boolean   @default(true)
   // For administrators: new accounts and new opinions.
-  notifyAdmin   Boolean  @default(true)
-  createdAt     DateTime @default(now())
+  notifyAdmin           Boolean   @default(true)
+  createdAt             DateTime  @default(now())
 
   incomes           Income[]
   allocations       Allocation[]
@@ -307,22 +378,22 @@ model RateLimitHit {
 }
 
 model Income {
-  id            String   @id @default(cuid())
-  userId        String
-  user          User     @relation(fields: [userId], references: [id])
-  source        String
-  amount        Decimal
-  frequency     String   // monthly | weekly | occasional | recurring
-  expectedDate  DateTime?
-  actualDate    DateTime?
-  status        String   // expected | received
-  notes         String?
-  projectId     String?  // optional: income can come from a project
-  project       Project? @relation(fields: [projectId], references: [id])
+  id           String          @id @default(cuid())
+  userId       String
+  user         User            @relation(fields: [userId], references: [id])
+  source       String
+  amount       Decimal
+  frequency    String // monthly | weekly | occasional | recurring
+  expectedDate DateTime?
+  actualDate   DateTime?
+  status       String // expected | received
+  notes        String?
+  projectId    String? // optional: income can come from a project
+  project      Project?        @relation(fields: [projectId], references: [id])
   // Day of the month the income usually arrives (1-31).
-  payDay        Int      @default(1)
-  receipts      IncomeReceipt[]
-  createdAt     DateTime @default(now())
+  payDay       Int             @default(1)
+  receipts     IncomeReceipt[]
+  createdAt    DateTime        @default(now())
 }
 
 // One confirmed arrival of an income, for one calendar month.
@@ -375,80 +446,78 @@ model DebtPayment {
 }
 
 model Allocation {
-  id          String   @id @default(cuid())
-  userId      String
-  user        User     @relation(fields: [userId], references: [id])
-  name        String
-  amount      Decimal
-  period      String   // monthly | weekly | daily
-  category    String   // fixed | subscription | daily_living | savings | custom
-  startDate   DateTime
-  endDate     DateTime?
-  recurrence  String?
-  notes       String?
-  expenses    Expense[]
-  createdAt   DateTime @default(now())
+  id         String    @id @default(cuid())
+  userId     String
+  user       User      @relation(fields: [userId], references: [id])
+  name       String
+  amount     Decimal
+  period     String // monthly | weekly | daily
+  category   String // fixed | subscription | daily_living | savings | custom
+  startDate  DateTime
+  endDate    DateTime?
+  recurrence String?
+  notes      String?
+  expenses   Expense[]
+  createdAt  DateTime  @default(now())
 }
 
 model Expense {
-  id            String     @id @default(cuid())
-  userId        String
-  user          User       @relation(fields: [userId], references: [id])
-  amount        Decimal
-  category      String
-  date          DateTime
-  allocationId  String?
-  allocation    Allocation? @relation(fields: [allocationId], references: [id])
-  projectId     String?
-  project       Project?   @relation(fields: [projectId], references: [id])
-  description   String?
-  notes         String?
+  id                String            @id @default(cuid())
+  userId            String
+  user              User              @relation(fields: [userId], references: [id])
+  amount            Decimal
+  category          String
+  date              DateTime
+  allocationId      String?
+  allocation        Allocation?       @relation(fields: [allocationId], references: [id])
+  projectId         String?
+  project           Project?          @relation(fields: [projectId], references: [id])
+  description       String?
+  notes             String?
   // The exception this expense caused by going over the day's budget.
-  exceptions    BudgetException[]
+  exceptions        BudgetException[]
   // Paid with money from a chest instead of the day's budget. The name stays
   // when the chest is deleted, so the expense keeps saying how it was paid.
   paidFromChestId   String?
-  paidFromChest     Chest?         @relation("ChestExpenses", fields: [paidFromChestId], references: [id], onDelete: SetNull)
+  paidFromChest     Chest?            @relation("ChestExpenses", fields: [paidFromChestId], references: [id], onDelete: SetNull)
   paidFromChestName String?
   // The money that left the chest for it.
   chestMovement     MoneyMovement?
-  createdAt     DateTime   @default(now())
+  createdAt         DateTime          @default(now())
   // Who recorded it when not the person in the app: "assistant" or
   // "api:<key name>". Empty for the person and for what the app does itself.
-  origin             String?
+  origin            String?
 }
-
 
 model BudgetException {
-  id              String   @id @default(cuid())
-  userId          String
-  user            User     @relation(fields: [userId], references: [id])
-  date            DateTime
-  plannedAmount   Decimal
-  actualAmount    Decimal
-  difference      Decimal
-  category        String
-  reason          String?
-  context         String?
-  resolution      String?
+  id            String   @id @default(cuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id])
+  date          DateTime
+  plannedAmount Decimal
+  actualAmount  Decimal
+  difference    Decimal
+  category      String
+  reason        String?
+  context       String?
+  resolution    String?
   // The expense that went over, when the exception comes from one.
-  expenseId       String?
-  expense         Expense? @relation(fields: [expenseId], references: [id], onDelete: SetNull)
-  createdAt       DateTime @default(now())
+  expenseId     String?
+  expense       Expense? @relation(fields: [expenseId], references: [id], onDelete: SetNull)
+  createdAt     DateTime @default(now())
   // Who recorded it when not the person in the app: "assistant" or
   // "api:<key name>". Empty for the person and for what the app does itself.
-  origin             String?
+  origin        String?
 }
 
-
 model Project {
-  id        String    @id @default(cuid())
+  id        String          @id @default(cuid())
   userId    String
-  user      User      @relation(fields: [userId], references: [id])
+  user      User            @relation(fields: [userId], references: [id])
   name      String
   notes     String?
   incomes   Income[]
   expenses  Expense[]
-  movements  MoneyMovement[]
-  createdAt DateTime  @default(now())
+  movements MoneyMovement[]
+  createdAt DateTime        @default(now())
 }

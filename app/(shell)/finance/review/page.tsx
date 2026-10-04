@@ -14,7 +14,7 @@ import { cn } from '@/lib/utils'
 import { categoryColor, categoryStyle } from '../categories'
 import { chartPoints } from '../chart-data'
 import { ColumnChart, LineChart } from '../charts'
-import { measurementLabel, operatorLabel } from '../goal-labels'
+import { conditionLabel, operatorLabel } from '../goal-labels'
 import { Meter, Money } from '../money'
 import { ensureDaysSettled } from '../settle'
 
@@ -302,7 +302,7 @@ export default async function FinanceReviewPage({ searchParams }: PageProps<'/fi
                           )}
                         </span>
                         <span>
-                          {t(measurementLabel(result.measurement))}
+                          {conditionLabel(t, result)}
                           {t(': ')}
                           <span className="font-medium">{t.amount(result.actual)}</span>
                           <span className="text-muted-foreground">

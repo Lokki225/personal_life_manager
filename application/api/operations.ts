@@ -612,6 +612,8 @@ export const operations = {
               targetValue: z.number({ error: 'Give "targetValue" as a number.' }).min(0, 'A target cannot be negative.'),
               // Needed when the measurement is "chest_balance".
               chestId: chestId.optional(),
+              // Needed when the measurement is "monthly_category_spending".
+              category: expenseCategory.optional(),
             }),
           )
           .min(1, 'Add at least one condition.')

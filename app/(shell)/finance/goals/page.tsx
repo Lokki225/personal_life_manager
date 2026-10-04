@@ -9,7 +9,7 @@ import { setClockZone } from '@/lib/clock'
 import { getT } from '@/lib/i18n/server'
 import { cn } from '@/lib/utils'
 
-import { measurementLabel, operatorLabel } from '../goal-labels'
+import { conditionLabel, operatorLabel } from '../goal-labels'
 import { Meter, Money } from '../money'
 import { CustomGoalDrawer } from './custom-goal-drawer'
 import { FundGoalDrawer, NewGoalDrawer } from './goal-forms'
@@ -118,7 +118,7 @@ export default async function FinanceGoalsPage() {
                               )}
                             </span>
                             <span>
-                              {t(measurementLabel(result.measurement))}
+                              {conditionLabel(t, result)}
                               {t(': ')}
                               <span className="font-medium">{t.amount(result.actual)}</span>
                               <span className="text-muted-foreground">

@@ -8,6 +8,8 @@ import { FieldError } from '@/components/ui/field-error'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select'
+import { EXPENSE_CATEGORIES } from '@/domain/finance/options'
+import { aimsDown } from '@/domain/goals/financeGoals'
 import { fieldAttributes, fieldName, initialFormState, type FormState } from '@/lib/forms/formState'
 import { useT } from '@/lib/i18n/client'
 import { m } from '@/lib/i18n/translate'
@@ -154,15 +156,33 @@ function GoalBuilderFields({ state, chests }: { state: FormState; chests: { id: 
               </div>
             ) : null}
 
+            {row.measurement === 'monthly_category_spending' ? (
+              <div className="grid gap-2">
+                <Label htmlFor={id('category')}>{t('Category')}</Label>
+                <NativeSelect
+                  id={id('category')}
+                  {...fieldAttributes(rowState, name('category'), scope)}
+                  className={FIELD_CLASS}
+                >
+                  {EXPENSE_CATEGORIES.map((category) => (
+                    <NativeSelectOption key={category} value={category}>
+                      {t(category)}
+                    </NativeSelectOption>
+                  ))}
+                </NativeSelect>
+                <FieldError state={rowState} name={name('category')} scope={scope} />
+              </div>
+            ) : null}
+
             <div className="grid grid-cols-2 gap-2">
               <div className="grid gap-2">
                 <Label htmlFor={id('operator')}>{t('Is')}</Label>
                 <NativeSelect
                   id={id('operator')}
                   {...fieldAttributes(rowState, name('operator'), scope)}
-                  // Savings aim up, deviations aim down.
+                  // Savings aim up; spending, exceptions and debt aim down.
                   key={row.measurement}
-                  defaultValue={row.measurement === 'chest_balance' ? 'GTE' : 'LTE'}
+                  defaultValue={aimsDown(row.measurement) ? 'LTE' : 'GTE'}
                   className={FIELD_CLASS}
                 >
                   {Object.entries(OPERATOR_LABELS).map(([value, label]) => (
@@ -207,7 +227,7 @@ export function CustomGoalDrawer({ chests }: { chests: { id: string; name: strin
   return (
     <ActionDrawer
       title={t('Custom goal')}
-      description={t('Combine several conditions, such as a balance to reach and a limit on exceptions.')}
+      description={t('Combine several conditions, such as savings to reach and a limit on spending.')}
       trigger={
         <Button variant="outline" className="h-11">
           <ListChecks aria-hidden="true" />

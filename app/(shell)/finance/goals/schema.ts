@@ -40,6 +40,7 @@ const conditionSchema = z.object(
       .regex(/^\d{1,12}$/, 'Enter a whole number.')
       .transform(Number),
     chestId: z.string().trim().optional(),
+    category: z.string().trim().optional(),
   },
   { error: 'Fill in this condition.' },
 )

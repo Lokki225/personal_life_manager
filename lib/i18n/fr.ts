@@ -423,8 +423,8 @@ export const FR: Messages = {
     'Fund goal': "Alimenter l'objectif",
     Goal: 'Objectif',
     'Custom goal': 'Objectif personnalisé',
-    'Combine several conditions, such as a balance to reach and a limit on exceptions.':
-      "Combinez plusieurs conditions, par exemple un solde à atteindre et une limite d'imprévus.",
+    'Combine several conditions, such as savings to reach and a limit on spending.':
+      'Combinez plusieurs conditions, par exemple une épargne à atteindre et une limite de dépenses.',
     'A disciplined month': 'Un mois discipliné',
     'It is reached when': 'Il est atteint quand',
     'All conditions hold': 'Toutes les conditions sont remplies',
@@ -439,6 +439,12 @@ export const FR: Messages = {
     'Chest balance': "Solde d'un coffre",
     'Exceptions this month': 'Imprévus ce mois-ci',
     'Overspend this month': 'Dépassement ce mois-ci',
+    'Total savings': 'Épargne totale',
+    'Saved this month': 'Épargné ce mois-ci',
+    'Spending this month': 'Dépenses ce mois-ci',
+    'Spending in a category this month': "Dépenses d'une catégorie ce mois-ci",
+    'Spending on {category} this month': 'Dépenses en {category} ce mois-ci',
+    'Debt still owed': 'Dette restant due',
     'at least': 'au moins',
     'more than': 'plus de',
     'at most': 'au plus',

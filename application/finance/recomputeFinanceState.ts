@@ -88,7 +88,14 @@ export async function recomputeFinanceState(input: RecomputeFinanceStateInput): 
     // Money borrowed for this goal, and how much of those debts is still owed.
     borrowed: number
     owed: number
-    conditionResults: Array<{ measurement: string; operator: string; target: number; actual: number; satisfied: boolean }>
+    conditionResults: Array<{
+      measurement: string
+      category: string | null
+      operator: string
+      target: number
+      actual: number
+      satisfied: boolean
+    }>
   }>
 }> {
   const { userId, referenceDate = clockNow(), repository = financeRepository } = input
@@ -281,15 +288,36 @@ export async function recomputeFinanceState(input: RecomputeFinanceStateInput): 
   }))
 
   // --- Goals: evaluate each one, from what is already loaded ---
-  const monthExceptionAmounts = budgetExceptions
-    .filter((exception) => {
-      const date = new Date(exception.date ?? referenceDate)
-      return date >= startOfPeriod && date <= endOfPeriod
-    })
-    .map((exception) => Math.max(Number(exception.difference || 0), 0))
+  const owedOn = (debt: (typeof debts)[number]) =>
+    debtOutstanding(
+      debtTotal(Number(debt.principal), debt.interestType, Number(debt.interestValue)),
+      debt.payments.map((payment) => Number(payment.amount)),
+    )
+  const goalEvidence = {
+    movements: rawMovements.map((m) => ({
+      sourceChestId: m.sourceChestId,
+      destinationChestId: m.destinationChestId,
+      amount: Number(m.amount),
+      date: new Date(m.date),
+      reason: m.reason,
+      type: m.type,
+    })),
+    exceptions: budgetExceptions.map((exception) => ({
+      date: new Date(exception.date ?? referenceDate),
+      difference: Number(exception.difference || 0),
+    })),
+    expenses: expenses.map((expense) => ({
+      date: new Date(expense.date ?? referenceDate),
+      amount: Number(expense.amount || 0),
+      category: expense.category,
+      paidFromChest: isPaidFromChest(expense),
+    })),
+    chests,
+    debtsOwed: debts.filter((debt) => debt.direction === 'BORROWED').map(owedOn),
+  }
 
   const goalResults = goals.map((goal) => {
-    const result = evaluateGoal(goal, { movements, monthExceptionAmounts })
+    const result = evaluateGoal(goal, goalEvidence, referenceDate)
     const goalDebts = debts.filter((debt) => debt.goalId === goal.id && debt.direction === 'BORROWED')
 
     return {
@@ -297,17 +325,10 @@ export async function recomputeFinanceState(input: RecomputeFinanceStateInput): 
       name: goal.name,
       satisfied: result.satisfied,
       borrowed: goalDebts.reduce((sum, debt) => sum + Number(debt.principal), 0),
-      owed: goalDebts.reduce(
-        (sum, debt) =>
-          sum +
-          debtOutstanding(
-            debtTotal(Number(debt.principal), debt.interestType, Number(debt.interestValue)),
-            debt.payments.map((payment) => Number(payment.amount)),
-          ),
-        0,
-      ),
+      owed: goalDebts.reduce((sum, debt) => sum + owedOn(debt), 0),
       conditionResults: result.conditionResults.map((r) => ({
         measurement: r.condition.measurement,
+        category: r.condition.category,
         operator: String(r.condition.operator),
         target: Number(r.condition.targetValue),
         actual: r.actual,

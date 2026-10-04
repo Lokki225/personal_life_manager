@@ -1,5 +1,7 @@
 import { CURRENCY_CODE } from '../../domain/finance/calculations'
 import { FinanceRuleError } from '../../domain/finance/errors'
+import { EXPENSE_CATEGORIES } from '../../domain/finance/options'
+import { isAmount } from '../../domain/goals/financeGoals'
 import { financeRepository } from '../../infrastructure/repositories/financeRepository'
 import { createGoal } from './createGoal'
 import { GOAL_MEASUREMENTS, type GoalMeasurement } from './measurements'
@@ -9,6 +11,8 @@ export type CustomGoalCondition = {
   operator: 'GTE' | 'LTE' | 'EQ' | 'GT' | 'LT'
   targetValue: number
   chestId?: string | null
+  // For spending in one category.
+  category?: string | null
 }
 
 type CustomGoalDeps = {
@@ -29,9 +33,14 @@ export async function createCustomGoal(
 
   const conditions = input.conditions.map((condition, index) => {
     const onChest = condition.measurement === GOAL_MEASUREMENTS.CHEST_BALANCE
+    const onCategory = condition.measurement === GOAL_MEASUREMENTS.MONTHLY_CATEGORY_SPENDING
 
     if (onChest && (!condition.chestId || !ownChestIds.has(condition.chestId))) {
       throw new FinanceRuleError('Choose one of your chests.', `conditions.${index}.chestId`)
+    }
+
+    if (onCategory && !EXPENSE_CATEGORIES.some((category) => category === condition.category)) {
+      throw new FinanceRuleError('Choose a category.', `conditions.${index}.category`)
     }
 
     return {
@@ -39,9 +48,9 @@ export async function createCustomGoal(
       operator: condition.operator,
       targetValue: condition.targetValue,
       chestId: onChest ? condition.chestId : null,
+      category: onCategory ? condition.category : null,
       // A count of exceptions has no currency.
-      unit: condition.measurement === GOAL_MEASUREMENTS.MONTHLY_DEVIATION_COUNT ? null : CURRENCY_CODE,
-      period: onChest ? ('NONE' as const) : ('MONTHLY' as const),
+      unit: isAmount(condition.measurement) ? CURRENCY_CODE : null,
     }
   })
 

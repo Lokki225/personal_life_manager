@@ -156,7 +156,7 @@ describe('createCustomGoal', () => {
     createGoal: vi.fn().mockResolvedValue({ id: 'goal-1' }),
   })
 
-  it('builds each condition with its unit and period', async () => {
+  it('builds each condition with its unit', async () => {
     const d = deps()
 
     await createCustomGoal(
@@ -177,17 +177,41 @@ describe('createCustomGoal', () => {
       domain: 'finance',
       logic: 'ALL',
       conditions: [
-        { measurement: 'chest_balance', operator: 'GTE', targetValue: 50000, chestId: 'base', unit: 'XOF', period: 'NONE' },
+        { measurement: 'chest_balance', operator: 'GTE', targetValue: 50000, chestId: 'base', category: null, unit: 'XOF' },
         {
           measurement: 'monthly_deviation_count',
           operator: 'LTE',
           targetValue: 3,
           chestId: null,
+          category: null,
           unit: null,
-          period: 'MONTHLY',
         },
       ],
     })
+  })
+
+  it('keeps the category of a category spending, and asks for one', async () => {
+    const d = deps()
+    const goal = (category?: string) =>
+      createCustomGoal(
+        'user-1',
+        {
+          name: 'Less transport',
+          logic: 'ALL',
+          conditions: [{ measurement: 'monthly_category_spending', operator: 'LTE', targetValue: 30000, category }],
+        },
+        d as never,
+      )
+
+    await goal('transport')
+    expect(d.createGoal).toHaveBeenCalledWith(
+      'user-1',
+      expect.objectContaining({
+        conditions: [expect.objectContaining({ category: 'transport', chestId: null, unit: 'XOF' })],
+      }),
+    )
+    await expect(goal(undefined)).rejects.toMatchObject({ field: 'conditions.0.category' })
+    await expect(goal('rockets')).rejects.toMatchObject({ field: 'conditions.0.category' })
   })
 
   it('points at the condition whose chest is missing or not the user\u2019s', async () => {

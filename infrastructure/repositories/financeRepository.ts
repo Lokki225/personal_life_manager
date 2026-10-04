@@ -1,6 +1,8 @@
+import { lifecycleFor, toEngineCondition, toFinanceCondition, type FinanceCondition } from '../../domain/goals/financeGoals'
 import { now as clockNow } from '../../lib/clock'
 import { currentOrigin } from '../../lib/origin'
 import { prisma } from '../prisma/client'
+import { conditionData, toGoalCondition } from './goalRows'
 
 export type IncomeRecord = NonNullable<Awaited<ReturnType<typeof prisma.income.findFirst>>>
 export type AllocationRecord = NonNullable<Awaited<ReturnType<typeof prisma.allocation.findFirst>>>
@@ -19,9 +21,12 @@ export type MoneyMovementRecordWithChests = MoneyMovementRecord & {
 
 export type ChestRecord = NonNullable<Awaited<ReturnType<typeof prisma.chest.findFirst>>>
 export type MoneyMovementRecord = NonNullable<Awaited<ReturnType<typeof prisma.moneyMovement.findFirst>>>
-export type GoalConditionRecord = NonNullable<Awaited<ReturnType<typeof prisma.goalCondition.findFirst>>>
+// A Finance goal as the Finance pages read it: its completion conditions,
+// named by measurement, combined with ALL or ANY. Stored in the shared goal
+// engine's tables (one root completion group per Finance goal).
 export type GoalRecordWithConditions = GoalRecord & {
-  conditions: (GoalConditionRecord & { chest?: { id: string; name: string } | null })[]
+  logic: 'ALL' | 'ANY'
+  conditions: FinanceCondition[]
 }
 export type BudgetExceptionRecord = NonNullable<Awaited<ReturnType<typeof prisma.budgetException.findFirst>>>
 
@@ -240,12 +245,12 @@ export type CreateMovementData = {
 }
 
 export type CreateGoalConditionData = {
-  measurement: string
+  measurement: FinanceCondition['measurement']
   chestId?: string | null
+  category?: string | null
   operator: 'GTE' | 'LTE' | 'EQ' | 'GT' | 'LT'
   targetValue: number | string
   unit?: string | null
-  period?: 'NONE' | 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'YEARLY'
 }
 
 export type CreateGoalData = {
@@ -296,6 +301,28 @@ export interface ProjectRepository {
 }
 
 
+
+// A Finance goal's root completion group and its conditions.
+const FINANCE_GOAL_INCLUDE = {
+  groups: {
+    where: { parentGroupId: null, milestoneId: null, role: 'COMPLETION' as const },
+    include: { conditions: { orderBy: { id: 'asc' as const } } },
+  },
+}
+
+type GoalRowWithGroups = GoalRecord & {
+  groups: { logic: 'ALL' | 'ANY'; conditions: Parameters<typeof toGoalCondition>[0][] }[]
+}
+
+function toFinanceGoal({ groups, ...goal }: GoalRowWithGroups): GoalRecordWithConditions {
+  const root = groups[0]
+
+  return {
+    ...goal,
+    logic: root?.logic ?? 'ALL',
+    conditions: (root?.conditions ?? []).map((row) => toFinanceCondition(toGoalCondition(row))),
+  }
+}
 
 const MAX_WRITE_ATTEMPTS = 3
 
@@ -933,25 +960,36 @@ export const financeRepository: SetupPlanRepository &
   },
 
   createGoal: async (userId: string, data: CreateGoalData) => {
-    return prisma.goal.create({
+    const conditions = data.conditions.map((c) => ({
+      ...c,
+      chestId: c.chestId ?? null,
+      category: c.category ?? null,
+      unit: c.unit ?? null,
+      targetValue: Number(c.targetValue),
+    }))
+
+    const goal = await prisma.goal.create({
       data: {
         name: data.name,
         domain: data.domain ?? 'finance',
-        logic: data.logic ?? 'ALL',
+        // Finance goals follow their measurement as it is now, without latching.
+        latch: false,
+        lifecycle: lifecycleFor(conditions),
         user: { connect: { id: userId } },
-        conditions: {
-          create: data.conditions.map((c) => ({
-            measurement: c.measurement,
-            operator: c.operator,
-            targetValue: Number(c.targetValue),
-            unit: c.unit ?? null,
-            period: c.period ?? 'NONE',
-            ...(c.chestId ? { chest: { connect: { id: c.chestId } } } : {}),
-          })),
+        groups: {
+          create: [
+            {
+              logic: data.logic ?? 'ALL',
+              role: 'COMPLETION',
+              conditions: { create: conditions.map((c) => conditionData(toEngineCondition(c))) },
+            },
+          ],
         },
       },
-      include: { conditions: { include: { chest: { select: { id: true, name: true } } } } },
+      include: FINANCE_GOAL_INCLUDE,
     })
+
+    return toFinanceGoal(goal)
   },
 
   createSavingsGoal: async (userId: string, data: CreateSavingsGoalData) => {
@@ -960,23 +998,22 @@ export const financeRepository: SetupPlanRepository &
         data: { userId, name: data.name, type: 'AVAILABLE', isSystem: false },
       })
 
+      const balance = toEngineCondition({
+        measurement: 'chest_balance',
+        chestId: chest.id,
+        operator: 'GTE',
+        targetValue: data.targetAmount,
+        unit: data.unit,
+      })
+
       const goal = await tx.goal.create({
         data: {
           userId,
           name: data.name,
           domain: 'finance',
-          logic: 'ALL',
-          conditions: {
-            create: [
-              {
-                measurement: 'chest_balance',
-                chestId: chest.id,
-                operator: 'GTE',
-                targetValue: data.targetAmount,
-                unit: data.unit,
-              },
-            ],
-          },
+          latch: false,
+          lifecycle: 'TERMINAL',
+          groups: { create: [{ logic: 'ALL', role: 'COMPLETION', conditions: { create: [conditionData(balance)] } }] },
         },
       })
 
@@ -1002,18 +1039,18 @@ export const financeRepository: SetupPlanRepository &
   },
 
   listGoals: async (userId: string) => {
-    return prisma.goal.findMany({
-      where: { userId },
-      include: { conditions: { include: { chest: { select: { id: true, name: true } } } } },
+    const goals = await prisma.goal.findMany({
+      where: { userId, domain: 'finance' },
+      include: FINANCE_GOAL_INCLUDE,
       orderBy: { createdAt: 'desc' },
     })
+
+    return goals.map(toFinanceGoal)
   },
 
   getGoal: async (id: string) => {
-    return prisma.goal.findUnique({
-      where: { id },
-      include: { conditions: { include: { chest: { select: { id: true, name: true } } } } },
-    })
+    const goal = await prisma.goal.findFirst({ where: { id, domain: 'finance' }, include: FINANCE_GOAL_INCLUDE })
+    return goal ? toFinanceGoal(goal) : null
   },
 
   deleteGoal: async (id: string) => {
