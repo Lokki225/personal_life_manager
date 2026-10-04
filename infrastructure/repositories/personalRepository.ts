@@ -15,6 +15,8 @@ export type CreateTaskData = {
   dueDate: Date | null
   recurrence: Prisma.InputJsonValue | null
   categoryId: string | null
+  goalId?: string | null
+  milestoneId?: string | null
 }
 
 export type UpdateTaskData = Partial<{
@@ -115,6 +117,8 @@ export const personalRepository = {
         dueDate: data.dueDate,
         recurrence: jsonOrNull(data.recurrence),
         categoryId: data.categoryId,
+        goalId: data.goalId ?? null,
+        milestoneId: data.milestoneId ?? null,
       },
       include: TASK_INCLUDE,
     })
@@ -176,6 +180,69 @@ export const personalRepository = {
   deleteTask: async (userId: string, id: string) => {
     const { count } = await prisma.task.deleteMany({ where: { id, userId } })
     return count > 0
+  },
+
+  // --- Sessions ---------------------------------------------------------------
+
+  getRunningSession: async (userId: string) => {
+    return prisma.session.findFirst({
+      where: { userId, endedAt: null },
+      include: { goal: { select: { id: true, name: true } } },
+      orderBy: { startedAt: 'desc' },
+    })
+  },
+
+  createSession: async (
+    userId: string,
+    data: { goalId: string | null; startedAt: Date; endedAt: Date | null; durationMin: number | null; note: string | null },
+  ) => {
+    return prisma.session.create({ data: { userId, origin: currentOrigin(), ...data }, select: { id: true } })
+  },
+
+  finishSession: async (userId: string, id: string, endedAt: Date, durationMin: number, note: string | null) => {
+    const { count } = await prisma.session.updateMany({
+      where: { id, userId, endedAt: null },
+      data: { endedAt, durationMin, ...(note ? { note } : {}) },
+    })
+    return count > 0
+  },
+
+  deleteSession: async (userId: string, id: string) => {
+    const { count } = await prisma.session.deleteMany({ where: { id, userId } })
+    return count > 0
+  },
+
+  listSessions: async (userId: string, from: Date, to: Date) => {
+    return prisma.session.findMany({
+      where: { userId, startedAt: { gte: from, lt: to }, endedAt: { not: null } },
+      include: { goal: { select: { id: true, name: true } } },
+      orderBy: { startedAt: 'desc' },
+    })
+  },
+
+  // --- Metric series ----------------------------------------------------------
+
+  listSeries: async (userId: string) => {
+    return prisma.metricSeries.findMany({ where: { userId }, orderBy: { createdAt: 'asc' } })
+  },
+
+  createSeries: async (userId: string, data: { key: string; label: string; unit: string | null }) => {
+    return prisma.metricSeries.create({ data: { userId, ...data } })
+  },
+
+  addEntry: async (userId: string, seriesId: string, value: number, recordedAt: Date) => {
+    const series = await prisma.metricSeries.findFirst({ where: { id: seriesId, userId }, select: { id: true } })
+    if (!series) return false
+    await prisma.metricEntry.create({ data: { seriesId, value, recordedAt } })
+    return true
+  },
+
+  listEntries: async (userId: string, seriesId: string) => {
+    return prisma.metricEntry.findMany({
+      where: { seriesId, series: { userId } },
+      orderBy: { recordedAt: 'asc' },
+      select: { id: true, value: true, recordedAt: true, source: true },
+    })
   },
 }
 

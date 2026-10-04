@@ -142,6 +142,8 @@ model Goal {
   user          User             @relation(fields: [userId], references: [id])
   name          String
   domain        String           @default("finance")
+  categoryId    String?
+  category      Category?        @relation(fields: [categoryId], references: [id], onDelete: SetNull)
   horizon       GoalHorizon      @default(SOMEDAY)
   lifecycle     GoalLifecycle    @default(TERMINAL)
   // Once achieved, stays achieved even if the measurement drops later.
@@ -154,6 +156,7 @@ model Goal {
   groups        ConditionGroup[]
   milestones    Milestone[]
   tasks         Task[]
+  sessions      Session[]
   movements     MoneyMovement[]
   debts         Debt[]
   createdAt     DateTime         @default(now())
@@ -225,14 +228,16 @@ enum TaskStatus {
 // An optional label shared by tasks (and later goals and sessions). Used to
 // filter and group, never for logic.
 model Category {
-  id        String   @id @default(cuid())
+  id        String    @id @default(cuid())
   userId    String
-  user      User     @relation(fields: [userId], references: [id])
+  user      User      @relation(fields: [userId], references: [id])
   name      String
   color     String?
   icon      String?
-  createdAt DateTime @default(now())
+  createdAt DateTime  @default(now())
   tasks     Task[]
+  goals     Goal[]
+  sessions  Session[]
 
   @@unique([userId, name])
 }
@@ -345,6 +350,8 @@ model User {
   notificationLog   NotificationLog[]
   categories        Category[]
   tasks             Task[]
+  sessions          Session[]
+  metricSeries      MetricSeries[]
 }
 
 // What was already sent to a person, so the same event is never sent twice.
@@ -596,4 +603,58 @@ model Project {
   expenses  Expense[]
   movements MoneyMovement[]
   createdAt DateTime        @default(now())
+}
+
+// Time spent on something: started and stopped, or logged afterwards.
+model Session {
+  id          String    @id @default(cuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id])
+  goalId      String?
+  goal        Goal?     @relation(fields: [goalId], references: [id], onDelete: SetNull)
+  categoryId  String?
+  category    Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  // On the person's clock. No end yet means it is still running.
+  startedAt   DateTime
+  endedAt     DateTime?
+  durationMin Int?
+  note        String?
+  origin      String?
+  createdAt   DateTime  @default(now())
+
+  @@index([userId, startedAt])
+}
+
+enum MetricProvider {
+  MANUAL
+  SYNC
+  DERIVED
+}
+
+// A named number followed over time: a rating, a score, words learned.
+model MetricSeries {
+  id        String         @id @default(cuid())
+  userId    String
+  user      User           @relation(fields: [userId], references: [id])
+  key       String
+  label     String
+  unit      String?
+  provider  MetricProvider @default(MANUAL)
+  entries   MetricEntry[]
+  createdAt DateTime       @default(now())
+
+  @@unique([userId, key])
+}
+
+model MetricEntry {
+  id         String       @id @default(cuid())
+  seriesId   String
+  series     MetricSeries @relation(fields: [seriesId], references: [id], onDelete: Cascade)
+  value      Decimal
+  recordedAt DateTime
+  // "manual", or the service it was synced from.
+  source     String       @default("manual")
+  createdAt  DateTime     @default(now())
+
+  @@index([seriesId, recordedAt])
 }

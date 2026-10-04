@@ -79,6 +79,9 @@ export type NewTask = {
   dueDate: Date | null
   recurrence: Recurrence | null
   categoryId: string | null
+  // Set by the goal pages, after checking the goal is the user's.
+  goalId?: string | null
+  milestoneId?: string | null
 }
 
 async function checkCategory(userId: string, categoryId: string | null, deps: Deps) {
@@ -104,6 +107,8 @@ export async function addTask(userId: string, input: NewTask, deps: Deps = perso
     dueDate: input.dueDate ? startOfDay(input.dueDate) : null,
     recurrence: input.recurrence,
     categoryId: input.categoryId,
+    goalId: input.goalId ?? null,
+    milestoneId: input.milestoneId ?? null,
   })
 }
 
