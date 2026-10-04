@@ -8,6 +8,7 @@ import {
   Layers,
   PiggyBank,
   Target,
+  UserRound,
   Wallet,
   type LucideIcon,
 } from 'lucide-react'
@@ -123,6 +124,30 @@ const SECTIONS: { icon: LucideIcon; title: string; lead: string; words: Word[] }
         text: m('Planned against actual for the week, the month or the year, with where the money went.'),
       },
       { term: m('History'), text: m('Everything you recorded, newest first.') },
+    ],
+  },
+  {
+    icon: UserRound,
+    title: m('Personal'),
+    lead: m('Apart from money: what you do today, who you are becoming, and what you think about it.'),
+    words: [
+      {
+        term: m('Task'),
+        text: m('Something to do, on a day, repeating, or waiting in the inbox until you give it a day. A day warns you when it holds more than you set.'),
+      },
+      {
+        term: m('Carried over'),
+        text: m('An unfinished task moves to the next day on its own and asks once why it slipped. The reasons show up in your weekly review.'),
+      },
+      { term: m('Session'), text: m('Time spent on something, started and stopped from Today or logged afterwards.') },
+      {
+        term: m('Personal goal'),
+        text: m('A level to reach, hours to put in, steps, a habit or a list. It is reached from your values, sessions and tasks, never ticked by hand.'),
+      },
+      {
+        term: m('Journal'),
+        text: m('Notes, decisions and ideas, linked to your goals and tasks. An entry can be locked with a password.'),
+      },
     ],
   },
 ]

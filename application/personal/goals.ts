@@ -142,6 +142,7 @@ export async function listPersonalGoals(userId: string, now: Date = clockNow(), 
     horizon: goal.horizon,
     category: goal.category,
     deadline: goal.tree.deadline,
+    lifecycle: goal.tree.lifecycle,
     preset: evaluation.completion[0] ? presetOf(evaluation.completion[0].condition, goal.tree.lifecycle) : null,
     evaluation,
     // Goals that use sessions can be timed from Today.

@@ -14,7 +14,15 @@ import { fieldAttributes, initialFormState, type FormState } from '@/lib/forms/f
 import { useT } from '@/lib/i18n/client'
 import { cn } from '@/lib/utils'
 
-import { deleteEntryAction, lockEntryAction, relockEntryAction, removeLockAction, saveEntryAction, unlockEntryAction } from './actions'
+import {
+  deleteEntryAction,
+  lockEntryAction,
+  relockEntryAction,
+  removeLockAction,
+  saveDailyNoteAction,
+  saveEntryAction,
+  unlockEntryAction,
+} from './actions'
 import { ENTRY_TYPE_HINTS, ENTRY_TYPE_LABELS } from './entry-labels'
 
 const scope = 'entry'
@@ -58,15 +66,19 @@ function EntryFields({
   links,
   today,
   initialBody = '',
+  initialType = 'FREE',
 }: {
   state: FormState
   draft: EntryDraft | null
   links: LinkOption[]
   today: string
   initialBody?: string
+  initialType?: string
 }) {
   const t = useT()
-  const [type, setType] = useState(draft?.type ?? 'FREE')
+  const [type, setType] = useState(draft?.type ?? initialType)
+  // A review is written from the review page; it keeps its kind when edited.
+  const types: string[] = type === 'REVIEW' ? [...WRITABLE_TYPES, 'REVIEW'] : [...WRITABLE_TYPES]
   const [secure, setSecure] = useState(false)
   const body = useRef<HTMLTextAreaElement>(null)
   const id = (name: string) => `${scope}-${name}`
@@ -95,9 +107,9 @@ function EntryFields({
         <div className="grid gap-2">
           <Label htmlFor={id('type')}>{t('Kind')}</Label>
           <NativeSelect id={id('type')} {...fieldAttributes(state, 'type', scope)} value={type} onChange={(e) => setType(e.target.value)} className={FIELD_CLASS}>
-            {WRITABLE_TYPES.map((value) => (
+            {types.map((value) => (
               <NativeSelectOption key={value} value={value}>
-                {t(ENTRY_TYPE_LABELS[value])}
+                {t(ENTRY_TYPE_LABELS[value as keyof typeof ENTRY_TYPE_LABELS])}
               </NativeSelectOption>
             ))}
           </NativeSelect>
@@ -185,12 +197,14 @@ export function NewEntryDrawer({
   today,
   label,
   initialBody,
+  initialType,
 }: {
   links: LinkOption[]
   today: string
   label?: string
   // Text to start from, e.g. a link to the goal the entry is about.
   initialBody?: string
+  initialType?: string
 }) {
   const t = useT()
   return (
@@ -206,7 +220,9 @@ export function NewEntryDrawer({
     >
       {(close) => (
         <ActionForm action={saveEntryAction} submitLabel={t('Save entry')} onDone={close}>
-          {(state) => <EntryFields state={state} draft={null} links={links} today={today} initialBody={initialBody} />}
+          {(state) => (
+            <EntryFields state={state} draft={null} links={links} today={today} initialBody={initialBody} initialType={initialType} />
+          )}
         </ActionForm>
       )}
     </ActionDrawer>
@@ -335,5 +351,40 @@ export function DeleteEntryButton({ entryId }: { entryId: string }) {
         </p>
       ) : null}
     </div>
+  )
+}
+
+// "One line about today", on Personal Today: today's daily note.
+export function DailyLine({ body }: { body: string | null }) {
+  const t = useT()
+  const [state, formAction, isPending] = useActionState(saveDailyNoteAction, initialFormState)
+  const submit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    const formData = new FormData(event.currentTarget)
+    startTransition(() => formAction(formData))
+  }
+
+  return (
+    <form onSubmit={submit} className="space-y-1.5 rounded-xl border bg-card p-4" noValidate>
+      <Label htmlFor="daily-line" className="font-semibold">
+        {t('One line about today')}
+      </Label>
+      <div className="flex gap-2">
+        <Input
+          id="daily-line"
+          {...fieldAttributes(state, 'body', 'daily')}
+          defaultValue={body ?? ''}
+          placeholder={t('How did it go?')}
+          maxLength={500}
+          className={FIELD_CLASS}
+        />
+        <Button type="submit" disabled={isPending} variant="outline" className="h-12 shrink-0">
+          {isPending ? <Loader2 className="animate-spin" aria-hidden="true" /> : null}
+          {state.status === 'success' && !isPending ? t('Saved.') : t('Save')}
+        </Button>
+      </div>
+      <FieldError state={state} name="body" scope="daily" />
+      {state.formErrors[0] ? <p className="text-sm text-destructive-strong">{state.formErrors[0]}</p> : null}
+    </form>
   )
 }

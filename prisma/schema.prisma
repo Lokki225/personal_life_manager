@@ -268,6 +268,7 @@ model Task {
   // Who recorded it when not the person: "assistant" or "api:<key name>".
   origin      String?
   completions TaskCompletion[]
+  carries     TaskCarry[]
   createdAt   DateTime         @default(now())
 
   @@index([userId, dueDate])
@@ -704,4 +705,19 @@ model JournalLink {
 
   @@index([targetType, targetId])
   @@index([entryId])
+}
+
+// Each time an unfinished task slipped to a later day, and why. The reviews
+// count these; the task itself only keeps its latest reason.
+model TaskCarry {
+  id        String   @id @default(cuid())
+  taskId    String
+  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  // The day it was moved to, and how many days it slipped to get there.
+  carriedTo DateTime
+  days      Int
+  reason    String?
+  createdAt DateTime @default(now())
+
+  @@index([taskId, carriedTo])
 }

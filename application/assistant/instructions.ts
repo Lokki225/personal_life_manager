@@ -14,6 +14,7 @@ const HOW_THE_APP_WORKS = `How the app works:
 - Chests hold money: the Base Chest (what the plan leaves unallocated), the Buffer, the Debts Chest (borrowed money) and the person's own chests. A SECURE chest can be locked until a date. Savings allocations fill their chest when an income is confirmed.
 - Goals: a savings goal has its own chest and a target; a custom goal is built from conditions on a chest balance, total savings, money saved this month, spending this month (in all or in one category), exceptions this month, or debt still owed.
 - Debts: money borrowed goes into the Debts Chest (or into a goal's chest); money lent leaves the Buffer, Base Chest or Debts Chest, and comes back into the Base Chest when repaid.
+- Personal (a second part of the app, apart from money): tasks for a day (one-off, repeating, or waiting in the inbox without a date), with a soft daily capacity; unfinished tasks move to the next day and ask why. Sessions are time spent, often on a goal. Personal goals are reached from measures, hours of sessions, steps or ticked tasks, or kept as weekly habits. The journal holds free notes, daily notes, decisions and ideas; some entries are locked and cannot be read here.
 - Amounts are whole numbers in XOF (CFA francs). Dates are on the person's own clock.`
 
 const CHAT_RULES = `Rules of the app:

@@ -1,7 +1,7 @@
 import { z } from 'zod'
 
 import { isPersonalRuleError } from '@/domain/personal/errors'
-import { WRITABLE_TYPES } from '@/domain/personal/journal'
+import { JOURNAL_TYPES } from '@/domain/personal/journal'
 import { FormHandler } from '@/lib/forms/FormHandler'
 
 const options = { isRuleError: isPersonalRuleError }
@@ -27,7 +27,7 @@ const day = (message: string) =>
 
 export const entrySchema = z.object({
   id: z.string().trim().optional(),
-  type: z.enum(WRITABLE_TYPES, { error: 'Choose a kind of entry.' }).default('FREE'),
+  type: z.enum(JOURNAL_TYPES, { error: 'Choose a kind of entry.' }).default('FREE'),
   title: z.string().trim().max(80, 'Keep it under 80 characters.').optional(),
   body: z.string({ error: 'Write something first.' }).trim().min(1, 'Write something first.').max(10_000, 'Keep it under 10,000 characters.'),
   mood: scale,
@@ -45,3 +45,8 @@ export const passwordSchema = z.object({
 
 export const entryForm = new FormHandler(entrySchema, options)
 export const passwordForm = new FormHandler(passwordSchema, options)
+
+export const dailyNoteForm = new FormHandler(
+  z.object({ body: z.string({ error: 'Write something first.' }).trim().min(1, 'Write something first.').max(500, 'Keep it under 500 characters.') }),
+  options,
+)

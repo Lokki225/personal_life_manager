@@ -64,7 +64,7 @@ export async function carryOverTasks(userId: string, now: Date = clockNow(), dep
   const unfinished = await deps.listUnfinishedBefore(userId, today)
   const moves = unfinished.flatMap((task) => {
     const move = carryOver({ ...task, recurrence: parseRecurrence(task.recurrence) }, today)
-    return move ? [{ id: task.id, dueDate: move.dueDate, carryCount: move.carryCount }] : []
+    return move ? [{ id: task.id, dueDate: move.dueDate, carryCount: move.carryCount, days: move.carryCount - task.carryCount }] : []
   })
 
   if (moves.length > 0) {
@@ -153,6 +153,7 @@ export async function setCarryReason(userId: string, taskId: string, reason: str
 
   // Not relevant any more: the task goes, instead of slipping again.
   await deps.updateTask(userId, taskId, known === 'not_relevant' ? { status: 'DROPPED', carryReason: known } : { carryReason: known ?? text })
+  await deps.setLatestCarryReason(userId, taskId, known ?? text)
 }
 
 // Gives an inbox task (or any task) a day, or sends it back to the inbox.

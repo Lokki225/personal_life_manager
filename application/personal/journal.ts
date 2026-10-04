@@ -151,3 +151,23 @@ export async function linkOptions(userId: string, deps: Deps = journalRepository
     ...tasks.map((t) => ({ targetType: 'task' as const, targetId: t.id, label: t.title })),
   ]
 }
+
+// --- The daily note -------------------------------------------------------------
+
+export async function getDailyNote(userId: string, now: Date, deps: Deps = journalRepository) {
+  const entry = await deps.findDailyNote(userId, startOfDay(now))
+  return entry ? { id: entry.id, body: entry.body } : null
+}
+
+// "One line about today": writes today's daily note, or replaces its text.
+export async function saveDailyNote(userId: string, text: string, now: Date, deps: Deps = journalRepository) {
+  const input = { type: 'DAILY' as const, title: null, body: text, mood: null, energy: null, entryDate: now, reviewOn: null }
+  const existing = await deps.findDailyNote(userId, startOfDay(now))
+
+  if (existing) {
+    const { data, links } = await prepare(userId, { ...input, mood: existing.mood, energy: existing.energy, title: existing.title }, deps)
+    await deps.updateEntry(userId, existing.id, data, links)
+  } else {
+    await createEntry(userId, { ...input, password: null }, deps)
+  }
+}
