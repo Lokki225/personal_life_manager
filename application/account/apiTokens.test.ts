@@ -5,6 +5,7 @@ import { checkApiAccess, createApiToken, deleteApiToken, MAX_API_TOKENS } from '
 const now = new Date(2026, 9, 3, 12)
 const owner = (scope: 'READ' | 'WRITE', lastUsedAt: Date | null = null) => ({
   tokenId: 'token-1',
+  tokenName: 'Assistant',
   scope,
   lastUsedAt,
   user: { id: 'user-1', email: 'awa@example.com', firstName: 'Awa', lastName: null, username: null, locale: 'fr', timeZone: null, settledThrough: null, bufferSweepDay: 0 },

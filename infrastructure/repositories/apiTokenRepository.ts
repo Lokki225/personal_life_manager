@@ -15,6 +15,7 @@ export type ApiTokenSummary = {
 // Who a key belongs to, as far as answering a request needs to know.
 export type ApiTokenOwner = {
   tokenId: string
+  tokenName: string
   scope: ApiScope
   lastUsedAt: Date | null
   user: {
@@ -79,6 +80,7 @@ export const apiTokenRepository: ApiTokenRepository = {
       where: { tokenHash: hashToken(token) },
       select: {
         id: true,
+        name: true,
         scope: true,
         lastUsedAt: true,
         user: {
@@ -97,7 +99,9 @@ export const apiTokenRepository: ApiTokenRepository = {
       },
     })
 
-    return found ? { tokenId: found.id, scope: found.scope, lastUsedAt: found.lastUsedAt, user: found.user } : null
+    return found
+      ? { tokenId: found.id, tokenName: found.name, scope: found.scope, lastUsedAt: found.lastUsedAt, user: found.user }
+      : null
   },
 
   markUsed: async (tokenId: string, at: Date) => {

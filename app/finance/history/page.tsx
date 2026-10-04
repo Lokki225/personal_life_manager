@@ -8,8 +8,9 @@ import { EXCEPTION_CATEGORIES, EXPENSE_CATEGORIES } from '@/domain/finance/optio
 import { getSignedInUser } from '@/infrastructure/auth/sessionUser'
 import { setClockZone } from '@/lib/clock'
 import { getT } from '@/lib/i18n/server'
-import { m } from '@/lib/i18n/translate'
+import { m, type Translator } from '@/lib/i18n/translate'
 import { cn } from '@/lib/utils'
+import { describeOrigin } from '@/lib/origin'
 
 import { categoryStyle, eventStyle } from '../categories'
 import { chartPoints } from '../chart-data'
@@ -87,6 +88,17 @@ function FilterRow({
       </ul>
     </div>
   )
+}
+
+// Who recorded an entry, when it was not the person in the app.
+function originLabel(origin: string | null | undefined, t: Translator) {
+  const who = describeOrigin(origin)
+
+  if (!who) {
+    return null
+  }
+
+  return who.by === 'assistant' ? t('Recorded by the assistant') : t('Recorded by the key "{name}"', { name: who.name ?? '' })
 }
 
 export default async function FinanceHistoryPage({ searchParams }: PageProps<'/finance/history'>) {
@@ -209,6 +221,7 @@ export default async function FinanceHistoryPage({ searchParams }: PageProps<'/f
                     const details = [
                       event.projectName,
                       event.paidFromChest && t('From {chest}', { chest: t(event.paidFromChest) }),
+                      originLabel(event.origin, t),
                       event.reason && t(event.reason),
                       event.resolution && t(event.resolution),
                     ].filter(

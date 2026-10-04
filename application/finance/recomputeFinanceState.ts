@@ -9,6 +9,7 @@ import {
   type BudgetPeriod,
 } from '../../domain/finance/calculations'
 import { chestBalance, DEBTS_CHEST_NAME, isPaidFromChest, type MovementForBalance } from '../../domain/finance/chests'
+import { isExplained } from '../../domain/finance/options'
 import { evaluateGoal } from './evaluateGoal'
 import {
   financeRepository,
@@ -258,12 +259,16 @@ export async function recomputeFinanceState(input: RecomputeFinanceStateInput): 
 
   const exceptionDates = budgetExceptions.map((exception) => new Date(exception.date ?? referenceDate))
   const monthExceptionCount = exceptionDates.filter((date) => date >= startOfPeriod && date <= endOfPeriod).length
-  const overspendExplained = exceptionDates.some(
-    (date) =>
+  // Explained once today has exceptions and each one has a cause.
+  const todaysExceptions = budgetExceptions.filter((exception) => {
+    const date = new Date(exception.date ?? referenceDate)
+    return (
       date.getFullYear() === today.getFullYear() &&
       date.getMonth() === today.getMonth() &&
-      date.getDate() === today.getDate(),
-  )
+      date.getDate() === today.getDate()
+    )
+  })
+  const overspendExplained = todaysExceptions.length > 0 && todaysExceptions.every(isExplained)
   const monthlyRemaining = periodBudget - monthlySpent
   const monthlyOverspend = Math.max(monthlySpent - periodBudget, 0)
 

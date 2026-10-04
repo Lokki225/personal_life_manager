@@ -962,6 +962,76 @@ export const FR: Messages = {
       "Ce que l'assistant de chaque personne sait de son rôle. Chacun peut le lire, et ajouter ses propres instructions si vous le permettez.",
     'Only an administrator can change this.': 'Seul un administrateur peut modifier ceci.',
     'Choose an AI.': 'Choisissez une IA.',
+    'Not explained yet': 'Pas encore expliqué',
+    // --- Notifications ---------------------------------------------------------
+    'Turn them on for this device, then choose what you want to hear about.':
+      'Activez-les sur cet appareil, puis choisissez ce dont vous voulez être informé(e).',
+    'Reminders about my money': 'Rappels sur mon argent',
+    'Spending to record, incomes to confirm, debts due, an overspend to explain, the month going too fast, the weekly Buffer transfer, a goal reached, a chest unlocking, a new month.':
+      "Dépenses à noter, revenus à confirmer, dettes à échéance, un dépassement à expliquer, un mois qui file trop vite, le transfert hebdomadaire de la Réserve, un objectif atteint, un coffre qui se débloque, un nouveau mois.",
+    'Administration alerts': "Alertes d'administration",
+    'A new account, a new opinion.': 'Un nouveau compte, un nouvel avis.',
+    'Security notices are always sent: a changed password or email, a reset link, a new API key.':
+      'Les avis de sécurité sont toujours envoyés : mot de passe ou email modifié, lien de réinitialisation, nouvelle clé API.',
+    'Today went {amount} over budget': "Aujourd'hui a dépassé le budget de {amount}",
+    'Say why, or cover it from the Buffer, before the day ends.':
+      'Dites pourquoi, ou couvrez-le avec la Réserve, avant la fin de la journée.',
+    "This month's budget is used up": 'Le budget du mois est épuisé',
+    '{count} day is left. What you spend now goes beyond the plan.':
+      'Il reste {count} jour. Ce que vous dépensez maintenant dépasse le plan.',
+    '{count} days are left. What you spend now goes beyond the plan.':
+      'Il reste {count} jours. Ce que vous dépensez maintenant dépasse le plan.',
+    "You have used 80% of this month's budget": 'Vous avez utilisé 80 % du budget du mois',
+    'Only {share}% of the month has passed. Slowing down now keeps the month on plan.':
+      "Seulement {share} % du mois est passé. Ralentir maintenant garde le mois dans le plan.",
+    '{amount} moved to your Base Chest': '{amount} versés dans votre Coffre principal',
+    "The week's leftovers left the Buffer for the Base Chest.":
+      'Les restes de la semaine sont passés de la Réserve au Coffre principal.',
+    'Goal reached: {name}': 'Objectif atteint : {name}',
+    'Its chest has reached its target. Well done!': 'Son coffre a atteint la cible. Bravo !',
+    '{chest} unlocks tomorrow': '{chest} se débloque demain',
+    'From tomorrow, the money in it can be used.': "Dès demain, l'argent qu'il contient pourra être utilisé.",
+    'A new month begins': 'Un nouveau mois commence',
+    'Your daily budget this month is {amount}.': 'Votre budget quotidien ce mois-ci est de {amount}.',
+    'The key "{name}" changed your finances': 'La clé « {name} » a modifié vos finances',
+    'Your sign-in details were changed': 'Vos identifiants ont été modifiés',
+    'Your email and password were changed.': 'Votre email et votre mot de passe ont été modifiés.',
+    'Your email was changed.': 'Votre email a été modifié.',
+    'Your password was changed.': 'Votre mot de passe a été modifié.',
+    'If it was not you, ask an administrator for a reset link.':
+      "Si ce n'était pas vous, demandez un lien de réinitialisation à un administrateur.",
+    'A password reset link was created': 'Un lien de réinitialisation a été créé',
+    'An administrator created a link to reset your password. If you did not ask for it, tell them.':
+      "Un administrateur a créé un lien pour réinitialiser votre mot de passe. Si vous ne l'avez pas demandé, dites-le-lui.",
+    'A new API key was created': 'Une nouvelle clé API a été créée',
+    'The key "{name}" can now use the app as you. If it was not you, delete it in My account.':
+      "La clé « {name} » peut maintenant utiliser l'application en votre nom. Si ce n'était pas vous, supprimez-la dans Mon compte.",
+    'New account: {name}': 'Nouveau compte : {name}',
+    '{email} just signed up.': "{email} vient de s'inscrire.",
+    'New opinion from {name}': 'Nouvel avis de {name}',
+    'Recorded an expense of {amount}.': 'Dépense de {amount} enregistrée.',
+    'Changed an expense of today.': "Une dépense d'aujourd'hui modifiée.",
+    'Deleted an expense of today.': "Une dépense d'aujourd'hui supprimée.",
+    'Saved {amount} from today.': "{amount} épargnés sur aujourd'hui.",
+    "Explained today's overspend.": "Le dépassement d'aujourd'hui expliqué.",
+    "Covered today's overspend from the Buffer.": "Le dépassement d'aujourd'hui couvert par la Réserve.",
+    'Added an income.': 'Un revenu ajouté.',
+    'Changed an income.': 'Un revenu modifié.',
+    'Removed an income.': 'Un revenu retiré.',
+    'Confirmed an income.': 'Un revenu confirmé.',
+    'Added an allocation.': 'Une affectation ajoutée.',
+    'Changed an allocation.': 'Une affectation modifiée.',
+    'Removed an allocation.': 'Une affectation retirée.',
+    'Created a chest.': 'Un coffre créé.',
+    'Deleted a chest.': 'Un coffre supprimé.',
+    'Moved {amount} between chests.': '{amount} déplacés entre coffres.',
+    'Changed the day the Buffer is emptied.': 'Le jour où la Réserve est vidée a changé.',
+    'Created a goal.': 'Un objectif créé.',
+    'Put {amount} towards a goal.': '{amount} versés pour un objectif.',
+    'Recorded a debt or a loan of {amount}.': 'Une dette ou un prêt de {amount} enregistré.',
+    'Recorded a repayment of {amount}.': 'Un remboursement de {amount} enregistré.',
+    'Recorded by the assistant': "Enregistré par l'assistant",
+    'Recorded by the key "{name}"': 'Enregistré par la clé « {name} »',
     'Where your work is going: where you stand, what you want, and the paths between the two.':
       'Où va votre travail : où vous en êtes, ce que vous voulez, et les chemins entre les deux.',
     'Your reflections, priorities and vision: the reasons behind your choices.':

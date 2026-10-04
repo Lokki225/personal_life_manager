@@ -79,6 +79,10 @@ export interface UserRepository {
   // `previous`. Resolves to false when someone else settled them first.
   claimSettlement: (userId: string, previous: Date | null, through: Date) => Promise<boolean>
   setBufferSweepDay: (userId: string, day: number) => Promise<void>
+  // Everyone with a plan, with what closing their days needs.
+  listPlanHolders: () => Promise<
+    { id: string; timeZone: string | null; settledThrough: Date | null; bufferSweepDay: number }[]
+  >
   // Usage per user id. A user who recorded nothing has no entry.
   usageByUser: () => Promise<Map<string, UserUsage>>
   // Who recorded something, and when, since a date.
@@ -221,6 +225,13 @@ export const userRepository: UserRepository = {
 
   setBufferSweepDay: async (userId: string, day: number) => {
     await prisma.user.updateMany({ where: { id: userId }, data: { bufferSweepDay: day } })
+  },
+
+  listPlanHolders: async () => {
+    return prisma.user.findMany({
+      where: { incomes: { some: {} } },
+      select: { id: true, timeZone: true, settledThrough: true, bufferSweepDay: true },
+    })
   },
 
   usageByUser: async () => {

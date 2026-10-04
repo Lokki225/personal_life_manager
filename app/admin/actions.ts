@@ -2,10 +2,12 @@
 
 import { revalidatePath } from 'next/cache'
 
+import { notifyLater } from '@/app/notify-later'
 import { isAccountRuleError } from '@/application/account/errors'
 import { createResetLink } from '@/application/account/passwordReset'
 import { changeUserRole } from '@/application/account/profile'
 import { resetAppRole, saveAppPersona } from '@/application/assistant/persona'
+import { notifyPerson } from '@/application/notifications/instant'
 import { siteUrl } from '@/infrastructure/auth/request'
 import { getSignedInUser } from '@/infrastructure/auth/sessionUser'
 import { signedOutState, translateFormState, type FormState } from '@/lib/forms/formState'
@@ -38,7 +40,12 @@ export async function createResetLinkAction(userId: string): Promise<{ link?: st
   }
 
   try {
-    return { link: await createResetLink(actor, String(userId), baseUrl) }
+    const link = await createResetLink(actor, String(userId), baseUrl)
+
+    // The person is told, in case it was not asked for.
+    notifyLater(() => notifyPerson(String(userId), { kind: 'resetLinkCreated' }))
+
+    return { link }
   } catch (error) {
     if (isAccountRuleError(error)) {
       return { error: t(error.message) }

@@ -107,6 +107,9 @@ model MoneyMovement {
   expenseId          String?        @unique
   expense            Expense?       @relation(fields: [expenseId], references: [id], onDelete: Cascade)
   createdAt          DateTime       @default(now())
+  // Who recorded it when not the person in the app: "assistant" or
+  // "api:<key name>". Empty for the person and for what the app does itself.
+  origin             String?
 }
 
 model Goal {
@@ -173,6 +176,10 @@ model User {
   assistantInstructions String?
   // Whether the person wants to hear about what is new in the app.
   wantsNews     Boolean  @default(false)
+  // Which notifications the person wants. Security notices are always sent.
+  notifyMoney   Boolean  @default(true)
+  // For administrators: new accounts and new opinions.
+  notifyAdmin   Boolean  @default(true)
   createdAt     DateTime @default(now())
 
   incomes           Income[]
@@ -190,6 +197,20 @@ model User {
   apiTokens         ApiToken[]
   assistantNoteList AssistantNote[]
   feedback          Feedback[]
+  notificationLog   NotificationLog[]
+}
+
+// What was already sent to a person, so the same event is never sent twice.
+// The key names the event, e.g. "goal:<id>" or "overspend:2026-10-04".
+model NotificationLog {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  key       String
+  createdAt DateTime @default(now())
+
+  @@unique([userId, key])
+  @@index([createdAt])
 }
 
 // What a person thinks of the app, for the administrators to read.
@@ -392,6 +413,9 @@ model Expense {
   // The money that left the chest for it.
   chestMovement     MoneyMovement?
   createdAt     DateTime   @default(now())
+  // Who recorded it when not the person in the app: "assistant" or
+  // "api:<key name>". Empty for the person and for what the app does itself.
+  origin             String?
 }
 
 
@@ -411,6 +435,9 @@ model BudgetException {
   expenseId       String?
   expense         Expense? @relation(fields: [expenseId], references: [id], onDelete: SetNull)
   createdAt       DateTime @default(now())
+  // Who recorded it when not the person in the app: "assistant" or
+  // "api:<key name>". Empty for the person and for what the app does itself.
+  origin             String?
 }
 
 

@@ -2,15 +2,17 @@
 
 import { revalidatePath } from 'next/cache'
 
+import { notifyLater } from '@/app/notify-later'
 import { isAccountRuleError } from '@/application/account/errors'
 import { askAssistant } from '@/application/assistant/chat'
 import { getAppPersona, savePersonalPersona } from '@/application/assistant/persona'
+import { notifyReachedGoals } from '@/application/notifications/instant'
 import { AiBusy, AiModelUnavailable, AiOutOfCredit } from '@/infrastructure/ai/model'
 import { availableProviders, isAssistantConfigured, resolveProvider } from '@/infrastructure/ai/providers'
 import { getSignedInUser } from '@/infrastructure/auth/sessionUser'
 import { assistantRepository } from '@/infrastructure/repositories/assistantRepository'
-import { signedOutState, translateFormState, type FormState } from '@/lib/forms/formState'
 import { setClockZone } from '@/lib/clock'
+import { signedOutState, translateFormState, type FormState } from '@/lib/forms/formState'
 import { shortName } from '@/lib/greeting'
 import { getT } from '@/lib/i18n/server'
 
@@ -85,6 +87,7 @@ export async function askAssistantAction(conversation: unknown): Promise<Assista
     // What the assistant recorded shows on every finance page.
     if (changed) {
       revalidatePath('/finance', 'layout')
+      notifyLater(() => notifyReachedGoals(user.id))
     }
 
     return { ok: true, reply: reply ?? t('I could not finish this. Try asking in smaller steps.') }

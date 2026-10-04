@@ -1,6 +1,7 @@
 import { expenseOverages } from '../../domain/finance/calculations'
 import { chestWithdrawalBlocker, isPaidFromChest } from '../../domain/finance/chests'
 import { FinanceRuleError } from '../../domain/finance/errors'
+import { UNEXPLAINED_CAUSE } from '../../domain/finance/options'
 import { financeRepository } from '../../infrastructure/repositories/financeRepository'
 import { createBudgetException } from './createBudgetException'
 import { getChestsWithBalances } from './getChestsWithBalances'
@@ -120,7 +121,7 @@ async function syncTodayExceptions(
         userId,
         date: today,
         ...figures,
-        category: 'other',
+        category: UNEXPLAINED_CAUSE,
         reason: 'Unplanned spending',
         resolution: 'Review next cycle',
         expenseId: expense.id,

@@ -1,4 +1,5 @@
 import { AccountRuleError } from '../account/errors'
+import { withOrigin } from '../../lib/origin'
 import type { ApiUser } from '../api/operation'
 import type { AskModel } from '../../infrastructure/ai/model'
 import { modelFor } from '../../infrastructure/ai/providers'
@@ -64,5 +65,8 @@ export async function askAssistant(
     throw new AccountRuleError('You have used all your messages to the assistant for today. Try again tomorrow.')
   }
 
-  return deps.converse(user, turns, { ...(await deps.contextOf(user.id)), operations: chatOperations })
+  const context = await deps.contextOf(user.id)
+
+  // What the assistant records is marked as its doing, for the history.
+  return withOrigin('assistant', () => deps.converse(user, turns, { ...context, operations: chatOperations }))
 }

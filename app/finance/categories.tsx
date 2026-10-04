@@ -4,6 +4,7 @@ import {
   ArrowUpRight,
   Bus,
   CircleEllipsis,
+  CircleHelp,
   PiggyBank,
   ReceiptText,
   ShoppingBag,
@@ -25,6 +26,8 @@ const CATEGORIES: Record<string, CategoryStyle> = {
   shopping: { label: m('Shopping'), icon: ShoppingBag },
   emergency: { label: m('Emergency'), icon: Siren },
   other: { label: m('Other'), icon: CircleEllipsis },
+  // An overspend recorded without a cause, until it is explained.
+  unexplained: { label: m('Not explained yet'), icon: CircleHelp },
 }
 
 // Label and icon for an expense or exception category. Unknown values (older

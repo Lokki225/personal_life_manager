@@ -14,3 +14,9 @@ export type AllocationCategory = (typeof ALLOCATION_CATEGORIES)[number]
 export type IncomeFrequency = (typeof INCOME_FREQUENCIES)[number]
 export type ExpenseCategory = (typeof EXPENSE_CATEGORIES)[number]
 export type ExceptionCategory = (typeof EXCEPTION_CATEGORIES)[number]
+
+// The cause of an exception recorded without one: an overspend nobody has
+// explained yet. Explaining it replaces this with the real cause.
+export const UNEXPLAINED_CAUSE = 'unexplained'
+
+export const isExplained = (exception: { category?: string | null }) => exception.category !== UNEXPLAINED_CAUSE

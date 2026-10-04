@@ -2,12 +2,14 @@
 
 import { revalidatePath } from 'next/cache'
 
+import { notifyLater } from '@/app/notify-later'
 import { createChest } from '@/application/finance/createChest'
 import { deleteChest } from '@/application/finance/deleteChest'
+import { notifyReachedGoals } from '@/application/notifications/instant'
 import { getSignedInUser } from '@/infrastructure/auth/sessionUser'
 import { userRepository } from '@/infrastructure/repositories/userRepository'
-import { signedOutState, translateFormState, type FormState } from '@/lib/forms/formState'
 import { setClockZone } from '@/lib/clock'
+import { signedOutState, translateFormState, type FormState } from '@/lib/forms/formState'
 import { getT } from '@/lib/i18n/server'
 
 import { chestForm, deleteChestForm, sweepDayForm } from './schema'
@@ -33,6 +35,7 @@ export async function createChestAction(_previousState: FormState, formData: For
 
   if (state.status === 'success') {
     revalidatePath('/finance', 'layout')
+    notifyLater(() => notifyReachedGoals(userId))
   }
 
   return translateFormState(state, t)
@@ -52,6 +55,7 @@ export async function deleteChestAction(_previousState: FormState, formData: For
 
   if (state.status === 'success') {
     revalidatePath('/finance', 'layout')
+    notifyLater(() => notifyReachedGoals(userId))
   }
 
   return translateFormState(state, t)
@@ -71,6 +75,7 @@ export async function setSweepDayAction(_previousState: FormState, formData: For
 
   if (state.status === 'success') {
     revalidatePath('/finance', 'layout')
+    notifyLater(() => notifyReachedGoals(userId))
   }
 
   return translateFormState(state, t)

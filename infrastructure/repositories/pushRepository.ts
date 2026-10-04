@@ -6,6 +6,8 @@ export type PushRecipient = {
   id: string
   locale: string | null
   timeZone: string | null
+  // Whether the person wants reminders about their money.
+  notifyMoney: boolean
   subscriptions: StoredSubscription[]
 }
 
@@ -47,7 +49,7 @@ export const pushRepository: PushRepository = {
   listRecipients: async () => {
     const users = await prisma.user.findMany({
       where: { pushSubscriptions: { some: {} } },
-      select: { id: true, locale: true, timeZone: true, pushSubscriptions: { select: fields } },
+      select: { id: true, locale: true, timeZone: true, notifyMoney: true, pushSubscriptions: { select: fields } },
     })
 
     return users.map(({ pushSubscriptions, ...user }) => ({ ...user, subscriptions: pushSubscriptions }))

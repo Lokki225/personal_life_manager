@@ -2,10 +2,12 @@
 
 import { revalidatePath } from 'next/cache'
 
+import { notifyLater } from '@/app/notify-later'
 import { recordDebt, repayDebt } from '@/application/finance/debts'
+import { notifyReachedGoals } from '@/application/notifications/instant'
 import { getSignedInUser } from '@/infrastructure/auth/sessionUser'
-import { signedOutState, translateFormState, type FormState } from '@/lib/forms/formState'
 import { setClockZone } from '@/lib/clock'
+import { signedOutState, translateFormState, type FormState } from '@/lib/forms/formState'
 import { getT } from '@/lib/i18n/server'
 
 import { debtForm, repayForm } from './schema'
@@ -37,6 +39,7 @@ export async function createDebtAction(_previousState: FormState, formData: Form
 
   if (state.status === 'success') {
     revalidatePath('/finance', 'layout')
+    notifyLater(() => notifyReachedGoals(userId))
   }
 
   return translateFormState(state, t)
@@ -58,6 +61,7 @@ export async function repayDebtAction(_previousState: FormState, formData: FormD
 
   if (state.status === 'success') {
     revalidatePath('/finance', 'layout')
+    notifyLater(() => notifyReachedGoals(userId))
   }
 
   return translateFormState(state, t)
