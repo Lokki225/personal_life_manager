@@ -1,7 +1,7 @@
 import type { Messages } from './translate'
 
 // French. The key is the English text exactly as the code writes it.
-// Vocabulary: chest = coffre, Buffer = Réserve, allocation = poste,
+// Vocabulary: chest = coffre, Buffer = Réserve, allocation = allocation,
 // exception = imprévu, overspend = dépassement, goal = objectif.
 export const FR: Messages = {
   exact: {
@@ -99,7 +99,7 @@ export const FR: Messages = {
     Available: 'Disponible',
     Planned: 'Prévu',
     'Income, allocations, a daily budget, savings chests, goals and debts.':
-      "Revenus, postes de dépense, budget journalier, coffres d'épargne, objectifs et dettes.",
+      "Revenus, allocations de dépense, budget journalier, coffres d'épargne, objectifs et dettes.",
     'What you are building, and what it costs and brings in.': 'Ce que vous construisez, ce que cela coûte et rapporte.',
     'Where your work is going, and the steps to get there.': 'Où va votre travail, et les étapes pour y arriver.',
     'The habits that keep the rest of the plan standing.': 'Les habitudes qui font tenir tout le reste.',
@@ -134,7 +134,7 @@ export const FR: Messages = {
     'Start with this month': 'Commencez par ce mois-ci',
     "Pick up where you left off and see today's number.": "Reprenez où vous en étiez et voyez le chiffre du jour.",
     'Create an account, enter your income and allocations, and get your first daily budget in a couple of minutes.':
-      'Créez un compte, saisissez vos revenus et vos postes, et obtenez votre premier budget journalier en quelques minutes.',
+      'Créez un compte, saisissez vos revenus et vos allocations, et obtenez votre premier budget journalier en quelques minutes.',
 
     // --- Sign in and sign up ---------------------------------------------------
     'Know what you can spend today.': "Sachez ce que vous pouvez dépenser aujourd'hui.",
@@ -142,7 +142,7 @@ export const FR: Messages = {
       'Planifiez vos revenus une fois, puis commencez chaque journée avec un chiffre clair.',
     'A daily budget you can trust': 'Un budget journalier fiable',
     'Derived from your income and allocations, so you know what today can afford.':
-      "Calculé à partir de vos revenus et de vos postes, pour savoir ce que la journée permet.",
+      "Calculé à partir de vos revenus et de vos allocations, pour savoir ce que la journée permet.",
     'Savings with a purpose': 'Une épargne qui a un but',
     'Move what you keep into chests and track the goals they fund.':
       "Placez ce que vous gardez dans des coffres et suivez les objectifs qu'ils financent.",
@@ -221,7 +221,21 @@ export const FR: Messages = {
     Review: 'Bilan',
     History: 'Historique',
     'Section pages': 'Pages de la section',
-    'Finance navigation': 'Navigation des finances',
+    '{node} views': 'Vues : {node}',
+    'Switch node, now {node}': 'Changer de nœud, actuellement {node}',
+    'Coming soon': 'Bientôt disponible',
+    'Last: {view}': 'Dernière vue : {view}',
+    'No previous page': 'Aucune page précédente',
+    'Back to {node} {view}': 'Retour à {node} · {view}',
+    'Back to {node}': 'Retour à {node}',
+    Tasks: 'Tâches',
+    Journal: 'Journal',
+    Overview: "Vue d'ensemble",
+    Skills: 'Compétences',
+    Ideas: 'Idées',
+    Vision: 'Vision',
+    Seasons: 'Saisons',
+    Letters: 'Lettres',
 
     // --- Greeting --------------------------------------------------------------
     '{salutation}!': '{salutation} !',
@@ -250,7 +264,7 @@ export const FR: Messages = {
     'Confirm it to fill your chests.': 'Confirmez pour alimenter vos coffres.',
     '{source} arrived': 'Revenu reçu : {source}',
     'Enter what really came in. Your planned savings and the income no allocation claims go into your chests.':
-      "Saisissez ce qui est réellement arrivé. Votre épargne prévue et le revenu qu'aucun poste ne réclame vont dans vos coffres.",
+      "Saisissez ce qui est réellement arrivé. Votre épargne prévue et le revenu qu'aucun allocation ne réclame vont dans vos coffres.",
     'Confirm income': 'Confirmer le revenu',
     'Over today': "Dépassement aujourd'hui",
     'Left today': "Reste aujourd'hui",
@@ -268,7 +282,7 @@ export const FR: Messages = {
       "Votre plan couvre 30 jours, et votre réserve et votre coffre principal n'ont rien pour couvrir le 31. Les dépenses sont tout de même enregistrées.",
     'No daily budget yet': 'Pas encore de budget journalier',
     'Your plan has no "Daily living" allocation, so there is nothing to spread over the month. Expenses are still recorded.':
-      "Votre plan n'a pas de poste « Vie quotidienne » : il n'y a rien à répartir sur le mois. Les dépenses sont tout de même enregistrées.",
+      "Votre plan n'a pas de allocation « Vie quotidienne » : il n'y a rien à répartir sur le mois. Les dépenses sont tout de même enregistrées.",
     "Today's overspend is explained. See it in Review.": 'Le dépassement du jour est expliqué. Retrouvez-le dans le bilan.',
     'Spent today': "Dépensé aujourd'hui",
     'Nothing spent yet today.': "Rien dépensé pour l'instant aujourd'hui.",
@@ -306,7 +320,7 @@ export const FR: Messages = {
     allocated: 'répartis',
     'not allocated.': 'non répartis.',
     'more than your income.': 'de plus que vos revenus.',
-    'No allocations recorded yet.': 'Aucun poste enregistré pour le moment.',
+    'No allocations recorded yet.': 'Aucun allocation enregistré pour le moment.',
 
     // --- Today's drawers -------------------------------------------------------
     'Amount ({currency})': 'Montant ({currency})',
@@ -559,7 +573,7 @@ export const FR: Messages = {
     'Finance setup': 'Configuration des finances',
     'Plan your monthly budget': 'Planifiez votre budget mensuel',
     'Capture your income and the recurring allocations that shape your daily budget.':
-      'Indiquez vos revenus et les postes récurrents qui déterminent votre budget journalier.',
+      'Indiquez vos revenus et les allocations récurrents qui déterminent votre budget journalier.',
     Income: 'Revenus',
     'What comes in, and how often.': 'Ce qui rentre, et à quelle fréquence.',
     Source: 'Source',
@@ -571,12 +585,12 @@ export const FR: Messages = {
     'Pay day (day of the month)': 'Jour de paie (jour du mois)',
     'You will be asked to confirm it on that day, starting a month from now.':
       "Vous serez invité à le confirmer ce jour-là, à partir du mois prochain.",
-    Allocations: 'Postes',
+    Allocations: 'Allocations',
     'Where the money is planned to go.': "Où l'argent est censé aller.",
     'No allocations yet. Add rent, subscriptions, savings and your daily living budget.':
-      'Aucun poste pour le moment. Ajoutez le loyer, les abonnements, l\'épargne et votre budget de vie quotidienne.',
-    'Allocation {number}': 'Poste {number}',
-    'Remove allocation {number}': 'Retirer le poste {number}',
+      'Aucun allocation pour le moment. Ajoutez le loyer, les abonnements, l\'épargne et votre budget de vie quotidienne.',
+    'Allocation {number}': 'Allocation {number}',
+    'Remove allocation {number}': 'Retirer le allocation {number}',
     Amount: 'Montant',
     Fixed: 'Fixe',
     Subscription: 'Abonnement',
@@ -585,16 +599,16 @@ export const FR: Messages = {
     'Save setup': 'Enregistrer la configuration',
     'Plan summary': 'Résumé du plan',
     Untitled: 'Sans titre',
-    'Add an allocation to see your plan here.': 'Ajoutez un poste pour voir votre plan ici.',
+    'Add an allocation to see your plan here.': 'Ajoutez un allocation pour voir votre plan ici.',
     'Derived daily budget': 'Budget journalier calculé',
     'Enter an income source.': 'Saisissez une source de revenu.',
     'Choose a frequency.': 'Choisissez une fréquence.',
     'Enter a day from 1 to 31.': 'Saisissez un jour entre 1 et 31.',
-    'Enter an allocation name.': 'Saisissez un nom de poste.',
+    'Enter an allocation name.': 'Saisissez un nom de allocation.',
     'Choose a period.': 'Choisissez une période.',
-    'Fill in this allocation.': 'Complétez ce poste.',
-    'Add at least one allocation.': 'Ajoutez au moins un poste.',
-    'That is too many allocations.': 'Cela fait trop de postes.',
+    'Fill in this allocation.': 'Complétez ce allocation.',
+    'Add at least one allocation.': 'Ajoutez au moins un allocation.',
+    'That is too many allocations.': 'Cela fait trop de allocations.',
     'Your plan is already set up. Nothing was saved again.':
       "Votre plan est déjà configuré. Rien n'a été enregistré à nouveau.",
 
@@ -657,17 +671,17 @@ export const FR: Messages = {
       'Vous le faites une fois, à la configuration. Il dit ce qui rentre et où cela doit aller.',
     'The money you receive, and the day of the month it usually arrives.':
       "L'argent que vous recevez, et le jour du mois où il arrive d'habitude.",
-    Allocation: 'Poste',
+    Allocation: 'Allocation',
     'A share of your income set aside for one purpose: rent, a subscription, savings, daily living.':
       'Une part de vos revenus réservée à un seul usage : loyer, abonnement, épargne, vie quotidienne.',
     'The allocation for everyday spending: food, transport, small purchases. Your daily budget comes from it.':
-      'Le poste des dépenses de tous les jours : alimentation, transport, petits achats. Votre budget journalier en découle.',
+      'Le allocation des dépenses de tous les jours : alimentation, transport, petits achats. Votre budget journalier en découle.',
     'Your day': 'Votre journée',
     'Every day starts with one number. You record what you spend against it.':
       'Chaque journée commence par un chiffre. Vous notez ce que vous dépensez.',
     'Daily budget': 'Budget journalier',
     'Your daily living allocation spread over 30 days. It is what one day can afford.':
-      "Votre poste de vie quotidienne réparti sur 30 jours. C'est ce qu'une journée permet.",
+      "Votre allocation de vie quotidienne réparti sur 30 jours. C'est ce qu'une journée permet.",
     'Your daily budget minus what you already spent today.':
       "Votre budget journalier moins ce que vous avez déjà dépensé aujourd'hui.",
     Overspend: 'Dépassement',
@@ -683,7 +697,7 @@ export const FR: Messages = {
     'Where what is left of each day goes, on its own. Once a week it is emptied into your Base Chest.':
       'Là où va, tout seul, ce qui reste de chaque journée. Une fois par semaine, elle est vidée dans votre coffre principal.',
     'Your main chest. Income that no allocation claims lands here, and so does the Buffer every week.':
-      "Votre coffre principal. Le revenu qu'aucun poste ne réclame y arrive, ainsi que la réserve chaque semaine.",
+      "Votre coffre principal. Le revenu qu'aucun allocation ne réclame y arrive, ainsi que la réserve chaque semaine.",
     'A chest you can lock until a date, so the money stays out of reach until then.':
       "Un coffre verrouillable jusqu'à une date, pour que l'argent reste hors de portée d'ici là.",
     'A target for a chest, such as a phone or an emergency fund. It is reached when the chest holds the target.':
@@ -712,21 +726,21 @@ export const FR: Messages = {
     'That is all you need to start.': "C'est tout ce qu'il faut pour commencer.",
 
     // --- Editing the plan ------------------------------------------------------
-    'Add allocation': 'Ajouter un poste',
-    'New allocation': 'Nouveau poste',
-    'Edit allocation': 'Modifier le poste',
+    'Add allocation': 'Ajouter un allocation',
+    'New allocation': 'Nouveau allocation',
+    'Edit allocation': 'Modifier le allocation',
     'Edit {name}': 'Modifier {name}',
     'Changes apply from today. Your chests follow: an allocation takes its money from the Base Chest.':
-      "Les changements s'appliquent dès aujourd'hui. Vos coffres suivent : un poste prend son argent dans le coffre principal.",
+      "Les changements s'appliquent dès aujourd'hui. Vos coffres suivent : un allocation prend son argent dans le coffre principal.",
     'Plan change': 'Changement de plan',
     'In your chests': 'Dans vos coffres',
     'Rent, internet, savings...': 'Loyer, internet, épargne...',
-    'Delete this allocation': 'Supprimer ce poste',
-    'Delete this allocation? Your past expenses are kept.': 'Supprimer ce poste ? Vos dépenses passées sont conservées.',
+    'Delete this allocation': 'Supprimer ce allocation',
+    'Delete this allocation? Your past expenses are kept.': 'Supprimer ce allocation ? Vos dépenses passées sont conservées.',
     'Not allocated': 'Non réparti',
     'It is kept in your Base Chest.': 'Ce montant est gardé dans votre coffre principal.',
-    'This allocation no longer exists.': "Ce poste n'existe plus.",
-    'Choose an allocation.': 'Choisissez un poste.',
+    'This allocation no longer exists.': "Ce allocation n'existe plus.",
+    'Choose an allocation.': 'Choisissez un allocation.',
 
     // --- Profile ---------------------------------------------------------------
     'Who you are, and how you sign in.': 'Qui vous êtes, et comment vous vous connectez.',
@@ -1032,15 +1046,18 @@ export const FR: Messages = {
     'Recorded a repayment of {amount}.': 'Un remboursement de {amount} enregistré.',
     'Recorded by the assistant': "Enregistré par l'assistant",
     'Recorded by the key "{name}"': 'Enregistré par la clé « {name} »',
-    'Where your work is going: where you stand, what you want, and the paths between the two.':
-      'Où va votre travail : où vous en êtes, ce que vous voulez, et les chemins entre les deux.',
-    'Your reflections, priorities and vision: the reasons behind your choices.':
-      'Vos réflexions, priorités et votre vision : les raisons de vos choix.',
+    'What you do today and who you are becoming: tasks, goals, sessions and a journal.':
+      "Ce que vous faites aujourd'hui et qui vous devenez : tâches, objectifs, séances et journal.",
+    'Where your work is going: projects, skills, and the paths between them.':
+      'Où va votre travail : projets, compétences, et les chemins entre eux.',
+    'Later and maybe: ideas, a vision, seasons and letters to your future self.':
+      'Plus tard, peut-être : idées, une vision, des saisons et des lettres à votre futur vous.',
     'Coming next': 'Bientôt',
     Personal: 'Personnel',
-    'Three nodes, one life': 'Trois nœuds, une vie',
-    'Finance, Career and Personal: each is a node, built on the same loop of intent, reality and adjustment, and linked to the others. Finance is the first one, and the one you can use today.':
-      "Finance, Carrière et Personnel : chacun est un nœud, bâti sur la même boucle d'intention, de réalité et d'ajustement, et relié aux autres. Finance est le premier, et celui que vous pouvez utiliser aujourd'hui.",
+    Projection: 'Projection',
+    'Four nodes, one life': 'Quatre nœuds, une vie',
+    'Finance, Personal, Career and Projection: each is a node, built on the same loop of intent, reality and adjustment, and linked to the others. Finance is the first one, and the one you can use today.':
+      "Finance, Personnel, Carrière et Projection : chacun est un nœud, bâti sur la même boucle d'intention, de réalité et d'ajustement, et relié aux autres. Finance est le premier, et celui que vous pouvez utiliser aujourd'hui.",
     'Your opinion': 'Votre avis',
     'Give my opinion': 'Donner mon avis',
     'The app is young and grows with what its users say. Tell us what works, what does not, and what you would like.':
