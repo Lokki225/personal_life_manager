@@ -13,7 +13,7 @@ function deps(overrides: Record<string, unknown> = {}) {
     addEntry: vi.fn(async () => true),
     createFromPlan: vi.fn(async () => ({ id: 'g' })),
     getTree: vi.fn(async (_u: string, id: string) =>
-      id === 'g' ? { id: 'g', tree: { milestones: [{ id: 'm0' }], groups: [] } } : null,
+      id === 'g' ? { id: 'g', name: 'Learn Japanese', tree: { milestones: [{ id: 'm0' }], groups: [] } } : null,
     ),
     createTask: vi.fn(async (_u: string, data: object) => ({ id: 't', ...data })),
     abandon: vi.fn(async () => true),
@@ -80,10 +80,21 @@ describe('goal tasks and abandoning', () => {
     await expect(addGoalTask('u', 'nope', task, d as never)).rejects.toThrow('This goal no longer exists.')
   })
 
-  it('keeps the reason for abandoning', async () => {
+  it('keeps the reason for abandoning, and writes it in the journal linked to the goal', async () => {
     const d = deps() as unknown as Record<string, ReturnType<typeof vi.fn>>
-    await abandonGoal('u', 'g', '  Changed priorities ', now, d as never)
+    const journal = { ownedTargets: async () => new Set(['goal:g']), createEntry: vi.fn(async () => ({ id: 'e' })) }
+
+    await abandonGoal('u', 'g', '  Changed priorities ', now, d as never, journal as never)
     expect(d.abandon).toHaveBeenCalledWith('u', 'g', 'Changed priorities', now)
+    expect(journal.createEntry).toHaveBeenCalledWith(
+      'u',
+      expect.objectContaining({ type: 'DECISION', title: 'Learn Japanese', body: 'Changed priorities\n\n@[Learn Japanese](goal:g)' }),
+      [{ targetType: 'goal', targetId: 'g', label: 'Learn Japanese' }],
+      null,
+    )
+
+    await abandonGoal('u', 'g', null, now, d as never, journal as never)
+    expect(journal.createEntry).toHaveBeenCalledTimes(1)
   })
 })
 

@@ -11,11 +11,14 @@ import {
   type Preset,
 } from '../../domain/goals/presets'
 import { PersonalRuleError } from '../../domain/personal/errors'
+import { linkToken } from '../../domain/personal/journal'
 import { addDays, parseRecurrence, startOfDay } from '../../domain/personal/tasks'
 import { goalRepository, type StoredGoal } from '../../infrastructure/repositories/goalRepository'
+import { journalRepository } from '../../infrastructure/repositories/journalRepository'
 import { personalRepository } from '../../infrastructure/repositories/personalRepository'
 import { now as clockNow } from '../../lib/clock'
 import { addTask, type NewTask } from './tasks'
+import { createEntry } from './journal'
 import { createSeries, logMetric } from './sessions'
 
 type Deps = typeof goalRepository & typeof personalRepository
@@ -183,10 +186,38 @@ export async function getPersonalGoal(userId: string, goalId: string, now: Date 
   }
 }
 
-export async function abandonGoal(userId: string, goalId: string, reason: string | null, now: Date = clockNow(), deps: Deps = defaultDeps) {
+// Abandoning is the only manual status. A reason given is also kept in the
+// journal, as a decision linked to the goal.
+export async function abandonGoal(
+  userId: string,
+  goalId: string,
+  reason: string | null,
+  now: Date = clockNow(),
+  deps: Deps = defaultDeps,
+  journal: typeof journalRepository = journalRepository,
+) {
   const text = reason?.trim() || null
   if (text && text.length > 280) throw new PersonalRuleError('Keep it under 280 characters.', 'reason')
-  if (!(await deps.abandon(userId, goalId, text, now))) throw new PersonalRuleError('This goal no longer exists.')
+
+  const goal = await deps.getTree(userId, goalId, 'personal')
+  if (!goal || !(await deps.abandon(userId, goalId, text, now))) throw new PersonalRuleError('This goal no longer exists.')
+
+  if (text) {
+    await createEntry(
+      userId,
+      {
+        type: 'DECISION',
+        title: goal.name,
+        body: `${text}\n\n${linkToken({ targetType: 'goal', targetId: goal.id, label: goal.name })}`,
+        mood: null,
+        energy: null,
+        entryDate: now,
+        reviewOn: null,
+        password: null,
+      },
+      journal,
+    )
+  }
 }
 
 export async function addMilestone(userId: string, goalId: string, name: string, deps: Deps = defaultDeps) {
