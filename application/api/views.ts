@@ -90,6 +90,7 @@ export function goalsView(state: FinanceState) {
     stillOwed: goal.owed,
     conditions: goal.conditionResults.map((result) => ({
       measurement: result.measurement,
+      category: result.category,
       operator: result.operator,
       target: result.target,
       actual: result.actual,

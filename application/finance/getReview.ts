@@ -27,7 +27,14 @@ export type ReviewGoalStatus = {
   satisfied: boolean
   borrowed: number
   owed: number
-  conditionResults: Array<{ measurement: string; operator: string; target: number; actual: number; satisfied: boolean }>
+  conditionResults: Array<{
+    measurement: string
+    category: string | null
+    operator: string
+    target: number
+    actual: number
+    satisfied: boolean
+  }>
 }
 
 export type GetReviewInput = {
