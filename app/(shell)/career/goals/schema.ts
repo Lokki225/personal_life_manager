@@ -58,6 +58,8 @@ export const judgeSchema = z.object({
   conditionId: id,
   result: z.enum(['MET', 'GAP', 'UNKNOWN'], { error: 'Choose your verdict.' }),
   note: text(280),
+  // About an opportunity rather than the current situation.
+  opportunityId: z.string().trim().optional(),
 })
 
 export const abandonSchema = z.object({ id, reason: text(280) })

@@ -205,6 +205,7 @@ model Goal {
   sessions      Session[]
   movements     MoneyMovement[]
   debts         Debt[]
+  opportunities CareerOpportunityGoal[]
   createdAt     DateTime         @default(now())
 }
 
@@ -442,6 +443,7 @@ model User {
   syncConnectors    SyncConnector[]
   careerFacts       CareerFact[]
   careerEvidence    CareerEvidence[]
+  careerOpportunities CareerOpportunity[]
 }
 
 // What was already sent to a person, so the same event is never sent twice.
@@ -924,6 +926,75 @@ model CareerEvidenceLink {
 
   @@id([evidenceId, factId])
   @@index([factId])
+}
+
+enum CareerOpportunityKind {
+  JOB
+  PROMOTION
+  FREELANCE
+  TRAINING
+  OTHER
+}
+
+enum CareerOpportunityStatus {
+  FOUND
+  APPLIED
+  INTERVIEWING
+  OFFER
+  CLOSED
+}
+
+// An opening or an offer, with its terms for the same dimensions as a
+// position, so goals can be compared with it side by side.
+model CareerOpportunity {
+  id                  String                  @id @default(cuid())
+  userId              String
+  user                User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title               String
+  organisation        String?
+  kind                CareerOpportunityKind   @default(JOB)
+  sourceUrl           String?
+  notes               String?
+  // Midnight on the person's clock: reply, application or start date.
+  deadline            DateTime?
+  status              CareerOpportunityStatus @default(FOUND)
+  // When closed: accepted, declined, rejected, withdrawn, lapsed.
+  outcome             String?
+  // Terms. Pay is per month, in XOF; sensitive like a position's.
+  monthlyCompensation Decimal?
+  workArrangement     String?
+  contractType        String?
+  weeklyHours         Int?
+  location            String?
+  origin              String?
+  goals               CareerOpportunityGoal[]
+  statusChanges       CareerStatusChange[]
+  createdAt           DateTime                @default(now())
+  // When the terms or details last changed.
+  updatedAt           DateTime                @updatedAt
+
+  @@index([userId, status])
+}
+
+model CareerOpportunityGoal {
+  opportunityId String
+  opportunity   CareerOpportunity @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+  goalId        String
+  goal          Goal              @relation(fields: [goalId], references: [id], onDelete: Cascade)
+
+  @@id([opportunityId, goalId])
+  @@index([goalId])
+}
+
+model CareerStatusChange {
+  id            String                  @id @default(cuid())
+  opportunityId String
+  opportunity   CareerOpportunity       @relation(fields: [opportunityId], references: [id], onDelete: Cascade)
+  status        CareerOpportunityStatus
+  outcome       String?
+  changedAt     DateTime                @default(now())
+
+  @@index([opportunityId, changedAt])
 }
 
 // What happened that matters for security: failed sign-ins, limits reached,

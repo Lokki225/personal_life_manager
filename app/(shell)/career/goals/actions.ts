@@ -73,7 +73,9 @@ export async function judgeAction(_previous: FormState, formData: FormData): Pro
   if (!canUseCareer(user)) return signedOutState(t)
   if (!(await writesAllowed(user.id))) return tooMany(t)
 
-  const state = await judgeForm.submit(formData, (form) => judge(user.id, form.conditionId, form.result, form.note || null, now()))
+  const state = await judgeForm.submit(formData, (form) =>
+    judge(user.id, form.conditionId, form.result, form.note || null, now(), undefined, form.opportunityId ? { type: 'OPPORTUNITY', id: form.opportunityId } : undefined),
+  )
   if (state.status === 'success') refresh()
   return translateFormState(state, t)
 }

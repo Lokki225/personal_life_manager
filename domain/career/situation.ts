@@ -79,6 +79,33 @@ const KIND_FIELDS: Record<FactKind, (keyof FactInput)[]> = {
 }
 const KIND_SPECIFIC: (keyof FactInput)[] = Object.values(KIND_FIELDS).flat()
 
+// The terms of a position or an opportunity: pay per month, hours per week,
+// how you work and the contract.
+export type Terms = {
+  monthlyCompensation: number | null
+  workArrangement: string | null
+  contractType: string | null
+  weeklyHours: number | null
+  location: string | null
+}
+
+export function checkTerms(terms: Terms) {
+  const pay = terms.monthlyCompensation
+  if (pay !== null && (!Number.isFinite(pay) || pay < 0 || pay > 999_999_999_999)) {
+    throw new CareerRuleError('Enter a monthly amount, for example 450000.', 'monthlyCompensation')
+  }
+  if (terms.weeklyHours !== null && (!Number.isInteger(terms.weeklyHours) || terms.weeklyHours < 0 || terms.weeklyHours > 168)) {
+    throw new CareerRuleError('Enter between 0 and 168 hours.', 'weeklyHours')
+  }
+  if (terms.workArrangement && !(WORK_ARRANGEMENTS as readonly string[]).includes(terms.workArrangement)) {
+    throw new CareerRuleError('Choose how you work.', 'workArrangement')
+  }
+  if (terms.contractType && !(CONTRACT_TYPES as readonly string[]).includes(terms.contractType)) {
+    throw new CareerRuleError('Choose a contract type.', 'contractType')
+  }
+  if (terms.location && terms.location.length > 60) throw new CareerRuleError('Keep it under 60 characters.', 'location')
+}
+
 // Checks a fact and keeps only what its kind uses. Throws a CareerRuleError
 // naming the field when something is wrong.
 export function checkFact(input: FactInput): FactInput {
@@ -88,21 +115,7 @@ export function checkFact(input: FactInput): FactInput {
   if (input.details && input.details.length > 1000) throw new CareerRuleError('Keep it under 1,000 characters.', 'details')
   if (input.validTo && input.validTo < input.validFrom) throw new CareerRuleError('The end comes after the start.', 'validTo')
 
-  if (input.kind === 'POSITION') {
-    const pay = input.monthlyCompensation
-    if (pay !== null && (!Number.isFinite(pay) || pay < 0 || pay > 999_999_999_999)) {
-      throw new CareerRuleError('Enter a monthly amount, for example 450000.', 'monthlyCompensation')
-    }
-    if (input.weeklyHours !== null && (!Number.isInteger(input.weeklyHours) || input.weeklyHours < 0 || input.weeklyHours > 168)) {
-      throw new CareerRuleError('Enter between 0 and 168 hours.', 'weeklyHours')
-    }
-    if (input.workArrangement && !(WORK_ARRANGEMENTS as readonly string[]).includes(input.workArrangement)) {
-      throw new CareerRuleError('Choose how you work.', 'workArrangement')
-    }
-    if (input.contractType && !(CONTRACT_TYPES as readonly string[]).includes(input.contractType)) {
-      throw new CareerRuleError('Choose a contract type.', 'contractType')
-    }
-  }
+  if (input.kind === 'POSITION') checkTerms(input)
   if (input.kind === 'QUALIFICATION' && input.obtainedAt && input.expiresAt && input.expiresAt < input.obtainedAt) {
     throw new CareerRuleError('It expires after it was obtained.', 'expiresAt')
   }

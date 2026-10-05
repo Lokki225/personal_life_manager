@@ -125,10 +125,32 @@ export const careerGoalRepository = {
     await prisma.conditionJudgement.create({ data: { conditionId, ...judgement } })
   },
 
+  // The opportunities linked to a goal, for its side-by-side table.
+  linkedOpportunities: async (userId: string, goalId: string) => {
+    return prisma.careerOpportunity.findMany({
+      where: { userId, goals: { some: { goalId } } },
+      select: { id: true, title: true, status: true, outcome: true },
+      orderBy: { createdAt: 'asc' },
+    })
+  },
+
+  // The latest judgement per criterion about one subject, for copying.
+  judgementsAbout: async (userId: string, subjectType: 'SELF' | 'OPPORTUNITY', subjectId: string | null) => {
+    return prisma.conditionJudgement.findMany({
+      where: { subjectType, subjectId, condition: { group: { goal: { userId, domain: DOMAIN } } } },
+      orderBy: { judgedAt: 'desc' },
+      select: { conditionId: true, result: true, note: true, judgedAt: true },
+    })
+  },
+
   // Everything the Career sources read, for this person, in a few queries.
   loadEvidence: async (userId: string): Promise<CareerEvidence> => {
-    const [facts, judgements] = await Promise.all([
+    const [facts, opportunities, judgements] = await Promise.all([
       careerRepository.listFacts(userId),
+      prisma.careerOpportunity.findMany({
+        where: { userId },
+        select: { id: true, title: true, monthlyCompensation: true, workArrangement: true, contractType: true, weeklyHours: true, location: true, updatedAt: true },
+      }),
       prisma.conditionJudgement.findMany({
         where: { condition: { group: { goal: { userId, domain: DOMAIN } } } },
         select: { conditionId: true, subjectType: true, subjectId: true, result: true, judgedAt: true },
@@ -153,8 +175,7 @@ export const careerGoalRepository = {
         weeklyHours: f.weeklyHours,
         location: f.location,
       })),
-      // Opportunities arrive with Career step D.
-      opportunities: [],
+      opportunities: opportunities.map((o) => ({ ...o, monthlyCompensation: o.monthlyCompensation === null ? null : Number(o.monthlyCompensation) })),
       judgements,
     }
   },
