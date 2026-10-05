@@ -138,12 +138,22 @@ export const journalRepository = {
 
   // Which of these goals and tasks belong to the user, so a link can only
   // point at their own things.
-  ownedTargets: async (userId: string, goalIds: string[], taskIds: string[]) => {
-    const [goals, tasks] = await Promise.all([
-      goalIds.length ? prisma.goal.findMany({ where: { userId, id: { in: goalIds } }, select: { id: true } }) : [],
-      taskIds.length ? prisma.task.findMany({ where: { userId, id: { in: taskIds } }, select: { id: true } }) : [],
+  // The links among these whose target is this person's, as "type:id".
+  ownedTargets: async (userId: string, links: { targetType: string; targetId: string }[]) => {
+    const ids = (type: string) => links.filter((l) => l.targetType === type).map((l) => l.targetId)
+    const find = async (type: string, query: (ids: string[]) => Promise<{ id: string }[]>) => {
+      const wanted = ids(type)
+      return wanted.length ? (await query(wanted)).map((row) => `${type}:${row.id}`) : []
+    }
+    const found = await Promise.all([
+      find('goal', (id) => prisma.goal.findMany({ where: { userId, id: { in: id } }, select: { id: true } })),
+      find('task', (id) => prisma.task.findMany({ where: { userId, id: { in: id } }, select: { id: true } })),
+      find('careerGoal', (id) => prisma.goal.findMany({ where: { userId, domain: 'career', id: { in: id } }, select: { id: true } })),
+      find('careerOpportunity', (id) => prisma.careerOpportunity.findMany({ where: { userId, id: { in: id } }, select: { id: true } })),
+      find('careerFact', (id) => prisma.careerFact.findMany({ where: { userId, id: { in: id } }, select: { id: true } })),
+      find('careerEvidence', (id) => prisma.careerEvidence.findMany({ where: { userId, id: { in: id } }, select: { id: true } })),
     ])
-    return new Set([...goals.map((g) => `goal:${g.id}`), ...tasks.map((t) => `task:${t.id}`)])
+    return new Set(found.flat())
   },
 }
 

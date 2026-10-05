@@ -1,7 +1,10 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 import { addCriterion, createCareerGoal, getCareerGoal, judge } from '@/application/career/goals'
+import { writeLog } from '@/application/career/log'
 import { acceptOffer, addOpportunity, getOpportunity } from '@/application/career/opportunities'
+import { getCareerReview } from '@/application/career/review'
+import { addFocus, getWeek, setFocusDone } from '@/application/career/week'
 import { addEvidence, addFact, getSituation } from '@/application/career/situation'
 import type { FactInput } from '@/domain/career/situation'
 import { prisma } from '@/infrastructure/prisma/client'
@@ -83,6 +86,47 @@ describe('scenario 4: two offers', () => {
 
     const offerPage = (await getOpportunity(userId, first))!
     expect(offerPage.goals[0].criteria.map((c) => c.result.result)).toEqual(['EXCEEDS', 'GAP', 'UNKNOWN'])
+  })
+})
+
+describe('scenario 6: the weekly loop', () => {
+  it('logs a passed certification, documents it, and the review shows what changed', async () => {
+    const goal = (await createCareerGoal(userId, { name: 'Cloud role', why: null, deadline: null, importance: null })).id
+    await addCriterion(userId, goal, { kind: 'evidence', level: 'REQUIRED', factKind: 'QUALIFICATION', match: 'AWS SAA' })
+
+    const focus = []
+    for (const title of ['Book the exam', 'Update the CV', 'Call Awa']) focus.push((await addFocus(userId, { title, goalId: goal, opportunityId: null })).id)
+    await expect(addFocus(userId, { title: 'A fourth', goalId: null, opportunityId: null })).rejects.toThrow('Three focus items')
+    await setFocusDone(userId, focus[0], true)
+
+    await writeLog(userId, { body: 'Passed AWS SAA today.', goalId: goal, opportunityId: null, also: { kind: 'newFact', factKind: 'QUALIFICATION', title: 'AWS SAA' } })
+    const fact = (await prisma.careerFact.findFirst({ where: { userId, title: 'AWS SAA' } }))!
+    await writeLog(userId, {
+      body: 'The certificate arrived.',
+      goalId: null,
+      opportunityId: null,
+      also: { kind: 'evidence', factId: fact.id, title: 'Credly badge', url: 'https://example.com/badge' },
+    })
+
+    const week = await getWeek(userId)
+    expect(week.focus.map((f) => [f.title, f.status])).toEqual([
+      ['Book the exam', 'DONE'],
+      ['Update the CV', 'OPEN'],
+      ['Call Awa', 'OPEN'],
+    ])
+    expect(week.log.map((e) => e.body?.split('\n')[0])).toEqual(['The certificate arrived.', 'Passed AWS SAA today.'])
+
+    // The log lines link to the goal and the fact, in the shared journal.
+    const links = await prisma.journalLink.findMany({ where: { entry: { userId, type: 'CAREER_LOG' } }, select: { targetType: true, targetId: true } })
+    expect(links).toEqual(expect.arrayContaining([{ targetType: 'careerGoal', targetId: goal }, { targetType: 'careerFact', targetId: fact.id }]))
+
+    const review = await getCareerReview(userId, new Date())
+    expect(review.started.map((f) => f.title)).toContain('AWS SAA')
+    expect(review.evidence.map((e) => e.title)).toEqual(['Credly badge'])
+    // Other goals of this test account changed too: it was created this week.
+    expect(review.criteria.filter((c) => c.goal === 'Cloud role')).toMatchObject([{ from: 'GAP', to: 'MET' }])
+    expect(review.focusDone).toEqual(['Book the exam'])
+    expect(review.focusOpen).toEqual(['Update the CV', 'Call Awa'])
   })
 })
 

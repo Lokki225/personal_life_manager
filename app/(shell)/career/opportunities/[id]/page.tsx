@@ -12,6 +12,7 @@ import { now as clockNow, setClockZone } from '@/lib/clock'
 import { getT } from '@/lib/i18n/server'
 import { cn } from '@/lib/utils'
 
+import { EntryBody } from '../../../personal/journal/entry-view'
 import { JudgeDrawer } from '../../goals/goal-forms'
 import { criterionText, summaryLines, valueText } from '../../goals/goal-text'
 import { ARRANGEMENT_LABELS, CONTRACT_LABELS, isoDay, OPPORTUNITY_KIND_LABELS, OPPORTUNITY_STATUS_LABELS, OUTCOME_LABELS, RESULT_LABELS } from '../../labels'
@@ -134,6 +135,20 @@ export default async function CareerOpportunityPage({ params }: PageProps<'/care
           ))
         )}
       </section>
+
+      {o.logEntries.length > 0 ? (
+        <section className="space-y-2">
+          <h2 className="text-base font-semibold">{t('From your log')}</h2>
+          <ul className="space-y-2">
+            {o.logEntries.map((entry) => (
+              <li key={entry.id} className="space-y-1 rounded-xl border bg-card px-4 py-3">
+                <p className="text-xs text-muted-foreground">{date.format(entry.entryDate)}</p>
+                {entry.body ? <EntryBody body={entry.body} /> : null}
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
 
       <section className="space-y-2">
         <h2 className="text-base font-semibold">{t('History')}</h2>

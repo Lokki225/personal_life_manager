@@ -109,7 +109,7 @@ describe('evidence', () => {
   it('documents the facts it is linked to', async () => {
     const r = repo()
     await addEvidence('u', { title: 'Repository', url: 'https://github.com/me/aos', description: null, factIds: ['f1'] }, r as never)
-    expect(r.createEvidence).toHaveBeenCalledWith('u', { title: 'Repository', url: 'https://github.com/me/aos', description: null }, ['f1'])
+    expect(r.createEvidence).toHaveBeenCalledWith('u', { title: 'Repository', url: 'https://github.com/me/aos', description: null, addedAt: expect.any(Date) }, ['f1'])
     expect(r.updateFact).toHaveBeenCalledWith('u', 'f1', { source: 'DOCUMENTED' })
   })
 

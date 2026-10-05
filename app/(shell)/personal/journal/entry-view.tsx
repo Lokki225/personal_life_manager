@@ -7,6 +7,16 @@ import type { Translator } from '@/lib/i18n/translate'
 
 import { ENTRY_TYPE_LABELS } from './entry-labels'
 
+// Where each kind of link opens.
+const HREFS: Record<string, (id: string) => string> = {
+  goal: (id) => `/personal/goals/${id}`,
+  task: () => '/personal/tasks',
+  careerGoal: (id) => `/career/goals/${id}`,
+  careerOpportunity: (id) => `/career/opportunities/${id}`,
+  careerFact: () => '/career/situation',
+  careerEvidence: () => '/career/situation',
+}
+
 // An entry's text, with its links drawn as chips that open the goal or task.
 export function EntryBody({ body }: { body: string }) {
   return (
@@ -17,10 +27,10 @@ export function EntryBody({ body }: { body: string }) {
         ) : (
           <Link
             key={index}
-            href={part.link.targetType === 'goal' ? `/personal/goals/${part.link.targetId}` : '/personal/tasks'}
+            href={(HREFS[part.link.targetType] ?? HREFS.task)(part.link.targetId)}
             className="mx-0.5 inline-flex items-center gap-1 rounded-full bg-node-accent/12 px-2 py-0.5 text-sm font-medium text-node-accent hover:underline"
           >
-            {part.link.targetType === 'goal' ? <Target className="size-3.5" aria-hidden="true" /> : null}
+            {part.link.targetType === 'goal' || part.link.targetType === 'careerGoal' ? <Target className="size-3.5" aria-hidden="true" /> : null}
             {part.link.label}
           </Link>
         ),

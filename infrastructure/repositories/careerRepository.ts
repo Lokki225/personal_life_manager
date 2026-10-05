@@ -5,7 +5,7 @@ import { prisma } from '../prisma/client'
 // Career facts and evidence. Every method takes the owner's id and reads or
 // writes only their rows (security plan F1): compensation is sensitive.
 
-const FACT_INCLUDE = { evidence: { select: { evidenceId: true } } } as const
+const FACT_INCLUDE = { evidence: { select: { evidenceId: true, evidence: { select: { addedAt: true } } } } } as const
 
 export const careerRepository = {
   listFacts: async (userId: string) => {
@@ -72,7 +72,7 @@ export const careerRepository = {
   },
 
   // The fact ids must already be checked as this person's.
-  createEvidence: async (userId: string, data: { title: string; url: string | null; description: string | null }, factIds: string[]) => {
+  createEvidence: async (userId: string, data: { title: string; url: string | null; description: string | null; addedAt?: Date }, factIds: string[]) => {
     return prisma.careerEvidence.create({
       data: { userId, origin: currentOrigin(), ...data, facts: { create: factIds.map((factId) => ({ factId })) } },
       select: { id: true },
@@ -107,6 +107,12 @@ export const careerRepository = {
     const user = await prisma.user.findUnique({ where: { id: userId }, select: { careerLocations: true } })
     const list = user?.careerLocations
     return Array.isArray(list) ? list.filter((p): p is string => typeof p === 'string') : []
+  },
+
+  // The day of the weekly reviews: 1 is Monday, 7 is Sunday.
+  getReviewDay: async (userId: string) => {
+    const user = await prisma.user.findUnique({ where: { id: userId }, select: { reviewDay: true } })
+    return user?.reviewDay ?? 7
   },
 
   setLocations: async (userId: string, places: string[]) => {
