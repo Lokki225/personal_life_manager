@@ -14,6 +14,20 @@ import {
   unlinkEvidence,
   updateFact,
 } from '@/application/career/situation'
+import {
+  abandonCareerGoal,
+  addCriterion,
+  confirmAchieved,
+  createCareerGoal,
+  getCareerGoal,
+  judge,
+  listCareerGoals,
+  markCriterionReviewed,
+  pauseGoal,
+  removeCriterion,
+  supersedeGoal,
+  updateCareerGoal,
+} from '@/application/career/goals'
 import { fundGoal } from '@/application/finance/fundGoal'
 import { confirmIncome, depositSetupMonth } from '@/application/finance/confirmIncome'
 import { recordChestExpense } from '@/application/finance/chestExpense'
@@ -126,6 +140,10 @@ beforeAll(async () => {
   a.evidence = (await addEvidence(userA, { title: 'Repository', url: 'https://example.com/a', description: null, factIds: [a.fact] })).id
   a.bFact = (await addFact(userB, { ...careerFact, title: 'B position' })).id
   a.bEvidence = (await addEvidence(userB, { title: 'B link', url: null, description: null, factIds: [] })).id
+  a.careerGoal = (await createCareerGoal(userA, { name: 'A better job', why: 'Private reasons', deadline: null, importance: 'HIGH' })).id
+  await addCriterion(userA, a.careerGoal, { kind: 'judgement', level: 'PREFERRED', label: 'Interesting work' })
+  a.criterion = (await prisma.condition.findFirst({ where: { group: { goalId: a.careerGoal } } }))!.id
+  a.bCareerGoal = (await createCareerGoal(userB, { name: 'B goal', why: null, deadline: null, importance: null })).id
 })
 
 const careerFact = {
@@ -286,6 +304,37 @@ describe('Career: B cannot touch A’s situation', () => {
 
     expect(await prisma.careerEvidenceLink.count({ where: { evidenceId: a.evidence } })).toBe(1)
     expect(await prisma.careerEvidenceLink.count({ where: { factId: a.fact } })).toBe(1)
+  })
+})
+
+describe('Career goals: B cannot touch A’s goals', () => {
+  it('cannot see A’s goals or their reasons', async () => {
+    expect((await listCareerGoals(userB)).map((g) => g.id)).toEqual([a.bCareerGoal])
+    expect(await getCareerGoal(userB, a.careerGoal)).toBeNull()
+  })
+
+  it('cannot change A’s goal, its criteria or its judgements', async () => {
+    await refused(() => updateCareerGoal(userB, a.careerGoal, { name: 'Hacked', why: null, deadline: null, importance: null }))
+    await refused(() => addCriterion(userB, a.careerGoal, { kind: 'judgement', level: 'REQUIRED', label: 'x' }))
+    await refused(() => removeCriterion(userB, a.careerGoal, a.criterion))
+    await refused(() => removeCriterion(userB, a.bCareerGoal, a.criterion))
+    await refused(() => judge(userB, a.criterion, 'GAP', 'x'))
+    await refused(() => markCriterionReviewed(userB, a.criterion))
+
+    expect(await prisma.goal.findUnique({ where: { id: a.careerGoal } })).toMatchObject({ name: 'A better job', why: 'Private reasons' })
+    expect(await prisma.condition.count({ where: { group: { goalId: a.careerGoal } } })).toBe(1)
+    expect(await prisma.conditionJudgement.count({ where: { conditionId: a.criterion } })).toBe(0)
+  })
+
+  it('cannot achieve, pause, abandon or replace A’s goal, nor point B’s goal at it', async () => {
+    await refused(() => confirmAchieved(userB, a.careerGoal))
+    await refused(() => pauseGoal(userB, a.careerGoal))
+    await refused(() => abandonCareerGoal(userB, a.careerGoal, null))
+    await refused(() => supersedeGoal(userB, a.careerGoal, a.bCareerGoal))
+    await refused(() => supersedeGoal(userB, a.bCareerGoal, a.careerGoal))
+
+    expect(await prisma.goal.findUnique({ where: { id: a.careerGoal } })).toMatchObject({ achievedAt: null, pausedAt: null, abandonedAt: null, supersededAt: null })
+    expect(await prisma.goal.findUnique({ where: { id: a.bCareerGoal } })).toMatchObject({ supersededById: null })
   })
 })
 
