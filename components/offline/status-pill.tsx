@@ -5,12 +5,12 @@ import { Popover } from 'radix-ui'
 
 import { Button } from '@/components/ui/button'
 import { useT } from '@/lib/i18n/client'
-import { discard, retry } from '@/lib/offline/outbox'
 import { cn } from '@/lib/utils'
 
 import { useIsOffline } from './connection'
 import { outboxItemLabel } from './outbox-item-label'
 import { useOutbox } from './outbox-provider'
+import { RefusedItem } from './refused-item'
 
 // The app bar's connection pill (offline spec §3): nothing when everything is
 // sent; "Offline" without a connection; "Sending" while the outbox empties;
@@ -66,7 +66,7 @@ export function StatusPill() {
             <div className="space-y-1">
               <p className="font-semibold">{t('You are offline')}</p>
               <p className="text-muted-foreground">
-                {t('Expenses, savings, explanations and logged sessions are kept on this device and sent as soon as the connection is back, even if you close the app.')}
+                {t('Expenses, savings, explanations, ticked tasks, logged sessions and the day’s line are kept on this device and sent as soon as the connection is back, even if you close the app.')}
               </p>
               <p className="text-muted-foreground">{t('Actions that change your plan, move money between chests or need the server are paused.')}</p>
             </div>
@@ -91,20 +91,10 @@ export function StatusPill() {
           {refused.length > 0 ? (
             <div className="space-y-2">
               <p className="font-semibold">{t('Not sent')}</p>
+              <p className="text-xs text-muted-foreground">{t('The server refused these. Correct one and send it again, or discard it.')}</p>
               <ul className="space-y-2">
                 {refused.map((item) => (
-                  <li key={item.id} className="rounded-lg border p-2">
-                    <p>{outboxItemLabel(t, item)}</p>
-                    <p className="text-xs text-destructive-strong">{item.error}</p>
-                    <div className="mt-1.5 flex gap-2">
-                      <Button type="button" variant="outline" className="h-8 text-xs" onClick={() => void retry(item.id).then(sendNow)}>
-                        {t('Try again')}
-                      </Button>
-                      <Button type="button" variant="ghost" className="h-8 text-xs text-muted-foreground" onClick={() => void discard(item.id)}>
-                        {t('Discard')}
-                      </Button>
-                    </div>
-                  </li>
+                  <RefusedItem key={item.id} item={item} sendNow={sendNow} />
                 ))}
               </ul>
             </div>
