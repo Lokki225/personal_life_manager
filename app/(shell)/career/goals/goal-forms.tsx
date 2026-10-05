@@ -228,7 +228,7 @@ export function AddCriterionDrawer({ goalId, places }: { goalId: string; places:
   )
 }
 
-export function JudgeDrawer({ conditionId, label, again }: { conditionId: string; label: string; again: boolean }) {
+export function JudgeDrawer({ conditionId, label, again, opportunityId }: { conditionId: string; label: string; again: boolean; opportunityId?: string }) {
   const t = useT()
   const [result, setResult] = useState<'MET' | 'GAP' | 'UNKNOWN'>('MET')
   const scope = `judge-${conditionId}`
@@ -248,6 +248,7 @@ export function JudgeDrawer({ conditionId, label, again }: { conditionId: string
           {(state) => (
             <>
               <input type="hidden" name="conditionId" value={conditionId} />
+              {opportunityId ? <input type="hidden" name="opportunityId" value={opportunityId} /> : null}
               <Choices name="result" values={['MET', 'GAP', 'UNKNOWN'] as const} value={result} onChange={setResult} label={(r) => t(RESULT_LABELS[r])} />
               <Field state={state} name="note" label={t('Note (optional)')} scope={scope}>
                 <Textarea id={`${scope}-note`} {...fieldAttributes(state, 'note', scope)} maxLength={280} rows={2} />

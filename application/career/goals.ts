@@ -1,14 +1,24 @@
 import { checkCriterion, conditionOf, criterionOf, type Criterion } from '../../domain/career/criteria'
 import { CareerRuleError } from '../../domain/career/errors'
 import { evaluateCareerGoal, isClosed } from '../../domain/career/goals'
+import { SELF, type Subject } from '../../domain/goals/engine'
 import { primaryPosition } from '../../domain/career/situation'
 import { startOfDay } from '../../domain/personal/tasks'
 import { careerGoalRepository, type CareerGoalFields, type CareerGoalRepository } from '../../infrastructure/repositories/careerGoalRepository'
+import { careerOpportunityRepository } from '../../infrastructure/repositories/careerOpportunityRepository'
 import { careerRepository } from '../../infrastructure/repositories/careerRepository'
 import { now as clockNow } from '../../lib/clock'
 
-type Deps = CareerGoalRepository & Pick<typeof careerRepository, 'getLocations' | 'updateFact'>
-const defaultDeps: Deps = { ...careerGoalRepository, getLocations: careerRepository.getLocations, updateFact: careerRepository.updateFact }
+type Deps = CareerGoalRepository &
+  Pick<typeof careerRepository, 'getLocations' | 'updateFact'> & {
+    ownsOpportunity: (userId: string, id: string) => Promise<boolean>
+  }
+const defaultDeps: Deps = {
+  ...careerGoalRepository,
+  getLocations: careerRepository.getLocations,
+  updateFact: careerRepository.updateFact,
+  ownsOpportunity: async (userId, id) => (await careerOpportunityRepository.get(userId, id)) !== null,
+}
 
 export const IMPORTANCES = ['LOW', 'MEDIUM', 'HIGH'] as const
 
@@ -24,11 +34,24 @@ export type CareerGoalSummary = Awaited<ReturnType<typeof listCareerGoals>>[numb
 
 // One goal: its criteria with their results, and what the page offers.
 export async function getCareerGoal(userId: string, id: string, now: Date = clockNow(), deps: Deps = defaultDeps) {
-  const [goal, evidence, places, goals] = await Promise.all([deps.getGoal(userId, id), deps.loadEvidence(userId), deps.getLocations(userId), deps.listGoals(userId)])
+  const [goal, evidence, places, goals, linked] = await Promise.all([
+    deps.getGoal(userId, id),
+    deps.loadEvidence(userId),
+    deps.getLocations(userId),
+    deps.listGoals(userId),
+    deps.linkedOpportunities(userId, id),
+  ])
   if (!goal) return null
 
   const evaluation = evaluateCareerGoal(goal, evidence, now)
+  // Side by side (spec §7): "Now" and each linked opportunity, one result
+  // per criterion. No overall winner.
+  const columns = linked.map((opportunity) => ({
+    ...opportunity,
+    evaluation: evaluateCareerGoal(goal, evidence, now, { type: 'OPPORTUNITY', id: opportunity.id }),
+  }))
   return {
+    comparison: columns,
     ...goal,
     evaluation,
     criteria: evaluation.results.map((result) => ({ result, criterion: criterionOf(result.condition) })),
@@ -66,7 +89,8 @@ export async function removeCriterion(userId: string, goalId: string, conditionI
   if (!(await deps.deleteCondition(userId, goalId, conditionId))) throw new CareerRuleError('This criterion no longer exists.')
 }
 
-// Your verdict on a criterion that cannot be measured.
+// Your verdict on a criterion that cannot be measured, about your situation
+// or about one of your opportunities.
 export async function judge(
   userId: string,
   conditionId: string,
@@ -74,12 +98,22 @@ export async function judge(
   note: string | null,
   now: Date = clockNow(),
   deps: Deps = defaultDeps,
+  subject: Subject = SELF,
 ) {
   const condition = await deps.getCondition(userId, conditionId)
   if (!condition || condition.source !== 'JUDGEMENT') throw new CareerRuleError('This criterion no longer exists.')
+  if (subject.type === 'OPPORTUNITY' && !(await deps.ownsOpportunity(userId, subject.id))) {
+    throw new CareerRuleError('This opportunity no longer exists.')
+  }
   const text = note?.trim() || null
   if (text && text.length > 280) throw new CareerRuleError('Keep it under 280 characters.', 'note')
-  await deps.addJudgement(conditionId, { subjectType: 'SELF', subjectId: null, result, note: text, judgedAt: now })
+  await deps.addJudgement(conditionId, {
+    subjectType: subject.type,
+    subjectId: subject.type === 'SELF' ? null : subject.id,
+    result,
+    note: text,
+    judgedAt: now,
+  })
 }
 
 // "Mark as reviewed" on a criterion: the fact it rests on was looked at now.

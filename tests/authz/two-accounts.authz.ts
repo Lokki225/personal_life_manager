@@ -28,6 +28,16 @@ import {
   supersedeGoal,
   updateCareerGoal,
 } from '@/application/career/goals'
+import {
+  acceptOffer,
+  addOpportunity,
+  deleteOpportunity,
+  getOpportunity,
+  linkGoals,
+  listOpportunities,
+  moveOpportunity,
+  updateOpportunity,
+} from '@/application/career/opportunities'
 import { fundGoal } from '@/application/finance/fundGoal'
 import { confirmIncome, depositSetupMonth } from '@/application/finance/confirmIncome'
 import { recordChestExpense } from '@/application/finance/chestExpense'
@@ -144,7 +154,23 @@ beforeAll(async () => {
   await addCriterion(userA, a.careerGoal, { kind: 'judgement', level: 'PREFERRED', label: 'Interesting work' })
   a.criterion = (await prisma.condition.findFirst({ where: { group: { goalId: a.careerGoal } } }))!.id
   a.bCareerGoal = (await createCareerGoal(userB, { name: 'B goal', why: null, deadline: null, importance: null })).id
+  a.opportunity = (await addOpportunity(userA, { ...careerOffer, title: 'A offer', monthlyCompensation: 900000 }, [a.careerGoal])).id
+  a.bOpportunity = (await addOpportunity(userB, { ...careerOffer, title: 'B offer' }, [])).id
 })
+
+const careerOffer = {
+  title: '',
+  organisation: null,
+  kind: 'JOB' as const,
+  sourceUrl: null,
+  notes: null,
+  deadline: null,
+  monthlyCompensation: null,
+  workArrangement: null,
+  contractType: null,
+  weeklyHours: null,
+  location: null,
+}
 
 const careerFact = {
   kind: 'POSITION' as const,
@@ -335,6 +361,30 @@ describe('Career goals: B cannot touch A’s goals', () => {
 
     expect(await prisma.goal.findUnique({ where: { id: a.careerGoal } })).toMatchObject({ achievedAt: null, pausedAt: null, abandonedAt: null, supersededAt: null })
     expect(await prisma.goal.findUnique({ where: { id: a.bCareerGoal } })).toMatchObject({ supersededById: null })
+  })
+})
+
+describe('Career opportunities: B cannot touch A’s', () => {
+  it('cannot see A’s opportunities or their terms', async () => {
+    expect((await listOpportunities(userB)).map((o) => o.id)).toEqual([a.bOpportunity])
+    expect(await getOpportunity(userB, a.opportunity)).toBeNull()
+  })
+
+  it('cannot change, move, link, accept or delete A’s opportunity, nor tie B’s to A’s goal', async () => {
+    await refused(() => updateOpportunity(userB, a.opportunity, { ...careerOffer, title: 'Hacked' }))
+    await refused(() => moveOpportunity(userB, a.opportunity, 'APPLIED', null))
+    await refused(() => linkGoals(userB, a.opportunity, [a.bCareerGoal]))
+    await refused(() => linkGoals(userB, a.bOpportunity, [a.careerGoal]))
+    await refused(() => addOpportunity(userB, { ...careerOffer, title: 'x' }, [a.careerGoal]))
+    await refused(() => acceptOffer(userB, a.opportunity, { createPosition: true, startsOn: new Date(), endCurrent: true, incomeId: null, copyJudgements: true }))
+    await refused(() => deleteOpportunity(userB, a.opportunity))
+    await refused(() => judge(userB, a.criterion, 'MET', null, new Date(), undefined, { type: 'OPPORTUNITY', id: a.opportunity }))
+
+    const offer = await prisma.careerOpportunity.findUnique({ where: { id: a.opportunity }, include: { goals: true } })
+    expect(offer).toMatchObject({ title: 'A offer', status: 'FOUND' })
+    expect(offer?.goals.map((g) => g.goalId)).toEqual([a.careerGoal])
+    expect(await prisma.careerOpportunityGoal.count({ where: { opportunityId: a.bOpportunity } })).toBe(0)
+    expect(await prisma.careerFact.count({ where: { userId: userB, title: 'A offer' } })).toBe(0)
   })
 })
 

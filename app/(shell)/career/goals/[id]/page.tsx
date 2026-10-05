@@ -146,6 +146,58 @@ export default async function CareerGoalPage({ params }: PageProps<'/career/goal
           })
         )}
       </section>
+
+      {goal.comparison.length > 0 && goal.criteria.length > 0 ? (
+        <section className="space-y-2">
+          <h2 className="text-base font-semibold">{t('Side by side')}</h2>
+          <p className="text-sm text-muted-foreground">{t('Each criterion against now and against each opportunity. No overall winner: you decide.')}</p>
+          <div className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
+            <table className="w-full min-w-max border-collapse text-sm">
+              <thead>
+                <tr className="border-b text-left">
+                  <th scope="col" className="py-2 pr-3 font-medium">
+                    {t('Criterion')}
+                  </th>
+                  <th scope="col" className="px-3 py-2 font-medium">
+                    {t('Now')}
+                  </th>
+                  {goal.comparison.map((column) => (
+                    <th key={column.id} scope="col" className="px-3 py-2 font-medium">
+                      <Link href={`/career/opportunities/${column.id}`} className="hover:underline">
+                        {column.title}
+                      </Link>
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {goal.criteria.map(({ result, criterion }, row) => {
+                  const cell = (r: typeof result) => (
+                    <span className={cn('font-medium', RESULT_TONE[r.result])}>
+                      {t(RESULT_LABELS[r.result])}
+                      {valueText(t, criterion, r) ? <span className="block text-xs font-normal text-muted-foreground">{valueText(t, criterion, r)}</span> : null}
+                    </span>
+                  )
+                  return (
+                    <tr key={result.condition.id} className="border-b align-top">
+                      <th scope="row" className="max-w-56 py-2 pr-3 text-left font-normal">
+                        {criterionText(t, criterion)}
+                        <span className="block text-xs text-muted-foreground">{t(LEVEL_LABELS[levelOf(result.condition)])}</span>
+                      </th>
+                      <td className="px-3 py-2">{cell(result)}</td>
+                      {goal.comparison.map((column) => (
+                        <td key={column.id} className="px-3 py-2">
+                          {cell(column.evaluation.results[row])}
+                        </td>
+                      ))}
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      ) : null}
     </main>
   )
 }

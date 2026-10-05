@@ -101,3 +101,27 @@ export const IMPORTANCE_LABELS = {
   MEDIUM: m('Matters'),
   HIGH: m('Matters a lot'),
 } as const
+
+export const OPPORTUNITY_KIND_LABELS = {
+  JOB: m('Job'),
+  PROMOTION: m('Promotion'),
+  FREELANCE: m('Freelance'),
+  TRAINING: m('Training'),
+  OTHER: m('Other'),
+} as const
+
+export const OPPORTUNITY_STATUS_LABELS = {
+  FOUND: m('Found'),
+  APPLIED: m('Applied'),
+  INTERVIEWING: m('Interviewing'),
+  OFFER: m('Offer'),
+  CLOSED: m('Closed'),
+} as const
+
+export const OUTCOME_LABELS: Record<string, string> = {
+  accepted: m('Accepted'),
+  declined: m('Declined'),
+  rejected: m('Not selected'),
+  withdrawn: m('Withdrawn'),
+  lapsed: m('Lapsed'),
+}

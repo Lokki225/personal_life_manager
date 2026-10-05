@@ -25,7 +25,11 @@ export const careerRepository = {
   },
 
   // Resolves to false when the fact is not this person's.
-  updateFact: async (userId: string, id: string, data: Partial<FactInput> & { source?: FactSource; lastReviewedAt?: Date }) => {
+  updateFact: async (
+    userId: string,
+    id: string,
+    data: Partial<FactInput> & { source?: FactSource; lastReviewedAt?: Date; financeIncomeId?: string | null; isPrimary?: boolean },
+  ) => {
     const { count } = await prisma.careerFact.updateMany({ where: { id, userId }, data })
     return count > 0
   },
