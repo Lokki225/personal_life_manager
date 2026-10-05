@@ -15,6 +15,18 @@ export function chestBalance(chestId: string, movements: MovementForBalance[]): 
   }, 0)
 }
 
+// The same balances from totals the database summed: what came into each chest
+// and what left it. Money never moves from a chest to itself.
+export function balancesFromTotals(
+  inflows: { chestId: string | null; amount: number }[],
+  outflows: { chestId: string | null; amount: number }[],
+): Map<string, number> {
+  const balances = new Map<string, number>()
+  for (const { chestId, amount } of inflows) if (chestId) balances.set(chestId, (balances.get(chestId) ?? 0) + amount)
+  for (const { chestId, amount } of outflows) if (chestId) balances.set(chestId, (balances.get(chestId) ?? 0) - amount)
+  return balances
+}
+
 // The built-in chest that holds borrowed money. It is not savings.
 export const DEBTS_CHEST_NAME = 'Debts Chest'
 

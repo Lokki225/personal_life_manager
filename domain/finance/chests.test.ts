@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { chestBalance } from './chests'
+import { balancesFromTotals, chestBalance } from './chests'
 
 describe('chestBalance', () => {
   const movements = [
@@ -26,5 +26,26 @@ describe('chestBalance', () => {
     const after = chestBalance('buffer', movements.slice(0, 3)) + chestBalance('base', movements.slice(0, 3))
 
     expect(after).toBe(before)
+  })
+})
+
+describe('balancesFromTotals', () => {
+  it('gives the same balances as adding the movements one by one', () => {
+    const movements = [
+      { sourceChestId: null, destinationChestId: 'a', amount: 5000 },
+      { sourceChestId: 'a', destinationChestId: 'b', amount: 1200 },
+      { sourceChestId: 'b', destinationChestId: null, amount: 200 },
+      { sourceChestId: null, destinationChestId: 'b', amount: 50 },
+    ]
+    const sum = (key: 'sourceChestId' | 'destinationChestId') => {
+      const totals = new Map<string | null, number>()
+      for (const m of movements) totals.set(m[key], (totals.get(m[key]) ?? 0) + m.amount)
+      return [...totals].map(([chestId, amount]) => ({ chestId, amount }))
+    }
+    const balances = balancesFromTotals(sum('destinationChestId'), sum('sourceChestId'))
+
+    expect(balances.get('a')).toBe(chestBalance('a', movements))
+    expect(balances.get('b')).toBe(chestBalance('b', movements))
+    expect(balances.has('null')).toBe(false)
   })
 })

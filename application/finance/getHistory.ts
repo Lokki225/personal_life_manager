@@ -73,12 +73,6 @@ export async function getHistory(input: GetHistoryInput): Promise<HistoryEvent[]
     repository = financeRepository,
   } = input
 
-  const [expenses, budgetExceptions, movements] = await Promise.all([
-    repository.listExpenses(userId),
-    repository.listBudgetExceptions(userId),
-    repository.listMovements(userId),
-  ])
-
   const start = new Date(referenceDate)
   const end = new Date(referenceDate)
 
@@ -104,6 +98,15 @@ export async function getHistory(input: GetHistoryInput): Promise<HistoryEvent[]
     end.setFullYear(end.getFullYear() + 1, 0, 0)
     end.setHours(23, 59, 59, 999)
   }
+
+  // Only the period is read from the database.
+  const range = { from: start, to: end }
+  const [expenses, budgetExceptions, movements] = await Promise.all([
+    repository.listExpenses(userId, range),
+    repository.listBudgetExceptions(userId, range),
+    repository.listMovements(userId, range),
+  ])
+
 
   const expenseEvents = expenses
     .filter((expense) => {

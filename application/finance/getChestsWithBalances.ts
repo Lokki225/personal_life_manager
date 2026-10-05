@@ -1,21 +1,15 @@
 // application/finance/getChestsWithBalances.ts
 import { financeRepository } from '@/infrastructure/repositories/financeRepository'
-import { chestBalance, type MovementForBalance } from '@/domain/finance/chests'
+import { balancesFromTotals } from '@/domain/finance/chests'
 
+// The balances are summed by the database, so this stays quick however many
+// movements an account has.
 export async function getChestsWithBalances(userId: string) {
-  const [chests, movements] = await Promise.all([
-    financeRepository.listChests(userId),
-    financeRepository.listMovements(userId),
-  ])
-
-  const forBalance: MovementForBalance[] = movements.map((m) => ({
-    sourceChestId: m.sourceChestId,
-    destinationChestId: m.destinationChestId,
-    amount: Number(m.amount),
-  }))
+  const [chests, totals] = await Promise.all([financeRepository.listChests(userId), financeRepository.chestTotals(userId)])
+  const balances = balancesFromTotals(totals.inflows, totals.outflows)
 
   return chests.map((chest) => ({
     ...chest,
-    balance: chestBalance(chest.id, forBalance),
+    balance: balances.get(chest.id) ?? 0,
   }))
 }
