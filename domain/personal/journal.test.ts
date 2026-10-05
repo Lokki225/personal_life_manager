@@ -5,6 +5,14 @@ import { excerpt, isScale, linkToken, parseLinks, plainText, splitBody } from '.
 const body = 'Paused the course. @[Learn Japanese](goal:g1) can wait, and @[Call Awa](task:t9) too. @[Learn Japanese](goal:g1) again.'
 
 describe('journal links', () => {
+  it('reads Career links too, from the Career log', () => {
+    expect(parseLinks('Passed @[AWS SAA](careerFact:f1) for @[A better job](careerGoal:g1) after @[Beta](careerOpportunity:o1)')).toEqual([
+      { targetType: 'careerFact', targetId: 'f1', label: 'AWS SAA' },
+      { targetType: 'careerGoal', targetId: 'g1', label: 'A better job' },
+      { targetType: 'careerOpportunity', targetId: 'o1', label: 'Beta' },
+    ])
+  })
+
   it('finds each link once', () => {
     expect(parseLinks(body)).toEqual([
       { targetType: 'goal', targetId: 'g1', label: 'Learn Japanese' },

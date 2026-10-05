@@ -15,7 +15,9 @@ import { careerGoalRepository } from '../../infrastructure/repositories/careerGo
 import { careerOpportunityRepository } from '../../infrastructure/repositories/careerOpportunityRepository'
 import { careerRepository } from '../../infrastructure/repositories/careerRepository'
 import { financeRepository } from '../../infrastructure/repositories/financeRepository'
+import { journalRepository } from '../../infrastructure/repositories/journalRepository'
 import { now as clockNow } from '../../lib/clock'
+import { visibleEntry } from '../personal/journal'
 import { addFact } from './situation'
 
 type Deps = {
@@ -41,11 +43,12 @@ export type OpportunitySummary = Awaited<ReturnType<typeof listOpportunities>>[n
 // One opportunity: its terms and history, each linked goal evaluated against
 // it, and what the accept sheet offers.
 export async function getOpportunity(userId: string, id: string, now: Date = clockNow(), deps: Deps = defaultDeps) {
-  const [opportunity, goals, evidence, incomes] = await Promise.all([
+  const [opportunity, goals, evidence, incomes, logEntries] = await Promise.all([
     deps.opportunities.get(userId, id),
     deps.goals.listGoals(userId),
     deps.goals.loadEvidence(userId),
     deps.listIncomes(userId),
+    journalRepository.listLinkedEntries(userId, 'careerOpportunity', id),
   ])
   if (!opportunity) return null
 
@@ -69,6 +72,8 @@ export async function getOpportunity(userId: string, id: string, now: Date = clo
     allGoals: goals.filter((g) => !g.abandonedAt && !g.supersededAt).map((g) => ({ id: g.id, name: g.name, linked: linked.has(g.id) })),
     currentPosition: primary ? primary.fact.title : null,
     incomes: incomes.map((i) => ({ id: i.id, source: i.source, amount: Number(i.amount) })),
+    // Log lines about it: interview notes, replies.
+    logEntries: logEntries.map((entry) => visibleEntry(entry)),
   }
 }
 

@@ -48,11 +48,7 @@ async function prepare(userId: string, input: EntryInput, deps: Deps) {
   if (!isScale(input.energy)) throw new PersonalRuleError('Choose from 1 to 5.', 'energy')
 
   const links = parseLinks(body)
-  const owned = await deps.ownedTargets(
-    userId,
-    links.filter((l) => l.targetType === 'goal').map((l) => l.targetId),
-    links.filter((l) => l.targetType === 'task').map((l) => l.targetId),
-  )
+  const owned = await deps.ownedTargets(userId, links)
 
   return {
     data: {

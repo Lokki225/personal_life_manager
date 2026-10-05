@@ -144,7 +144,8 @@ export const careerGoalRepository = {
   },
 
   // Everything the Career sources read, for this person, in a few queries.
-  loadEvidence: async (userId: string): Promise<CareerEvidence> => {
+  // With the date each fact's evidence was linked, to see the data as it stood.
+  loadEvidence: async (userId: string): Promise<CareerEvidence & { evidenceDates: Map<string, Date[]> }> => {
     const [facts, opportunities, judgements] = await Promise.all([
       careerRepository.listFacts(userId),
       prisma.careerOpportunity.findMany({
@@ -177,6 +178,7 @@ export const careerGoalRepository = {
       })),
       opportunities: opportunities.map((o) => ({ ...o, monthlyCompensation: o.monthlyCompensation === null ? null : Number(o.monthlyCompensation) })),
       judgements,
+      evidenceDates: new Map(facts.map((f) => [f.id, f.evidence.map((e) => e.evidence.addedAt)])),
     }
   },
 }

@@ -8,7 +8,8 @@ export type JournalType = (typeof JOURNAL_TYPES)[number]
 // The kinds a person writes by hand; reviews are written from the review page.
 export const WRITABLE_TYPES = ['FREE', 'DAILY', 'DECISION', 'IDEA'] as const
 
-export const LINK_TARGETS = ['goal', 'task'] as const
+// Career log lines also link to Career records (Career spec §9.2).
+export const LINK_TARGETS = ['goal', 'task', 'careerGoal', 'careerOpportunity', 'careerFact', 'careerEvidence'] as const
 export type LinkTarget = (typeof LINK_TARGETS)[number]
 
 export type JournalLink = { targetType: LinkTarget; targetId: string; label: string }
@@ -19,7 +20,7 @@ export const MIN_PASSWORD = 4
 
 // A link is written in the text as @[Label](goal:id), so it reads well even
 // as plain text and survives copy and paste.
-const LINK = /@\[([^\]\n]{1,80})\]\((goal|task):([A-Za-z0-9_-]{1,40})\)/g
+const LINK = new RegExp(`@\\[([^\\]\\n]{1,80})\\]\\((${LINK_TARGETS.join('|')}):([A-Za-z0-9_-]{1,40})\\)`, 'g')
 
 export const linkToken = (link: JournalLink) => `@[${link.label.replace(/[\[\]\n]/g, ' ').trim()}](${link.targetType}:${link.targetId})`
 

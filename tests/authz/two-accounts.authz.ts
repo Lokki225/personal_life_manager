@@ -38,6 +38,8 @@ import {
   moveOpportunity,
   updateOpportunity,
 } from '@/application/career/opportunities'
+import { writeLog } from '@/application/career/log'
+import { addFocus, bringToThisWeek, getWeek, removeFocus, setFocusDone } from '@/application/career/week'
 import { fundGoal } from '@/application/finance/fundGoal'
 import { confirmIncome, depositSetupMonth } from '@/application/finance/confirmIncome'
 import { recordChestExpense } from '@/application/finance/chestExpense'
@@ -156,6 +158,7 @@ beforeAll(async () => {
   a.bCareerGoal = (await createCareerGoal(userB, { name: 'B goal', why: null, deadline: null, importance: null })).id
   a.opportunity = (await addOpportunity(userA, { ...careerOffer, title: 'A offer', monthlyCompensation: 900000 }, [a.careerGoal])).id
   a.bOpportunity = (await addOpportunity(userB, { ...careerOffer, title: 'B offer' }, [])).id
+  a.focus = (await addFocus(userA, { title: 'A focus', goalId: a.careerGoal, opportunityId: a.opportunity })).id
 })
 
 const careerOffer = {
@@ -385,6 +388,33 @@ describe('Career opportunities: B cannot touch A’s', () => {
     expect(offer?.goals.map((g) => g.goalId)).toEqual([a.careerGoal])
     expect(await prisma.careerOpportunityGoal.count({ where: { opportunityId: a.bOpportunity } })).toBe(0)
     expect(await prisma.careerFact.count({ where: { userId: userB, title: 'A offer' } })).toBe(0)
+  })
+})
+
+describe('Career week: B cannot touch A’s focus or log about A’s records', () => {
+  it('cannot see, tick, drop, bring or tie focus items to A’s', async () => {
+    expect((await getWeek(userB)).focus).toEqual([])
+    await refused(() => setFocusDone(userB, a.focus, true))
+    await refused(() => removeFocus(userB, a.focus))
+    await refused(() => bringToThisWeek(userB, a.focus))
+    await refused(() => addFocus(userB, { title: 'x', goalId: a.careerGoal, opportunityId: null }))
+    await refused(() => addFocus(userB, { title: 'x', goalId: null, opportunityId: a.opportunity }))
+    expect(await prisma.task.findUnique({ where: { id: a.focus } })).toMatchObject({ status: 'OPEN', carryCount: 0 })
+  })
+
+  it('cannot log about A’s goal, opportunity or facts, nor change them from a log line', async () => {
+    const line = { body: 'x', goalId: null, opportunityId: null, also: { kind: 'none' as const } }
+    await refused(() => writeLog(userB, { ...line, goalId: a.careerGoal }))
+    await refused(() => writeLog(userB, { ...line, opportunityId: a.opportunity }))
+    await refused(() => writeLog(userB, { ...line, also: { kind: 'endFact', factId: a.fact } }))
+    await refused(() => writeLog(userB, { ...line, also: { kind: 'evidence', factId: a.fact, title: 'x', url: null } }))
+    await refused(() => writeLog(userB, { ...line, also: { kind: 'move', opportunityId: a.opportunity, status: 'APPLIED', outcome: null } }))
+
+    // Links to A's records written into B's text are dropped.
+    await writeLog(userB, { ...line, body: `About @[A](careerGoal:${a.careerGoal}) and @[F](careerFact:${a.fact})` })
+    expect(await prisma.journalLink.count({ where: { entry: { userId: userB }, targetId: { in: [a.careerGoal, a.fact] } } })).toBe(0)
+    expect(await prisma.careerFact.findUnique({ where: { id: a.fact } })).toMatchObject({ validTo: null })
+    expect(await prisma.careerOpportunity.findUnique({ where: { id: a.opportunity } })).toMatchObject({ status: 'FOUND' })
   })
 })
 

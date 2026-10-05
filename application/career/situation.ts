@@ -114,6 +114,7 @@ export async function addEvidence(
   userId: string,
   input: { title: string; url: string | null; description: string | null; factIds: string[] },
   deps: Deps = careerRepository,
+  now: Date = clockNow(),
 ) {
   const title = input.title.trim()
   if (!title) throw new CareerRuleError('Give it a title.', 'title')
@@ -126,7 +127,8 @@ export async function addEvidence(
   const owned = await deps.ownedFactIds(userId, wanted)
   if (owned.size !== wanted.length) throw new CareerRuleError('Choose among your facts.', 'factIds')
 
-  const created = await deps.createEvidence(userId, { title, url, description }, wanted)
+  // Dated on the person's clock, like the week it shows up in.
+  const created = await deps.createEvidence(userId, { title, url, description, addedAt: now }, wanted)
   await refreshSources(userId, wanted, deps)
   return created
 }
