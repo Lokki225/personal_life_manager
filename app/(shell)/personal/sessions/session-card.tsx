@@ -3,6 +3,7 @@
 import { useEffect, useState, useTransition } from 'react'
 import { CircleAlert, Clock, Loader2, Play, Square } from 'lucide-react'
 
+import { useIsOffline } from '@/components/offline/connection'
 import { ActionDrawer, ActionForm, FIELD_CLASS } from '@/components/forms/action-drawer'
 import { Button } from '@/components/ui/button'
 import { FieldError } from '@/components/ui/field-error'
@@ -47,6 +48,7 @@ export function SessionCard({
   totalMinutes: number
 }) {
   const t = useT()
+  const offline = useIsOffline()
   const [pending, startPending] = useTransition()
   const [error, setError] = useState<string | null>(null)
   const act = (action: () => Promise<{ error: string | null }>) => startPending(async () => setError((await action()).error))
@@ -68,18 +70,19 @@ export function SessionCard({
               <Timer elapsedSeconds={running.elapsedSeconds} />
             </p>
           </div>
-          <Button type="button" onClick={() => act(() => stopSessionAction(null))} disabled={pending} className="h-11 shrink-0">
+          <Button type="button" onClick={() => act(() => stopSessionAction(null))} disabled={pending || offline} className="h-11 shrink-0">
             {pending ? <Loader2 className="animate-spin" aria-hidden="true" /> : <Square aria-hidden="true" />}
             {t('Stop')}
           </Button>
         </div>
       ) : (
         <div className="flex flex-wrap gap-2">
+          {offline ? <p className="w-full text-xs text-muted-foreground">{t('Starting a timer needs a connection. Log the session instead.')}</p> : null}
           {goals.map((goal) => (
             <button
               key={goal.id}
               type="button"
-              disabled={pending}
+              disabled={pending || offline}
               onClick={() => act(() => startSessionAction(goal.id))}
               className="inline-flex min-h-10 items-center gap-1.5 rounded-full border px-3 text-sm font-medium transition-colors outline-none hover:border-node-accent focus-visible:ring-[3px] focus-visible:ring-node-accent/40 disabled:opacity-50"
             >
@@ -89,7 +92,7 @@ export function SessionCard({
           ))}
           <button
             type="button"
-            disabled={pending}
+            disabled={pending || offline}
             onClick={() => act(() => startSessionAction(null))}
             className="inline-flex min-h-10 items-center gap-1.5 rounded-full border border-dashed px-3 text-sm text-muted-foreground transition-colors outline-none hover:border-node-accent focus-visible:ring-[3px] focus-visible:ring-node-accent/40 disabled:opacity-50"
           >
@@ -116,6 +119,7 @@ function LogSessionDrawer({ goals }: { goals: Goal[] }) {
 
   return (
     <ActionDrawer
+      worksOffline
       title={t('Log a session')}
       description={t('Time you already spent, ending now.')}
       trigger={

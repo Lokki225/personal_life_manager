@@ -2,6 +2,7 @@
 
 import { startTransition, useActionState } from 'react'
 
+import { useIsOffline } from '@/components/offline/connection'
 import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select'
 import { initialFormState } from '@/lib/forms/formState'
 import { useT } from '@/lib/i18n/client'
@@ -16,6 +17,7 @@ const weekday = (index: number, locale: string) =>
 // is saved as soon as another day is picked.
 export function SweepDaySelect({ day }: { day: number }) {
   const t = useT()
+  const offline = useIsOffline()
   const [state, formAction, isPending] = useActionState(setSweepDayAction, initialFormState)
   const error = state.formErrors[0] ?? Object.values(state.fieldErrors)[0]?.[0]
 
@@ -31,7 +33,7 @@ export function SweepDaySelect({ day }: { day: number }) {
           // Back to the saved day when the change was refused.
           key={`${day}-${state.status}`}
           defaultValue={String(day)}
-          disabled={isPending}
+          disabled={isPending || offline}
           onChange={(event) => {
             const formData = new FormData()
             formData.set('day', event.target.value)

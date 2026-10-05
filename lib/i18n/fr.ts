@@ -1527,6 +1527,19 @@ export const FR: Messages = {
     "Pay day (day of the month, optional)": "Jour de paie (jour du mois, facultatif)",
     "None: it came once": "Aucun : reçu une fois",
     "An income of your plan needs its pay day.": "Un revenu de votre plan a besoin de son jour de paie.",
+
+    // --- Offline -----------------------------------------------------------------
+    "The assistant needs a connection.": "L'assistant a besoin d'une connexion.",
+    "Moving money between chests needs a connection.": "Déplacer de l'argent entre coffres demande une connexion.",
+    "This needs a connection.": "Cela demande une connexion.",
+    "Syncing needs a connection.": "La synchronisation demande une connexion.",
+    "Starting a timer needs a connection. Log the session instead.": "Lancer un chronomètre demande une connexion. Notez plutôt la séance.",
+    "Adding a task needs a connection.": "Ajouter une tâche demande une connexion.",
+    "Offline: what still works": "Hors ligne : ce qui marche encore",
+    "Offline": "Hors ligne",
+    "You are offline": "Vous êtes hors ligne",
+    "What you send now waits on this page and goes as soon as the connection is back. Keep the page open until then.": "Ce que vous envoyez maintenant attend sur cette page et part dès que la connexion revient. Gardez la page ouverte d'ici là.",
+    "Actions that change your plan, move money between chests or need the server are paused.": "Les actions qui modifient votre plan, déplacent de l'argent entre coffres ou ont besoin du serveur sont en pause.",
   },
 
   // Text that arrives already filled in. More specific patterns come first.

@@ -8,6 +8,7 @@ import { useT } from '@/lib/i18n/client'
 import { canOpen, NODES, nodeFromPath, viewFromPath } from '@/lib/nav/registry'
 import { cn } from '@/lib/utils'
 
+import { StatusPill } from '../offline/status-pill'
 import { LifeGraphOverlay } from './life-graph'
 import { useNodeMemory } from './node-memory'
 import { GraphTrigger, NodeSwitcher } from './node-switcher'
@@ -108,6 +109,7 @@ export function AppBar({ isAdmin }: { isAdmin: boolean }) {
             </span>
           </p>
         ) : null}
+        <StatusPill />
       </div>
       {wide ? (
         <LifeGraphOverlay

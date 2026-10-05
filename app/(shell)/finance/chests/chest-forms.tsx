@@ -3,6 +3,7 @@
 import { startTransition, useActionState, useState } from 'react'
 import { ArrowLeftRight, CircleAlert, Layers, Loader2, Plus, Trash2 } from 'lucide-react'
 
+import { useIsOffline } from '@/components/offline/connection'
 import { Button } from '@/components/ui/button'
 import { FieldError } from '@/components/ui/field-error'
 import { Input } from '@/components/ui/input'
@@ -201,13 +202,15 @@ export function TransferDrawer({ chests }: { chests: ChestOption[] }) {
 // One tap: everything in the Buffer goes to the Base Chest.
 export function ConsolidateButton({ bufferBalance }: { bufferBalance: number }) {
   const t = useT()
+  const offline = useIsOffline()
   const [state, formAction, isPending] = useActionState(consolidateBufferAction, initialFormState)
 
   return (
     <div className="space-y-2">
       <Button
         type="button"
-        disabled={isPending}
+        disabled={isPending || offline}
+        title={offline ? t('Moving money between chests needs a connection.') : undefined}
         onClick={() => startTransition(() => formAction(new FormData()))}
         className="h-auto min-h-11 w-full py-2 whitespace-normal"
       >
@@ -227,6 +230,7 @@ export function ConsolidateButton({ bufferBalance }: { bufferBalance: number }) 
 // Deleting asks once more in place, since it cannot be undone.
 export function DeleteChestButton({ chestId, chestName }: { chestId: string; chestName: string }) {
   const t = useT()
+  const offline = useIsOffline()
   const [confirming, setConfirming] = useState(false)
   const [state, formAction, isPending] = useActionState(deleteChestAction, initialFormState)
 
@@ -242,6 +246,8 @@ export function DeleteChestButton({ chestId, chestName }: { chestId: string; che
         type="button"
         variant="ghost"
         size="icon"
+        disabled={offline}
+        title={offline ? t('This needs a connection.') : undefined}
         onClick={() => setConfirming(true)}
         className="-mr-2 size-11 text-muted-foreground hover:text-destructive-strong"
         aria-label={t('Delete {name}', { name: chestName })}

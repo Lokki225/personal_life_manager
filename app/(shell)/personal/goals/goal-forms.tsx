@@ -3,6 +3,7 @@
 import { startTransition, useActionState, useState, useTransition, type FormEvent } from 'react'
 import { Flag, Loader2, Plus, RefreshCw } from 'lucide-react'
 
+import { useIsOffline } from '@/components/offline/connection'
 import { ActionDrawer, ActionForm, FIELD_CLASS } from '@/components/forms/action-drawer'
 import { Button } from '@/components/ui/button'
 import { FieldError } from '@/components/ui/field-error'
@@ -226,6 +227,7 @@ function InlineForm({
   children: (state: FormState) => React.ReactNode
   submitLabel: string
 }) {
+  const offline = useIsOffline()
   const [formKey, setFormKey] = useState(0)
   const [state, formAction, isPending] = useActionState(async (previous: FormState, formData: FormData) => {
     const next = await action(previous, formData)
@@ -246,7 +248,7 @@ function InlineForm({
       ))}
       <div className="flex gap-2">
         {children(state)}
-        <Button type="submit" disabled={isPending} className="h-12 shrink-0 px-4" aria-label={submitLabel}>
+        <Button type="submit" disabled={isPending || offline} className="h-12 shrink-0 px-4" aria-label={submitLabel}>
           {isPending ? <Loader2 className="animate-spin" aria-hidden="true" /> : <Plus aria-hidden="true" />}
         </Button>
       </div>
@@ -360,6 +362,7 @@ export function AbandonDrawer({ goalId }: { goalId: string }) {
 
 export function SyncNowButton({ seriesId }: { seriesId: string }) {
   const t = useT()
+  const offline = useIsOffline()
   const [pending, startPending] = useTransition()
   const [error, setError] = useState<string | null>(null)
 
@@ -369,7 +372,8 @@ export function SyncNowButton({ seriesId }: { seriesId: string }) {
         type="button"
         variant="outline"
         className="h-10"
-        disabled={pending}
+        disabled={pending || offline}
+        title={offline ? t('Syncing needs a connection.') : undefined}
         onClick={() => startPending(async () => setError((await syncNowAction(seriesId)).error))}
       >
         <RefreshCw className={pending ? 'animate-spin' : undefined} aria-hidden="true" />

@@ -15,6 +15,7 @@ import { ArrowUp, BellOff, BellRing, CircleAlert, Loader2, NotebookText, Setting
 import { Dialog } from 'radix-ui'
 
 import type { ChatTurn } from '@/application/assistant/converse'
+import { useIsOffline } from '@/components/offline/connection'
 import { Button } from '@/components/ui/button'
 import { FieldError } from '@/components/ui/field-error'
 import { Input } from '@/components/ui/input'
@@ -451,6 +452,7 @@ export function AssistantWidget() {
     }
   }
 
+  const offline = useIsOffline()
   const name = data?.personal.name || data?.app.name || t('Assistant')
   const providerName = data?.providers.find((provider) => provider.id === data.provider)?.name
   const tabs: { id: View; label: string; icon: typeof Sparkles }[] = [
@@ -464,6 +466,8 @@ export function AssistantWidget() {
       <Dialog.Trigger
         className="animate-pop-in fixed right-4 bottom-[calc(max(0.75rem,env(safe-area-inset-bottom))+4.75rem)] z-40 flex size-14 items-center justify-center rounded-full bg-gradient-to-br from-primary to-primary/75 text-primary-foreground shadow-[var(--shadow-soft)] ring-4 ring-background transition-transform outline-none hover:scale-105 focus-visible:ring-ring/50 active:scale-95 sm:right-6 sm:bottom-6"
         aria-label={t('Open the assistant')}
+        disabled={offline && !open}
+        title={offline ? t('The assistant needs a connection.') : undefined}
       >
         <Sparkles className="size-6" aria-hidden="true" />
       </Dialog.Trigger>
