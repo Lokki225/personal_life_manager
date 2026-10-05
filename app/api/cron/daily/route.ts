@@ -3,6 +3,7 @@ import { settleEveryone } from '@/application/finance/settleEveryone'
 import { sendDailyReminders } from '@/application/notifications/dailyReminders'
 import { syncAllConnectors } from '@/application/personal/sync'
 import { notificationRepository } from '@/infrastructure/repositories/notificationRepository'
+import { syncReceiptRepository } from '@/infrastructure/repositories/syncReceiptRepository'
 
 // The assistant writes one note per person; give it time.
 export const maxDuration = 300
@@ -29,6 +30,8 @@ export async function GET(request: Request) {
   const synced = await syncAllConnectors()
 
   await notificationRepository.prune(new Date(Date.now() - KEEP_DAYS * 24 * 60 * 60 * 1000))
+  // Outbox ids older than any device could still be resending.
+  await syncReceiptRepository.prune(new Date(Date.now() - 60 * 24 * 60 * 60 * 1000))
 
   return Response.json({ settled, ...reminders, notes: notes.written, synced })
 }

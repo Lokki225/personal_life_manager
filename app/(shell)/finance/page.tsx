@@ -15,6 +15,7 @@ import { now as clockNow, setClockZone } from '@/lib/clock'
 import { getT } from '@/lib/i18n/server'
 import { m } from '@/lib/i18n/translate'
 import { cn } from '@/lib/utils'
+import { PendingToday } from '@/components/offline/pending-today'
 import { SaveSnapshot } from '@/components/offline/save-snapshot'
 import { isoDay } from '@/lib/offline/snapshots'
 
@@ -157,6 +158,8 @@ export default async function FinanceTodayPage() {
           </p>
         </div>
       </header>
+
+      <PendingToday budget={state.dailyBudget} spent={state.dailySpent} saved={state.savedToday} />
 
       {state.expenseTotal === 0 ? (
         <Link

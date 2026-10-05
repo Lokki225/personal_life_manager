@@ -10,6 +10,7 @@ import {
 } from 'lucide-react'
 
 import { ActionDrawer, ActionForm, FIELD_CLASS } from '@/components/forms/action-drawer'
+import { useQueuedAction } from '@/components/offline/queued-action'
 import { Button } from '@/components/ui/button'
 import { FieldError } from '@/components/ui/field-error'
 import { Input } from '@/components/ui/input'
@@ -20,8 +21,9 @@ import { EXCEPTION_CATEGORIES, EXPENSE_CATEGORIES } from '@/domain/finance/optio
 import { fieldAttributes, type FormState } from '@/lib/forms/formState'
 import { useT } from '@/lib/i18n/client'
 
-import { addExpense, confirmIncomeAction, recordException, saveRemaining } from './actions'
+import { confirmIncomeAction } from './actions'
 import { categoryStyle } from './categories'
+import { exceptionForm, expenseForm, saveRemainingForm } from './schema'
 
 // Shared with the other nodes; still exported from here for Finance.
 export { ActionDrawer, ActionForm, FIELD_CLASS }
@@ -217,6 +219,15 @@ export function AddExpenseDrawer({
   chests?: PayingChest[]
 }) {
   const t = useT()
+  // Through the outbox: it waits on the device without a connection.
+  const queuedExpense = useQueuedAction('finance.addExpense', expenseForm, (expense) => ({
+    amount: expense.amount,
+    category: expense.category,
+    description: expense.description || null,
+    cause: expense.cause ?? null,
+    reason: expense.reason || null,
+    chestId: expense.chestId || null,
+  }))
 
   return (
     <ActionDrawer
@@ -235,7 +246,7 @@ export function AddExpenseDrawer({
       }
     >
       {(close) => (
-        <ActionForm draftKey="finance.addExpense" action={addExpense} submitLabel={t('Add expense')} onDone={close}>
+        <ActionForm draftKey="finance.addExpense" action={queuedExpense} submitLabel={t('Add expense')} onDone={close}>
           {(state) => <ExpenseFields state={state} left={left} hasBudget={hasBudget} chests={chests} />}
         </ActionForm>
       )}
@@ -283,6 +294,10 @@ export function SaveRemainingDrawer({
 }) {
   const t = useT()
   const scope = 'saving'
+  const queuedSaving = useQueuedAction('finance.saveRemaining', saveRemainingForm, (saving) => ({
+    amount: saving.amount,
+    destinationChestId: saving.destinationChestId || null,
+  }))
 
   return (
     <ActionDrawer
@@ -300,7 +315,7 @@ export function SaveRemainingDrawer({
       }
     >
       {(close) => (
-        <ActionForm draftKey="finance.saveRemaining" action={saveRemaining} submitLabel={t('Save')} onDone={close}>
+        <ActionForm draftKey="finance.saveRemaining" action={queuedSaving} submitLabel={t('Save')} onDone={close}>
           {(state) => (
             <>
               <AmountField state={state} scope={scope} defaultValue={available} />
@@ -334,6 +349,10 @@ export function SaveRemainingDrawer({
 
 export function ExceptionDrawer({ overspend }: { overspend: number }) {
   const t = useT()
+  const queuedException = useQueuedAction('finance.recordException', exceptionForm, (exception) => ({
+    category: exception.category,
+    reason: exception.reason || null,
+  }))
   const scope = 'exception'
 
   return (
@@ -352,7 +371,7 @@ export function ExceptionDrawer({ overspend }: { overspend: number }) {
       }
     >
       {(close) => (
-        <ActionForm draftKey="finance.recordException" action={recordException} submitLabel={t('Record')} onDone={close}>
+        <ActionForm draftKey="finance.recordException" action={queuedException} submitLabel={t('Record')} onDone={close}>
           {(state) => (
             <>
               <CategoryChips categories={EXCEPTION_CATEGORIES} legend={t('What caused it?')} />
