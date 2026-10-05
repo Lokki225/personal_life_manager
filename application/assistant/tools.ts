@@ -3,6 +3,8 @@ import { z } from 'zod'
 import { isAccountRuleError } from '../account/errors'
 import { ApiNotFound, type ApiUser, type Operation } from '../api/operation'
 import { operationList } from '../api/operations'
+import { isCareerRuleError } from '../../domain/career/errors'
+import { isPersonalRuleError } from '../../domain/personal/errors'
 import { isFinanceRuleError } from '../../domain/finance/errors'
 import type { ModelTool } from '../../infrastructure/ai/model'
 
@@ -64,7 +66,8 @@ export async function runTool(
       changed: operation.needs === 'WRITE',
     }
   } catch (error) {
-    if (error instanceof ApiNotFound || isFinanceRuleError(error) || isAccountRuleError(error)) {
+    // A rule saying no, in any node: the assistant tells the person why.
+    if (error instanceof ApiNotFound || isFinanceRuleError(error) || isAccountRuleError(error) || isPersonalRuleError(error) || isCareerRuleError(error)) {
       return { content: `Refused: ${error.message}`, isError: true, changed: false }
     }
 

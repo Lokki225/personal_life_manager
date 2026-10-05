@@ -5,7 +5,7 @@ import type { StoredSubscription } from './pushRepository'
 
 // Who is told about what, and what was already told.
 
-export type NotificationPreferences = { notifyMoney: boolean; notifyAdmin: boolean }
+export type NotificationPreferences = { notifyMoney: boolean; notifyAdmin: boolean; notifyCareer: boolean }
 
 export type NotifiedPerson = NotificationPreferences & {
   id: string
@@ -30,6 +30,7 @@ const select = {
   locale: true,
   notifyMoney: true,
   notifyAdmin: true,
+  notifyCareer: true,
   pushSubscriptions: { select: { endpoint: true, p256dh: true, auth: true } },
 } as const
 
@@ -41,6 +42,7 @@ const toPerson = ({
   locale: string | null
   notifyMoney: boolean
   notifyAdmin: boolean
+  notifyCareer: boolean
   pushSubscriptions: StoredSubscription[]
 }): NotifiedPerson => ({ ...person, subscriptions: pushSubscriptions })
 
@@ -74,9 +76,9 @@ export const notificationRepository: NotificationRepository = {
   },
 
   preferences: async (userId) => {
-    const user = await prisma.user.findUnique({ where: { id: userId }, select: { notifyMoney: true, notifyAdmin: true } })
+    const user = await prisma.user.findUnique({ where: { id: userId }, select: { notifyMoney: true, notifyAdmin: true, notifyCareer: true } })
 
-    return { notifyMoney: user?.notifyMoney ?? true, notifyAdmin: user?.notifyAdmin ?? true }
+    return { notifyMoney: user?.notifyMoney ?? true, notifyAdmin: user?.notifyAdmin ?? true, notifyCareer: user?.notifyCareer ?? true }
   },
 
   setPreferences: async (userId, preferences) => {

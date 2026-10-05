@@ -51,6 +51,7 @@ import {
   text,
   type ApiUser,
 } from './operation'
+import { careerOperations } from './careerOperations'
 import { personalOperations } from './personalOperations'
 import { chestsView, debtsView, goalsView, historyView, planView, reviewView, todayView } from './views'
 
@@ -740,6 +741,7 @@ export const operations = {
   // --- Personal --------------------------------------------------------------
 
   ...personalOperations,
+  ...careerOperations,
 }
 
 export const operationList = Object.values(operations)

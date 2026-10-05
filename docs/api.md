@@ -227,6 +227,44 @@ A custom goal is built from up to 5 conditions, `logic` saying whether `ALL`
 `delivered`: how many devices received it. `0` means the person has not turned
 notifications on.
 
+## Personal
+
+| Call | Does |
+| --- | --- |
+| `GET /personal/today` | The day's tasks, how full the day is, session time, the one line about today. |
+| `GET /personal/goals` | Goals with their status, progress, steps and pace. |
+| `POST /personal/tasks` | `title`, for today unless `date`, or `inbox: true`. |
+| `POST /personal/tasks/{id}/done` | Ticks a task for today, or `done: false` to untick. |
+| `POST /personal/sessions` | `minutes` already spent, ending now; optional `goalId`, `note`. |
+| `POST /personal/journal` | A journal entry for today: `text`, optional `kind` and `title`. |
+
+## Career
+
+Results are `MET`, `EXCEEDS`, `GAP` or `UNKNOWN` (a missing value is never
+zero), summarised as counts per level, never a percentage. A goal whose
+required criteria hold is `CRITERIA_MET`; the person marks it achieved.
+
+| Call | Does |
+| --- | --- |
+| `GET /career/situation` | Facts true today, the main position, the person's places. |
+| `GET /career/goals` | Goals, their status and each criterion's result. |
+| `GET /career/opportunities` | Opportunities, their status, deadline, terms and goals. |
+| `GET /career/week` | This week's focus, the log, deadlines and the runway. |
+| `POST /career/facts` | A fact: `kind` (`POSITION`, `QUALIFICATION`, `SKILL`, `EXPERIENCE`), `title`, optional `since` and terms (`monthlyPay`, `workArrangement`, `contractType`, `weeklyHours`, `place`), `issuer`, `level`. |
+| `POST /career/facts/{id}/end` | The fact is no longer true from `date` (today by default). |
+| `POST /career/evidence` | Evidence: `title`, optional `url`, `factIds` it documents. |
+| `POST /career/goals` | A goal: `name`, optional `why`, `deadline`, `importance`. |
+| `POST /career/goals/{id}/criteria` | A criterion: `{ kind: 'number' \| 'choice' \| 'evidence' \| 'judgement', level, ... }`. |
+| `POST /career/criteria/{id}/judgement` | The person's verdict: `result`, optional `note`, `opportunityId`. |
+| `POST /career/opportunities` | An opportunity: `title`, `organisation`, `kind`, `link`, `deadline`, terms, `goalIds`. |
+| `POST /career/opportunities/{id}/status` | `status`; closing needs an `outcome`. |
+| `POST /career/focus` | A focus item for this week (3 at most). |
+| `POST /career/focus/{id}/done` | Ticks a focus item, or `done: false`. |
+| `POST /career/log` | A line in the quick log, optional `goalId`, `opportunityId`. |
+
+Accepting an offer in full (new position, end of the current one, judgements
+copied) is done in the app.
+
 ## Not in the API
 
 Deleting a goal or a debt, changing a past day, and the first setup of the

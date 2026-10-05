@@ -7,21 +7,26 @@ import { useT } from '@/lib/i18n/client'
 
 import { setNotificationChoiceAction } from './actions'
 
-type Choice = 'notifyMoney' | 'notifyAdmin'
+type Choice = 'notifyMoney' | 'notifyAdmin' | 'notifyCareer'
 
 // Which notifications the person wants. Each is saved as soon as it is
 // ticked; security notices cannot be turned off.
 export function NotificationChoices({
   notifyMoney,
   notifyAdmin,
+  notifyCareer,
   isAdmin,
+  careerOpen,
 }: {
   notifyMoney: boolean
   notifyAdmin: boolean
+  notifyCareer: boolean
   isAdmin: boolean
+  // Whether this person can use Career.
+  careerOpen: boolean
 }) {
   const t = useT()
-  const [values, setValues] = useState({ notifyMoney, notifyAdmin })
+  const [values, setValues] = useState({ notifyMoney, notifyAdmin, notifyCareer })
   const [saving, setSaving] = useState<Choice | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [, startSaving] = useTransition()
@@ -51,6 +56,15 @@ export function NotificationChoices({
         'Spending to record, incomes to confirm, debts due, an overspend to explain, the month going too fast, the weekly Buffer transfer, a goal reached, a chest unlocking, a new month.',
       ),
     },
+    ...(careerOpen
+      ? [
+          {
+            choice: 'notifyCareer' as const,
+            label: t('Career reminders'),
+            text: t('An opportunity deadline in 2 days and tomorrow, the weekly review when focus is still open, facts to look at again (once a month).'),
+          },
+        ]
+      : []),
     ...(isAdmin
       ? [
           {

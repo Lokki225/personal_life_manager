@@ -7,6 +7,7 @@ import { ApiNotFound, type ApiUser, type Operation } from '@/application/api/ope
 import { DONE } from '@/application/api/operations'
 import { notifyPerson, notifyReachedGoals } from '@/application/notifications/instant'
 import { isFinanceRuleError } from '@/domain/finance/errors'
+import { isCareerRuleError } from '@/domain/career/errors'
 import { isPersonalRuleError } from '@/domain/personal/errors'
 import type { ApiScope } from '@/infrastructure/repositories/apiTokenRepository'
 import { setClockZone } from '@/lib/clock'
@@ -61,7 +62,7 @@ export function endpoint<Context>(
         return fail(404, 'not_found', error.message)
       }
 
-      if (isFinanceRuleError(error) || isAccountRuleError(error) || isPersonalRuleError(error)) {
+      if (isFinanceRuleError(error) || isAccountRuleError(error) || isPersonalRuleError(error) || isCareerRuleError(error)) {
         return fail(422, 'refused', error.message, error.field)
       }
 

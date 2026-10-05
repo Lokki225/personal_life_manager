@@ -45,9 +45,9 @@ const NODES: { icon: LucideIcon; name: string; text: string; status: string; ava
   {
     icon: Briefcase,
     name: m('Career'),
-    text: m('Where your work is going: projects, skills, and the paths between them.'),
-    status: m('Planned'),
-    available: false,
+    text: m('Where you stand at work, what you want next by your own criteria, and how each opportunity compares.'),
+    status: m('Available'),
+    available: true,
   },
   {
     icon: Compass,
@@ -182,7 +182,7 @@ export default async function Home() {
             </h2>
             <p className="mt-2 max-w-2xl text-sm text-muted-foreground sm:text-base">
               {t(
-                'Finance, Personal, Career and Projection: each is a node, built on the same loop of intent, reality and adjustment, and linked to the others. Finance and Personal are the ones you can use today.',
+                'Finance, Personal, Career and Projection: each is a node, built on the same loop of intent, reality and adjustment, and linked to the others. Finance, Personal and Career are the ones you can use today.',
               )}
             </p>
           </div>

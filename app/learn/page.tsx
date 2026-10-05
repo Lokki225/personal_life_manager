@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import {
   ArrowRight,
+  Briefcase,
   CalendarCheck,
   ChartNoAxesColumn,
   HandCoins,
@@ -147,6 +148,37 @@ const SECTIONS: { icon: LucideIcon; title: string; lead: string; words: Word[] }
       {
         term: m('Journal'),
         text: m('Notes, decisions and ideas, linked to your goals and tasks. An entry can be locked with a password.'),
+      },
+    ],
+  },
+  {
+    icon: Briefcase,
+    title: m('Career'),
+    lead: m('Where you stand at work, what you want next by your own criteria, and how each opening compares.'),
+    words: [
+      {
+        term: m('Situation'),
+        text: m('Dated facts: your positions with their terms, qualifications, skills and experience. A link as evidence makes a fact documented. Facts end, they are never deleted.'),
+      },
+      {
+        term: m('Career goal'),
+        text: m('What you want next, with your criteria: pay or hours, how you work, a documented skill, or your own judgement. Each is required, preferred or for information.'),
+      },
+      {
+        term: m('Met, gap, unknown'),
+        text: m('Each criterion is compared with your situation. A missing value is unknown, never zero. You see counts, never a percentage, and you mark a goal achieved yourself.'),
+      },
+      {
+        term: m('Opportunity'),
+        text: m('An opening or an offer, followed from found to closed, and compared side by side with where you stand. Accepting one updates your situation in one step.'),
+      },
+      {
+        term: m('Weekly loop'),
+        text: m('Up to three focus items a week, a quick log, and a short review of what changed.'),
+      },
+      {
+        term: m('Runway'),
+        text: m('How many months your money at hand would cover your plan, read from Finance.'),
       },
     ],
   },
