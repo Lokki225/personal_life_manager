@@ -93,7 +93,7 @@ export const NODES: NodeDef[] = [
     label: m('Career'),
     icon: 'briefcase',
     defaultView: 'week',
-    access: 'admin',
+    access: 'all',
     views: [
       view('week', m('Week'), 'calendar-check', '/career/week'),
       view('goals', m('Goals'), 'target', '/career/goals'),

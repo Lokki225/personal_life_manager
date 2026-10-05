@@ -1,4 +1,5 @@
 import { financeRepository } from '../../infrastructure/repositories/financeRepository'
+import { exportCareer } from '../../infrastructure/repositories/careerRepository'
 import { exportPersonal } from '../../infrastructure/repositories/personalRepository'
 import { userRepository } from '../../infrastructure/repositories/userRepository'
 
@@ -18,9 +19,10 @@ type ExportDeps = {
     | 'listProjects'
   >
   personal?: typeof exportPersonal
+  career?: typeof exportCareer
 }
 
-const defaultDeps: ExportDeps = { getProfile: userRepository.getProfile, finance: financeRepository, personal: exportPersonal }
+const defaultDeps: ExportDeps = { getProfile: userRepository.getProfile, finance: financeRepository, personal: exportPersonal, career: exportCareer }
 
 // A chest's password hash is a secret, not the person's data.
 const withoutSecrets = (row: object) =>
@@ -29,7 +31,7 @@ const withoutSecrets = (row: object) =>
 // Everything one person recorded, in one object: their own backup, and what
 // they would take with them. It holds no password and nobody else's data.
 export async function exportUserData(userId: string, deps: ExportDeps = defaultDeps, now: Date = new Date()) {
-  const [profile, incomes, oneOffIncomes, allocations, expenses, exceptions, chests, movements, goals, debts, projects, personal] =
+  const [profile, incomes, oneOffIncomes, allocations, expenses, exceptions, chests, movements, goals, debts, projects, personal, career] =
     await Promise.all([
       deps.getProfile(userId),
       deps.finance.listIncomes(userId),
@@ -43,6 +45,7 @@ export async function exportUserData(userId: string, deps: ExportDeps = defaultD
       deps.finance.listDebts(userId),
       deps.finance.listProjects(userId),
       deps.personal ? deps.personal(userId) : Promise.resolve(null),
+      deps.career ? deps.career(userId) : Promise.resolve(null),
     ])
 
   return {
@@ -62,5 +65,6 @@ export async function exportUserData(userId: string, deps: ExportDeps = defaultD
     },
     projects,
     personal,
+    career,
   }
 }

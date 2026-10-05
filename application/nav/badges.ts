@@ -2,6 +2,7 @@ import { CURRENCY_CODE } from '../../domain/finance/calculations'
 import type { Translator } from '../../lib/i18n/translate'
 import type { NodeId } from '../../lib/nav/registry'
 import { recomputeFinanceState } from '../finance/recomputeFinanceState'
+import { getWeek } from '../career/week'
 import { getTodayTasks } from '../personal/tasks'
 
 // One live line per node for the life graph (overlay spec §9). A node that
@@ -24,7 +25,7 @@ async function safely(read: () => Promise<string | null>): Promise<string | null
 }
 
 export async function getBadges(userId: string, open: (id: NodeId) => boolean, t: Translator, now: Date): Promise<Badges> {
-  const [finance, personal] = await Promise.all([
+  const [finance, personal, career] = await Promise.all([
     open('finance')
       ? safely(async () => {
           const state = await recomputeFinanceState({ userId, referenceDate: now })
@@ -38,7 +39,17 @@ export async function getBadges(userId: string, open: (id: NodeId) => boolean, t
           return t.plural(left, '{count} task open', '{count} tasks open')
         })
       : null,
+    open('career')
+      ? safely(async () => {
+          // The next deadline this week ("Offer reply due Fri"), else the open focus.
+          const week = await getWeek(userId, now)
+          const soon = week.deadlines.find((d) => d.date.getTime() - now.getTime() < 7 * 86_400_000)
+          if (soon) return t('{title} due {day}', { title: soon.title, day: new Intl.DateTimeFormat(t.intl, { weekday: 'short' }).format(soon.date) })
+          const open = week.focus.filter((f) => f.status !== 'DONE').length
+          return t.plural(open, '{count} focus item open', '{count} focus items open')
+        })
+      : null,
   ])
 
-  return { finance, personal, career: null, projection: null }
+  return { finance, personal, career, projection: null }
 }

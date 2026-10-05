@@ -149,3 +149,17 @@ export const careerRepository = {
 }
 
 export type CareerRepository = typeof careerRepository
+
+// Everything a person recorded in Career, for their data export: facts,
+// evidence, opportunities with their history, goals with their criteria and
+// judgements, focus items. Log lines are in the journal.
+export async function exportCareer(userId: string) {
+  const [facts, evidence, opportunities, goals, focus] = await Promise.all([
+    prisma.careerFact.findMany({ where: { userId }, include: { evidence: { select: { evidenceId: true } } } }),
+    prisma.careerEvidence.findMany({ where: { userId }, include: { facts: { select: { factId: true } } } }),
+    prisma.careerOpportunity.findMany({ where: { userId }, include: { goals: { select: { goalId: true } }, statusChanges: true } }),
+    prisma.goal.findMany({ where: { userId, domain: 'career' }, include: { groups: { include: { conditions: { include: { judgements: true } } } } } }),
+    prisma.task.findMany({ where: { userId, domain: 'career' } }),
+  ])
+  return { facts, evidence, opportunities, goals, focus }
+}

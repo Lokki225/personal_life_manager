@@ -239,7 +239,7 @@ export async function setNotificationChoiceAction(choice: unknown, enabled: unkn
   }
 
   // Administration alerts only mean something to an administrator.
-  if ((choice !== 'notifyMoney' && choice !== 'notifyAdmin') || (choice === 'notifyAdmin' && user.role !== 'ADMIN')) {
+  if ((choice !== 'notifyMoney' && choice !== 'notifyAdmin' && choice !== 'notifyCareer') || (choice === 'notifyAdmin' && user.role !== 'ADMIN')) {
     return { error: t('Choose on or off.') }
   }
 

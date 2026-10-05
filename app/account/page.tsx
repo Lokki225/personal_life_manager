@@ -17,6 +17,7 @@ import { SignedInMenu } from '../signed-in-menu'
 import { CredentialsForm, ProfileForm } from './account-form'
 import { ApiKeys } from './api-keys'
 import { DeleteAccount } from './delete-account'
+import { canUseCareer } from '../(shell)/career/access'
 import { NotificationChoices } from './notification-choices'
 import { NotificationSettings } from './notifications'
 
@@ -109,7 +110,7 @@ export default async function AccountPage() {
             </p>
           </div>
           <NotificationSettings publicKey={pushPublicKey()} />
-          <NotificationChoices {...notificationChoices} isAdmin={user.role === 'ADMIN'} />
+          <NotificationChoices {...notificationChoices} isAdmin={user.role === 'ADMIN'} careerOpen={canUseCareer(user)} />
         </CardContent>
       </Card>
 

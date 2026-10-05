@@ -95,3 +95,29 @@ describe('sendDailyReminders', () => {
     expect(deps.factsFor).toHaveBeenCalledTimes(1)
   })
 })
+
+describe('Career reminders in the daily run', () => {
+  it('reach someone who wants Career reminders only, and never twice', async () => {
+    const claimed = new Set<string>()
+    const notify = vi.fn(async () => 1)
+    const deps = {
+      listRecipients: async () => [{ id: 'u', locale: 'en', timeZone: null, notifyMoney: false, notifyCareer: true, subscriptions: [phone] }],
+      factsFor: vi.fn(),
+      careerFactsFor: async () => ({
+        opportunities: [{ id: 'o1', title: 'Beta offer', deadline: new Date(Date.now() + 86_400_000) }],
+        openFocus: 0,
+        reviewDay: 7,
+        dueForReview: 0,
+      }),
+      claim: async (userId: string, key: string) => (claimed.has(key) ? false : (claimed.add(key), true)),
+      notify,
+    }
+
+    await sendDailyReminders(deps)
+    await sendDailyReminders(deps)
+
+    expect(deps.factsFor).not.toHaveBeenCalled()
+    expect(notify).toHaveBeenCalledTimes(1)
+    expect(notify).toHaveBeenCalledWith([phone], { title: 'Beta offer: the deadline is tomorrow', body: expect.any(String), url: '/career/opportunities/o1' })
+  })
+})

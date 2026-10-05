@@ -17,7 +17,7 @@ Personal Life Manager is a life graph: a few nodes of a person's life, each with
 |---|---|---|
 | Finance | Live for everyone: income, plan, daily budget, expenses, savings and chests, Buffer, debts, exceptions, goals, review | `domain/finance`, `application/finance`, `app/(shell)/finance` |
 | Personal | Live for everyone: tasks, sessions, goals and measures, journal (locked entries encrypted), weekly review | `domain/personal`, `application/personal`, `app/(shell)/personal` |
-| Career | Being built, administrators only: situation (facts and evidence), goals with criteria, opportunities side by side, weekly loop | `domain/career`, `application/career`, `app/(shell)/career` |
+| Career | Live for everyone: situation (facts and evidence), goals with criteria, opportunities side by side, weekly loop, links with Finance and Personal | `domain/career`, `application/career`, `app/(shell)/career` |
 | Projection | Planned ("Coming soon"): ideas, vision, seasons, letters | — |
 
 Shared across nodes:
@@ -76,5 +76,5 @@ Shared across nodes:
 
 ## Project snapshot
 - Stack: Next.js 16 App Router, TypeScript, Tailwind CSS, Prisma 7 on Neon Postgres, deployed on Vercel (merging to `main` deploys)
-- Nodes: Finance and Personal live, Career in progress (admin only), Projection planned
+- Nodes: Finance, Personal and Career live, Projection planned
 - Long-term direction: the life graph, with each node tracking intended vs actual

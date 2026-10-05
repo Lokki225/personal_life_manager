@@ -27,7 +27,7 @@ const SECTIONS: Section[] = [
     title: m('What is kept'),
     points: [
       m('Your account: your name, your email and your password, stored only as a hash that cannot be read back. A picture and the other profile fields if you add them.'),
-      m('What you record: incomes, plan, expenses, savings, chests, debts and goals in Finance; tasks, sessions, goals and journal entries in Personal.'),
+      m('What you record: incomes, plan, expenses, savings, chests, debts and goals in Finance; tasks, sessions, goals and journal entries in Personal; positions and their pay, qualifications, skills, evidence links, opportunities and goals in Career.'),
       m('A locked journal entry is stored encrypted with its password. Without the password, nobody can read it, not even the administrator.'),
       m('Your notification choices, the addresses your devices give for notifications, and the opinions you send.'),
     ],
@@ -45,7 +45,7 @@ const SECTIONS: Section[] = [
     title: m('On your device'),
     points: [
       m('To work without a connection, the app keeps on your device a read-only copy of a few screens, what you are typing in a capture form, and what waits to be sent.'),
-      m('Signing out erases all of it from the device. A password is never kept there.'),
+      m('Signing out erases all of it from the device. A password is never kept there, and nothing of Career is: your pay stays on the server.'),
     ],
   },
   {

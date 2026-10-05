@@ -268,14 +268,14 @@ export const personalRepository = {
 }
 
 // Everything a person recorded in Personal, for their data export. Journal
-// password hashes stay out; locked entries come with their text, since the
-// export is the person's own copy.
+// password hashes stay out; locked entries stay sealed, as they are stored.
+// The journal holds the Career log too: it is one journal.
 export async function exportPersonal(userId: string) {
   const [categories, tasks, goals, sessions, measures, journal] = await Promise.all([
     prisma.category.findMany({ where: { userId } }),
-    prisma.task.findMany({ where: { userId }, include: { completions: true, carries: true } }),
+    prisma.task.findMany({ where: { userId, domain: 'personal' }, include: { completions: true, carries: true } }),
     prisma.goal.findMany({
-      where: { userId, domain: { not: 'finance' } },
+      where: { userId, domain: 'personal' },
       include: { groups: { include: { conditions: true } }, milestones: true },
     }),
     prisma.session.findMany({ where: { userId } }),
