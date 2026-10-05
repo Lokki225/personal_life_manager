@@ -13,6 +13,7 @@ import {
 } from '@/application/personal/tasks'
 import { isPersonalRuleError } from '@/domain/personal/errors'
 import { addDays, startOfDay } from '@/domain/personal/tasks'
+import { TOO_MANY_WRITES, writesAllowed } from '@/infrastructure/auth/limits'
 import { getSignedInUser } from '@/infrastructure/auth/sessionUser'
 import { now, setClockZone } from '@/lib/clock'
 import { signedOutState, translateFormState, type FormState } from '@/lib/forms/formState'
@@ -30,6 +31,10 @@ export async function addTaskAction(_previousState: FormState, formData: FormDat
 
   if (!canUsePersonal(user)) {
     return signedOutState(t)
+  }
+
+  if (!(await writesAllowed(user.id))) {
+    return { status: 'error', fieldErrors: {}, formErrors: [t(TOO_MANY_WRITES)] }
   }
 
   const state = await taskForm.submit(formData, async (task) => {
@@ -56,6 +61,10 @@ export async function capacityAction(_previousState: FormState, formData: FormDa
     return signedOutState(t)
   }
 
+  if (!(await writesAllowed(user.id))) {
+    return { status: 'error', fieldErrors: {}, formErrors: [t(TOO_MANY_WRITES)] }
+  }
+
   const state = await capacityForm.submit(formData, ({ capacity }) => setDailyCapacity(user.id, capacity))
 
   if (state.status === 'success') {
@@ -74,6 +83,10 @@ async function run(task: (userId: string) => Promise<void>): Promise<Outcome> {
 
   if (!canUsePersonal(user)) {
     return { error: t('Your session has ended. Sign in again to continue.') }
+  }
+
+  if (!(await writesAllowed(user.id))) {
+    return { error: t(TOO_MANY_WRITES) }
   }
 
   try {

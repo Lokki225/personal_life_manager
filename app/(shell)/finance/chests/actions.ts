@@ -6,6 +6,7 @@ import { notifyLater } from '@/app/notify-later'
 import { createChest } from '@/application/finance/createChest'
 import { deleteChest } from '@/application/finance/deleteChest'
 import { notifyReachedGoals } from '@/application/notifications/instant'
+import { TOO_MANY_WRITES, writesAllowed } from '@/infrastructure/auth/limits'
 import { getSignedInUser } from '@/infrastructure/auth/sessionUser'
 import { userRepository } from '@/infrastructure/repositories/userRepository'
 import { setClockZone } from '@/lib/clock'
@@ -22,6 +23,10 @@ export async function createChestAction(_previousState: FormState, formData: For
 
   if (!userId) {
     return signedOutState(t)
+  }
+
+  if (!(await writesAllowed(userId))) {
+    return { status: 'error', fieldErrors: {}, formErrors: [t(TOO_MANY_WRITES)] }
   }
 
   const state = await chestForm.submit(formData, async (chest) => {
@@ -51,6 +56,10 @@ export async function deleteChestAction(_previousState: FormState, formData: For
     return signedOutState(t)
   }
 
+  if (!(await writesAllowed(userId))) {
+    return { status: 'error', fieldErrors: {}, formErrors: [t(TOO_MANY_WRITES)] }
+  }
+
   const state = await deleteChestForm.submit(formData, ({ chestId }) => deleteChest(userId, chestId))
 
   if (state.status === 'success') {
@@ -69,6 +78,10 @@ export async function setSweepDayAction(_previousState: FormState, formData: For
 
   if (!userId) {
     return signedOutState(t)
+  }
+
+  if (!(await writesAllowed(userId))) {
+    return { status: 'error', fieldErrors: {}, formErrors: [t(TOO_MANY_WRITES)] }
   }
 
   const state = await sweepDayForm.submit(formData, ({ day }) => userRepository.setBufferSweepDay(userId, day))

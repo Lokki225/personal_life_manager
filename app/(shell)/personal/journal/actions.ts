@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation'
 
 import { createEntry, deleteEntry, lockEntry, removeLock, saveDailyNote, unlockEntry, updateEntry } from '@/application/personal/journal'
 import { isPersonalRuleError, PersonalRuleError } from '@/domain/personal/errors'
+import { TOO_MANY_WRITES, writesAllowed } from '@/infrastructure/auth/limits'
 import { getSignedInUser } from '@/infrastructure/auth/sessionUser'
 import { now, setClockZone } from '@/lib/clock'
 import { signedOutState, translateFormState, type FormState } from '@/lib/forms/formState'
@@ -26,6 +27,9 @@ export async function saveEntryAction(_previous: FormState, formData: FormData):
   const [user, t] = await signedIn()
   setClockZone(user?.timeZone)
   if (!canUsePersonal(user)) return signedOutState(t)
+  if (!(await writesAllowed(user.id))) {
+    return { status: 'error', fieldErrors: {}, formErrors: [t(TOO_MANY_WRITES)] }
+  }
 
   const isUnlocked = await unlockedChecker(user.id)
   const state = await entryForm.submit(formData, async (entry) => {
@@ -54,6 +58,9 @@ export async function unlockEntryAction(_previous: FormState, formData: FormData
   const [user, t] = await signedIn()
   setClockZone(user?.timeZone)
   if (!canUsePersonal(user)) return signedOutState(t)
+  if (!(await writesAllowed(user.id))) {
+    return { status: 'error', fieldErrors: {}, formErrors: [t(TOO_MANY_WRITES)] }
+  }
 
   const state = await passwordForm.submit(formData, async ({ id, password }) => {
     if (!(await unlockEntry(user.id, id, password))) {
@@ -70,6 +77,9 @@ export async function lockEntryAction(_previous: FormState, formData: FormData):
   const [user, t] = await signedIn()
   setClockZone(user?.timeZone)
   if (!canUsePersonal(user)) return signedOutState(t)
+  if (!(await writesAllowed(user.id))) {
+    return { status: 'error', fieldErrors: {}, formErrors: [t(TOO_MANY_WRITES)] }
+  }
 
   const state = await passwordForm.submit(formData, ({ id, password }) => lockEntry(user.id, id, password))
   if (state.status === 'success') refresh()
@@ -80,6 +90,9 @@ export async function removeLockAction(_previous: FormState, formData: FormData)
   const [user, t] = await signedIn()
   setClockZone(user?.timeZone)
   if (!canUsePersonal(user)) return signedOutState(t)
+  if (!(await writesAllowed(user.id))) {
+    return { status: 'error', fieldErrors: {}, formErrors: [t(TOO_MANY_WRITES)] }
+  }
 
   const state = await passwordForm.submit(formData, async ({ id, password }) => {
     await removeLock(user.id, id, password)
@@ -99,6 +112,9 @@ export async function deleteEntryAction(entryId: string): Promise<{ error: strin
   const [user, t] = await signedIn()
   setClockZone(user?.timeZone)
   if (!canUsePersonal(user)) return { error: t('Your session has ended. Sign in again to continue.') }
+  if (!(await writesAllowed(user.id))) {
+    return { error: t(TOO_MANY_WRITES) }
+  }
 
   try {
     await deleteEntry(user.id, entryId, (await unlockedChecker(user.id))(entryId))
@@ -116,6 +132,9 @@ export async function saveDailyNoteAction(_previous: FormState, formData: FormDa
   const [user, t] = await signedIn()
   setClockZone(user?.timeZone)
   if (!canUsePersonal(user)) return signedOutState(t)
+  if (!(await writesAllowed(user.id))) {
+    return { status: 'error', fieldErrors: {}, formErrors: [t(TOO_MANY_WRITES)] }
+  }
 
   const state = await dailyNoteForm.submit(formData, ({ body }) => saveDailyNote(user.id, body, now()))
   if (state.status === 'success') refresh()

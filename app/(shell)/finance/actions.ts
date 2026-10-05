@@ -12,6 +12,7 @@ import { removeAllocation, removeIncome, saveAllocation, saveIncome } from '@/ap
 import { syncPlanToChests } from '@/application/finance/syncPlanToChests'
 import { transferBetweenChests } from '@/application/finance/transferBetweenChests'
 import { notifyReachedGoals } from '@/application/notifications/instant'
+import { TOO_MANY_WRITES, writesAllowed } from '@/infrastructure/auth/limits'
 import { getSignedInUser } from '@/infrastructure/auth/sessionUser'
 import { setClockZone } from '@/lib/clock'
 import { signedOutState, translateFormState, type FormState } from '@/lib/forms/formState'
@@ -46,6 +47,10 @@ export async function confirmIncomeAction(_previousState: FormState, formData: F
     return signedOutState(t)
   }
 
+  if (!(await writesAllowed(userId))) {
+    return { status: 'error', fieldErrors: {}, formErrors: [t(TOO_MANY_WRITES)] }
+  }
+
   const state = await confirmIncomeForm.submit(formData, (income) =>
     confirmIncome({ userId, incomeId: income.incomeId, amount: income.amount }),
   )
@@ -65,6 +70,10 @@ export async function transferChests(_previousState: FormState, formData: FormDa
 
   if (!userId) {
     return signedOutState(t)
+  }
+
+  if (!(await writesAllowed(userId))) {
+    return { status: 'error', fieldErrors: {}, formErrors: [t(TOO_MANY_WRITES)] }
   }
 
   const state = await transferForm.submit(formData, (transfer) =>
@@ -94,6 +103,10 @@ export async function consolidateBufferAction(_previousState: FormState, formDat
     return signedOutState(t)
   }
 
+  if (!(await writesAllowed(userId))) {
+    return { status: 'error', fieldErrors: {}, formErrors: [t(TOO_MANY_WRITES)] }
+  }
+
   const state = await consolidateForm.submit(formData, async () => {
     await consolidateBuffer(userId)
   })
@@ -113,6 +126,10 @@ export async function saveAllocationAction(_previousState: FormState, formData: 
 
   if (!userId) {
     return signedOutState(t)
+  }
+
+  if (!(await writesAllowed(userId))) {
+    return { status: 'error', fieldErrors: {}, formErrors: [t(TOO_MANY_WRITES)] }
   }
 
   const state = await planAllocationForm.submit(formData, async (allocation) => {
@@ -138,6 +155,10 @@ export async function deleteAllocationAction(_previousState: FormState, formData
     return signedOutState(t)
   }
 
+  if (!(await writesAllowed(userId))) {
+    return { status: 'error', fieldErrors: {}, formErrors: [t(TOO_MANY_WRITES)] }
+  }
+
   const state = await deleteAllocationForm.submit(formData, async ({ id }) => {
     await removeAllocation(userId, id)
     await syncPlanToChests(userId)
@@ -158,6 +179,10 @@ export async function editExpenseAction(_previousState: FormState, formData: For
 
   if (!userId) {
     return signedOutState(t)
+  }
+
+  if (!(await writesAllowed(userId))) {
+    return { status: 'error', fieldErrors: {}, formErrors: [t(TOO_MANY_WRITES)] }
   }
 
   const state = await editExpenseForm.submit(formData, (expense) =>
@@ -181,6 +206,10 @@ export async function deleteExpenseAction(_previousState: FormState, formData: F
     return signedOutState(t)
   }
 
+  if (!(await writesAllowed(userId))) {
+    return { status: 'error', fieldErrors: {}, formErrors: [t(TOO_MANY_WRITES)] }
+  }
+
   const state = await deleteExpenseForm.submit(formData, ({ id }) => removeExpense(userId, id))
 
   if (state.status === 'success') {
@@ -198,6 +227,10 @@ export async function saveIncomeAction(_previousState: FormState, formData: Form
 
   if (!userId) {
     return signedOutState(t)
+  }
+
+  if (!(await writesAllowed(userId))) {
+    return { status: 'error', fieldErrors: {}, formErrors: [t(TOO_MANY_WRITES)] }
   }
 
   const state = await incomeForm.submit(formData, (income) => saveIncome(userId, income))
@@ -219,6 +252,10 @@ export async function coverOverspendAction(_previousState: FormState, formData: 
     return signedOutState(t)
   }
 
+  if (!(await writesAllowed(userId))) {
+    return { status: 'error', fieldErrors: {}, formErrors: [t(TOO_MANY_WRITES)] }
+  }
+
   const state = await coverForm.submit(formData, async () => {
     await coverOverspend(userId)
   })
@@ -238,6 +275,10 @@ export async function deleteIncomeAction(_previousState: FormState, formData: Fo
 
   if (!userId) {
     return signedOutState(t)
+  }
+
+  if (!(await writesAllowed(userId))) {
+    return { status: 'error', fieldErrors: {}, formErrors: [t(TOO_MANY_WRITES)] }
   }
 
   const state = await deleteIncomeForm.submit(formData, ({ id }) => removeIncome(userId, id))

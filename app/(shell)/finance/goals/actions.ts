@@ -7,6 +7,7 @@ import { createCustomGoal } from '@/application/finance/createCustomGoal'
 import { createSavingsGoal } from '@/application/finance/createSavingsGoal'
 import { fundGoal } from '@/application/finance/fundGoal'
 import { notifyReachedGoals } from '@/application/notifications/instant'
+import { TOO_MANY_WRITES, writesAllowed } from '@/infrastructure/auth/limits'
 import { getSignedInUser } from '@/infrastructure/auth/sessionUser'
 import { setClockZone } from '@/lib/clock'
 import { signedOutState, translateFormState, type FormState } from '@/lib/forms/formState'
@@ -22,6 +23,10 @@ export async function createGoalAction(_previousState: FormState, formData: Form
 
   if (!userId) {
     return signedOutState(t)
+  }
+
+  if (!(await writesAllowed(userId))) {
+    return { status: 'error', fieldErrors: {}, formErrors: [t(TOO_MANY_WRITES)] }
   }
 
   const state = await goalForm.submit(formData, async (goal) => {
@@ -50,6 +55,10 @@ export async function fundGoalAction(_previousState: FormState, formData: FormDa
     return signedOutState(t)
   }
 
+  if (!(await writesAllowed(userId))) {
+    return { status: 'error', fieldErrors: {}, formErrors: [t(TOO_MANY_WRITES)] }
+  }
+
   const state = await fundGoalForm.submit(formData, (funding) =>
     fundGoal(userId, funding.goalId, funding.amount, funding.sourceChestId),
   )
@@ -70,6 +79,10 @@ export async function createCustomGoalAction(_previousState: FormState, formData
 
   if (!userId) {
     return signedOutState(t)
+  }
+
+  if (!(await writesAllowed(userId))) {
+    return { status: 'error', fieldErrors: {}, formErrors: [t(TOO_MANY_WRITES)] }
   }
 
   const state = await customGoalForm.submit(formData, async (goal) => {
