@@ -10,6 +10,7 @@ const PUBLIC_PATHS = [
   '/forgot-password',
   '/reset-password',
   '/learn',
+  '/privacy',
   '/icon.svg',
   '/apple-icon',
   '/manifest.webmanifest',
