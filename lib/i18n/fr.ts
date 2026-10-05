@@ -1501,6 +1501,25 @@ export const FR: Messages = {
     "Go to {node} {view}": "Aller à {node} · {view}",
     "{from} to {to}: {label}": "De {from} à {to} : {label}",
     "Open the life graph (G)": "Ouvrir le graphe de vie (G)",
+
+    // --- Personal: chess.com sync ------------------------------------------------
+    "A chess.com rating": "Un classement chess.com",
+    "chess.com username": "Nom d'utilisateur chess.com",
+    "Time control": "Cadence",
+    "Your rating is read from chess.com now, then once a day.": "Votre classement est lu sur chess.com maintenant, puis une fois par jour.",
+    "Sync now": "Synchroniser",
+    "Rapid": "Rapide",
+    "Blitz": "Blitz",
+    "Bullet": "Bullet",
+    "Daily": "Par jour",
+    "Enter a chess.com username.": "Saisissez un nom d'utilisateur chess.com.",
+    "Synced from chess.com: {account}": "Synchronisé depuis chess.com : {account}",
+    "Last synced {date}": "Dernière synchronisation : {date}",
+    "Not synced yet": "Pas encore synchronisé",
+    "No chess.com player has this username.": "Aucun joueur chess.com n'a ce nom d'utilisateur.",
+    "This player has no rating in that time control yet.": "Ce joueur n'a pas encore de classement dans cette cadence.",
+    "chess.com could not be reached. Try again in a moment.": "chess.com est injoignable. Réessayez dans un instant.",
+    "This measure is not synced.": "Cette mesure n'est pas synchronisée.",
   },
 
   // Text that arrives already filled in. More specific patterns come first.

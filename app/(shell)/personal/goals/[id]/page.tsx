@@ -17,7 +17,7 @@ import { NewEntryDrawer } from '../../journal/entry-forms'
 import { EntryCard } from '../../journal/entry-view'
 import { toTaskView } from '../../tasks/task-view'
 import { conditionLine, MetricChart } from '../goal-display'
-import { AbandonDrawer, AddMilestoneForm, GoalTaskForm, LogValueForm } from '../goal-forms'
+import { AbandonDrawer, AddMilestoneForm, GoalTaskForm, LogValueForm, SyncNowButton } from '../goal-forms'
 import { HORIZON_LABELS, PRESET_LABELS, STATUS_LABELS, statusTone, TIER_LABELS } from '../goal-labels'
 
 export default async function PersonalGoalPage({ params }: PageProps<'/personal/goals/[id]'>) {
@@ -109,7 +109,22 @@ export default async function PersonalGoalPage({ params }: PageProps<'/personal/
           {goal.series && !abandoned ? (
             <div className="space-y-2 border-t pt-3">
               <MetricChart entries={goal.entries} target={main.condition.target} label={t('{name} over time', { name: goal.series.label })} />
-              <LogValueForm goalId={goal.id} unit={goal.series.unit} />
+              {goal.sync ? (
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="text-sm">
+                    <p>{t('Synced from chess.com: {account}', { account: goal.sync.account })}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {goal.sync.lastSyncedAt
+                        ? t('Last synced {date}', { date: new Intl.DateTimeFormat(t.intl, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }).format(goal.sync.lastSyncedAt) })
+                        : t('Not synced yet')}
+                    </p>
+                    {goal.sync.lastError ? <p className="text-xs text-warning">{t(goal.sync.lastError)}</p> : null}
+                  </div>
+                  <SyncNowButton seriesId={goal.series.id} />
+                </div>
+              ) : (
+                <LogValueForm goalId={goal.id} unit={goal.series.unit} />
+              )}
             </div>
           ) : null}
         </section>

@@ -354,6 +354,7 @@ model User {
   sessions          Session[]
   metricSeries      MetricSeries[]
   journalEntries    JournalEntry[]
+  syncConnectors    SyncConnector[]
 }
 
 // What was already sent to a person, so the same event is never sent twice.
@@ -635,15 +636,18 @@ enum MetricProvider {
 
 // A named number followed over time: a rating, a score, words learned.
 model MetricSeries {
-  id        String         @id @default(cuid())
-  userId    String
-  user      User           @relation(fields: [userId], references: [id])
-  key       String
-  label     String
-  unit      String?
-  provider  MetricProvider @default(MANUAL)
-  entries   MetricEntry[]
-  createdAt DateTime       @default(now())
+  id          String         @id @default(cuid())
+  userId      String
+  user        User           @relation(fields: [userId], references: [id])
+  key         String
+  label       String
+  unit        String?
+  provider    MetricProvider @default(MANUAL)
+  // Where a synced measure comes from.
+  connectorId String?
+  connector   SyncConnector? @relation(fields: [connectorId], references: [id], onDelete: SetNull)
+  entries     MetricEntry[]
+  createdAt   DateTime       @default(now())
 
   @@unique([userId, key])
 }
@@ -720,4 +724,24 @@ model TaskCarry {
   createdAt DateTime @default(now())
 
   @@index([taskId, carriedTo])
+}
+
+// An outside account a measure is read from, e.g. a chess.com username and
+// the time control whose rating it follows. Synced once a day, and on demand.
+model SyncConnector {
+  id           String         @id @default(cuid())
+  userId       String
+  user         User           @relation(fields: [userId], references: [id])
+  // "chess.com"
+  provider     String
+  // The username on that service.
+  accountRef   String
+  // { "timeControl": "rapid" }
+  config       Json
+  lastSyncedAt DateTime?
+  lastError    String?
+  series       MetricSeries[]
+  createdAt    DateTime       @default(now())
+
+  @@index([userId])
 }

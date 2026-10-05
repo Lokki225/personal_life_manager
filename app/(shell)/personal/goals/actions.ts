@@ -3,6 +3,8 @@
 import { revalidatePath } from 'next/cache'
 
 import { abandonGoal, addGoalTask, addMilestone, createPersonalGoal, logGoalValue } from '@/application/personal/goals'
+import { syncSeries } from '@/application/personal/sync'
+import { isPersonalRuleError } from '@/domain/personal/errors'
 import { addDays, startOfDay } from '@/domain/personal/tasks'
 import { getSignedInUser } from '@/infrastructure/auth/sessionUser'
 import { now, setClockZone } from '@/lib/clock'
@@ -41,7 +43,8 @@ export async function createGoalAction(_previous: FormState, formData: FormData)
           horizon: goal.horizon,
           deadline: goal.deadline,
           categoryId: goal.categoryId || null,
-          seriesId: goal.seriesId && goal.seriesId !== 'new' ? goal.seriesId : null,
+          seriesId: goal.seriesId && goal.seriesId !== 'new' && goal.seriesId !== 'chess' ? goal.seriesId : null,
+          chess: goal.seriesId === 'chess' ? { username: goal.chessUsername ?? '', timeControl: goal.timeControl } : null,
           newSeries: goal.seriesId === 'new' ? { label: goal.seriesLabel ?? '', unit: goal.seriesUnit || null } : null,
           currentValue: goal.currentValue,
           target: goal.target,
@@ -84,4 +87,24 @@ export async function addGoalTaskAction(_previous: FormState, formData: FormData
 
 export async function logValueAction(_previous: FormState, formData: FormData): Promise<FormState> {
   return submit((userId) => valueForm.submit(formData, ({ goalId, value }) => logGoalValue(userId, goalId, value, now())))
+}
+
+// "Sync now" for a goal whose measure comes from chess.com.
+export async function syncNowAction(seriesId: string): Promise<{ error: string | null }> {
+  const [user, t] = await Promise.all([getSignedInUser(), getT()])
+  setClockZone(user?.timeZone)
+
+  if (!canUsePersonal(user)) {
+    return { error: t('Your session has ended. Sign in again to continue.') }
+  }
+
+  try {
+    await syncSeries(user.id, seriesId, now())
+  } catch (error) {
+    if (isPersonalRuleError(error)) return { error: t(error.message) }
+    throw error
+  }
+
+  revalidatePath('/personal', 'layout')
+  return { error: null }
 }
