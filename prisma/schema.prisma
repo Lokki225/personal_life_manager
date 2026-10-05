@@ -98,7 +98,7 @@ enum Aggregation {
 model Chest {
   id           String          @id @default(cuid())
   userId       String
-  user         User            @relation(fields: [userId], references: [id])
+  user         User            @relation(fields: [userId], references: [id], onDelete: Cascade)
   name         String
   type         ChestType
   isSystem     Boolean         @default(false)
@@ -113,19 +113,19 @@ model Chest {
 model MoneyMovement {
   id                 String         @id @default(cuid())
   userId             String
-  user               User           @relation(fields: [userId], references: [id])
+  user               User           @relation(fields: [userId], references: [id], onDelete: Cascade)
   sourceChestId      String?
-  sourceChest        Chest?         @relation("SourceChest", fields: [sourceChestId], references: [id])
+  sourceChest        Chest?         @relation("SourceChest", fields: [sourceChestId], references: [id], onDelete: NoAction)
   destinationChestId String?
-  destinationChest   Chest?         @relation("DestinationChest", fields: [destinationChestId], references: [id])
+  destinationChest   Chest?         @relation("DestinationChest", fields: [destinationChestId], references: [id], onDelete: NoAction)
   amount             Decimal
   type               MovementType
   reason             MovementReason
   date               DateTime
   relatedGoalId      String?
-  relatedGoal        Goal?          @relation(fields: [relatedGoalId], references: [id])
+  relatedGoal        Goal?          @relation(fields: [relatedGoalId], references: [id], onDelete: NoAction)
   relatedProjectId   String?
-  relatedProject     Project?       @relation(fields: [relatedProjectId], references: [id])
+  relatedProject     Project?       @relation(fields: [relatedProjectId], references: [id], onDelete: NoAction)
   notes              String?
   // The expense this money paid for, when it was paid from a chest.
   expenseId          String?        @unique
@@ -139,7 +139,7 @@ model MoneyMovement {
 model Goal {
   id            String           @id @default(cuid())
   userId        String
-  user          User             @relation(fields: [userId], references: [id])
+  user          User             @relation(fields: [userId], references: [id], onDelete: Cascade)
   name          String
   domain        String           @default("finance")
   categoryId    String?
@@ -230,7 +230,7 @@ enum TaskStatus {
 model Category {
   id        String    @id @default(cuid())
   userId    String
-  user      User      @relation(fields: [userId], references: [id])
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   name      String
   color     String?
   icon      String?
@@ -247,7 +247,7 @@ model Category {
 model Task {
   id          String           @id @default(cuid())
   userId      String
-  user        User             @relation(fields: [userId], references: [id])
+  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
   title       String
   categoryId  String?
   category    Category?        @relation(fields: [categoryId], references: [id], onDelete: SetNull)
@@ -466,7 +466,7 @@ model RateLimitHit {
 model Income {
   id           String          @id @default(cuid())
   userId       String
-  user         User            @relation(fields: [userId], references: [id])
+  user         User            @relation(fields: [userId], references: [id], onDelete: Cascade)
   source       String
   amount       Decimal
   frequency    String // monthly | weekly | occasional | recurring
@@ -475,7 +475,7 @@ model Income {
   status       String // expected | received
   notes        String?
   projectId    String? // optional: income can come from a project
-  project      Project?        @relation(fields: [projectId], references: [id])
+  project      Project?        @relation(fields: [projectId], references: [id], onDelete: NoAction)
   // Day of the month the income usually arrives (1-31). None for money that
   // came once (a gift): it is counted as received when recorded, and is not
   // part of the monthly plan.
@@ -488,9 +488,9 @@ model Income {
 model IncomeReceipt {
   id          String   @id @default(cuid())
   userId      String
-  user        User     @relation(fields: [userId], references: [id])
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   incomeId    String
-  income      Income   @relation(fields: [incomeId], references: [id])
+  income      Income   @relation(fields: [incomeId], references: [id], onDelete: NoAction)
   amount      Decimal
   // First day of the month the receipt counts for.
   periodStart DateTime
@@ -504,7 +504,7 @@ model IncomeReceipt {
 model Debt {
   id            String        @id @default(cuid())
   userId        String
-  user          User          @relation(fields: [userId], references: [id])
+  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   direction     DebtDirection
   // Free text for now: a person, a company, an app.
   counterparty  String
@@ -536,7 +536,7 @@ model DebtPayment {
 model Allocation {
   id         String    @id @default(cuid())
   userId     String
-  user       User      @relation(fields: [userId], references: [id])
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   name       String
   amount     Decimal
   period     String // monthly | weekly | daily
@@ -552,14 +552,14 @@ model Allocation {
 model Expense {
   id                String            @id @default(cuid())
   userId            String
-  user              User              @relation(fields: [userId], references: [id])
+  user              User              @relation(fields: [userId], references: [id], onDelete: Cascade)
   amount            Decimal
   category          String
   date              DateTime
   allocationId      String?
-  allocation        Allocation?       @relation(fields: [allocationId], references: [id])
+  allocation        Allocation?       @relation(fields: [allocationId], references: [id], onDelete: NoAction)
   projectId         String?
-  project           Project?          @relation(fields: [projectId], references: [id])
+  project           Project?          @relation(fields: [projectId], references: [id], onDelete: NoAction)
   description       String?
   notes             String?
   // The exception this expense caused by going over the day's budget.
@@ -580,7 +580,7 @@ model Expense {
 model BudgetException {
   id            String   @id @default(cuid())
   userId        String
-  user          User     @relation(fields: [userId], references: [id])
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   date          DateTime
   plannedAmount Decimal
   actualAmount  Decimal
@@ -601,7 +601,7 @@ model BudgetException {
 model Project {
   id        String          @id @default(cuid())
   userId    String
-  user      User            @relation(fields: [userId], references: [id])
+  user      User            @relation(fields: [userId], references: [id], onDelete: Cascade)
   name      String
   notes     String?
   incomes   Income[]
@@ -614,7 +614,7 @@ model Project {
 model Session {
   id          String    @id @default(cuid())
   userId      String
-  user        User      @relation(fields: [userId], references: [id])
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   goalId      String?
   goal        Goal?     @relation(fields: [goalId], references: [id], onDelete: SetNull)
   categoryId  String?
@@ -640,7 +640,7 @@ enum MetricProvider {
 model MetricSeries {
   id          String         @id @default(cuid())
   userId      String
-  user        User           @relation(fields: [userId], references: [id])
+  user        User           @relation(fields: [userId], references: [id], onDelete: Cascade)
   key         String
   label       String
   unit        String?
@@ -680,7 +680,7 @@ enum JournalType {
 model JournalEntry {
   id           String        @id @default(cuid())
   userId       String
-  user         User          @relation(fields: [userId], references: [id])
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   type         JournalType   @default(FREE)
   title        String?
   // Links to goals and tasks are written in the text as @[Label](goal:id).
@@ -733,7 +733,7 @@ model TaskCarry {
 model SyncConnector {
   id           String         @id @default(cuid())
   userId       String
-  user         User           @relation(fields: [userId], references: [id])
+  user         User           @relation(fields: [userId], references: [id], onDelete: Cascade)
   // "chess.com"
   provider     String
   // The username on that service.

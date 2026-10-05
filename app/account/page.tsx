@@ -16,6 +16,7 @@ import { SignOutButton } from '../sign-out-button'
 import { SignedInMenu } from '../signed-in-menu'
 import { CredentialsForm, ProfileForm } from './account-form'
 import { ApiKeys } from './api-keys'
+import { DeleteAccount } from './delete-account'
 import { NotificationChoices } from './notification-choices'
 import { NotificationSettings } from './notifications'
 
@@ -151,6 +152,18 @@ export default async function AccountPage() {
             <Download className="size-4" aria-hidden="true" />
             {t('Export my data')}
           </a>
+        </CardContent>
+      </Card>
+
+      <Card className="gap-0 border-destructive/30 py-5">
+        <CardContent className="space-y-3">
+          <div>
+            <h2 className="text-base font-semibold">{t('Delete the account')}</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {t('Removes your account and everything recorded in it, for good. Export your data first if you want to keep it.')}
+            </p>
+          </div>
+          <DeleteAccount />
         </CardContent>
       </Card>
 

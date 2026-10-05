@@ -1590,6 +1590,17 @@ export const FR: Messages = {
     "Task done · {task}": "Tâche faite · {task}",
     "Task not done · {task}": "Tâche à refaire · {task}",
     "Session · {minutes} min": "Session · {minutes} min",
+
+    // --- Deleting the account ----------------------------------------------------
+    "Too many tries. Wait 15 minutes and try again.": "Trop d’essais. Attendez 15 minutes puis réessayez.",
+    "Delete my account": "Supprimer mon compte",
+    "I understand that everything I recorded is deleted and cannot be brought back.": "Je comprends que tout ce que j’ai enregistré est supprimé et ne pourra pas être récupéré.",
+    "Delete everything": "Tout supprimer",
+    "Cancel": "Annuler",
+    "Delete the account": "Supprimer le compte",
+    "Removes your account and everything recorded in it, for good. Export your data first if you want to keep it.": "Supprime votre compte et tout ce qu’il contient, définitivement. Exportez vos données avant si vous voulez les garder.",
+    "Tick the box to confirm.": "Cochez la case pour confirmer.",
+    "You are the only administrator. Give the role to someone else first.": "Vous êtes le seul administrateur. Donnez d’abord ce rôle à quelqu’un d’autre.",
   },
 
   // Text that arrives already filled in. More specific patterns come first.
