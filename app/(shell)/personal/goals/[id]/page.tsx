@@ -17,7 +17,12 @@ import { NewEntryDrawer } from '../../journal/entry-forms'
 import { EntryCard } from '../../journal/entry-view'
 import { toTaskView } from '../../tasks/task-view'
 import { conditionLine, MetricChart } from '../goal-display'
+import { AreaChip } from '@/components/life-areas/area-chip'
+import { listLifeAreas } from '@/application/lifeAreas/areas'
+
 import { canUseCareer } from '../../../career/access'
+import { canUseProjection } from '../../../projection/access'
+import { GoalAreaSelect } from '../../../projection/vision/area-forms'
 import { AbandonDrawer, AddMilestoneForm, CareerRelevantToggle, GoalTaskForm, LogValueForm, SyncNowButton } from '../goal-forms'
 import { HORIZON_LABELS, PRESET_LABELS, STATUS_LABELS, statusTone, TIER_LABELS } from '../goal-labels'
 
@@ -31,10 +36,11 @@ export default async function PersonalGoalPage({ params }: PageProps<'/personal/
   }
 
   const now = clockNow()
-  const [goal, entries, links] = await Promise.all([
+  const [goal, entries, links, areas] = await Promise.all([
     getPersonalGoal(user.id, id, now),
     linkedEntries(user.id, 'goal', id),
     linkOptions(user.id),
+    canUseProjection(user) ? listLifeAreas(user.id) : Promise.resolve([]),
   ])
 
   if (!goal) {
@@ -59,6 +65,7 @@ export default async function PersonalGoalPage({ params }: PageProps<'/personal/
       <header className="space-y-2">
         <div className="flex items-start justify-between gap-3">
           <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">{goal.name}</h1>
+          {goal.lifeArea ? <AreaChip area={goal.lifeArea} /> : null}
           <Badge variant={statusTone(evaluation.status) === 'success' ? 'default' : 'secondary'} className="mt-1.5 shrink-0">
             {t(STATUS_LABELS[evaluation.status])}
           </Badge>
@@ -235,7 +242,10 @@ export default async function PersonalGoalPage({ params }: PageProps<'/personal/
 
       {abandoned ? null : (
         <div className="flex flex-wrap items-center justify-between gap-3 border-t pt-4">
-          {canUseCareer(user) ? <CareerRelevantToggle goalId={goal.id} value={goal.careerRelevant} /> : <span />}
+          <div className="flex flex-wrap items-center gap-4">
+            {canUseCareer(user) ? <CareerRelevantToggle goalId={goal.id} value={goal.careerRelevant} /> : null}
+            <GoalAreaSelect goalId={goal.id} value={goal.lifeArea?.id ?? null} areas={areas} />
+          </div>
           <AbandonDrawer goalId={goal.id} />
         </div>
       )}

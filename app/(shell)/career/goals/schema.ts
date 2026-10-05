@@ -3,10 +3,12 @@ import { z } from 'zod'
 import { CHOICE_DIMENSIONS, LEVELS, NUMBER_DIMENSIONS, type Criterion } from '@/domain/career/criteria'
 import { isCareerRuleError } from '@/domain/career/errors'
 import { FACT_KINDS } from '@/domain/career/situation'
+import { isLifeAreaRuleError } from '@/domain/lifeAreas/areas'
 import { FormHandler } from '@/lib/forms/FormHandler'
 import { moneyField, requiredText } from '@/lib/forms/fields'
 
-const options = { isRuleError: isCareerRuleError }
+// A goal form may also set the goal's life area.
+const options = { isRuleError: (error: unknown) => isCareerRuleError(error) || isLifeAreaRuleError(error) }
 
 const text = (max: number) => z.string().trim().max(max, `Keep it under ${max} characters.`).optional()
 const id = z.string().trim().min(1)
@@ -17,6 +19,8 @@ export const goalSchema = z.object({
   why: text(1000),
   deadline: z.union([z.literal(''), z.string().trim().regex(/^\d{4}-\d{2}-\d{2}$/, 'Choose a date.')]).optional(),
   importance: z.union([z.literal(''), z.enum(['LOW', 'MEDIUM', 'HIGH'])]).optional(),
+  // Absent when areas are not offered: the goal's area is then left as it is.
+  lifeAreaId: z.string().trim().optional(),
 })
 
 export const criterionSchema = z

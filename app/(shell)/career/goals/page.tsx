@@ -4,12 +4,15 @@ import { redirect } from 'next/navigation'
 import { ChevronRight, Target } from 'lucide-react'
 
 import { Badge } from '@/components/ui/badge'
+import { AreaChip } from '@/components/life-areas/area-chip'
 import { listCareerGoals } from '@/application/career/goals'
+import { listLifeAreas } from '@/application/lifeAreas/areas'
 import { getSignedInUser } from '@/infrastructure/auth/sessionUser'
 import { now as clockNow, setClockZone } from '@/lib/clock'
 import { getT } from '@/lib/i18n/server'
 
 import { STATUS_LABELS, statusTone } from '../../personal/goals/goal-labels'
+import { canUseProjection } from '../../projection/access'
 import { GoalDrawer } from './goal-forms'
 import { summaryLines } from './goal-text'
 
@@ -26,7 +29,7 @@ export default async function CareerGoalsPage() {
     redirect('/login')
   }
 
-  const goals = await listCareerGoals(user.id, clockNow())
+  const [goals, areas] = await Promise.all([listCareerGoals(user.id, clockNow()), canUseProjection(user) ? listLifeAreas(user.id) : Promise.resolve([])])
   const date = new Intl.DateTimeFormat(t.intl, { day: 'numeric', month: 'short', year: 'numeric' })
 
   return (
@@ -36,7 +39,7 @@ export default async function CareerGoalsPage() {
           <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">{t('Goals')}</h1>
           <p className="mt-1 text-sm text-muted-foreground">{t('What you want next, compared with where you stand.')}</p>
         </div>
-        <GoalDrawer />
+        <GoalDrawer areas={areas.map((a) => ({ id: a.id, name: a.name }))} />
       </header>
 
       {goals.length === 0 ? (
@@ -57,6 +60,7 @@ export default async function CareerGoalsPage() {
                   <div className="min-w-0 flex-1 space-y-1">
                     <div className="flex flex-wrap items-center gap-2">
                       <p className="font-medium">{goal.name}</p>
+                      {goal.lifeArea ? <AreaChip area={goal.lifeArea} /> : null}
                       <Badge variant={statusTone(goal.evaluation.status) === 'success' ? 'default' : 'secondary'}>{t(STATUS_LABELS[goal.evaluation.status])}</Badge>
                     </div>
                     {lines.length > 0 ? (

@@ -39,7 +39,14 @@ import {
 } from './actions'
 import { choiceLabel } from './goal-text'
 
-export type GoalValues = { id: string; name: string; why: string | null; deadline: string | null; importance: 'LOW' | 'MEDIUM' | 'HIGH' | null }
+export type GoalValues = {
+  id: string
+  name: string
+  why: string | null
+  deadline: string | null
+  importance: 'LOW' | 'MEDIUM' | 'HIGH' | null
+  lifeAreaId?: string | null
+}
 
 // A choice among large tap targets, styled like the other Career forms.
 function Choices<V extends string>({ name, values, value, onChange, label }: { name: string; values: readonly V[]; value: V; onChange: (v: V) => void; label: (v: V) => string }) {
@@ -57,7 +64,8 @@ function Choices<V extends string>({ name, values, value, onChange, label }: { n
   )
 }
 
-export function GoalDrawer({ goal }: { goal?: GoalValues }) {
+// `areas`: the person's life areas, when they can use them.
+export function GoalDrawer({ goal, areas = [] }: { goal?: GoalValues; areas?: { id: string; name: string }[] }) {
   const t = useT()
   const scope = goal ? `goal-${goal.id}` : 'new-goal'
 
@@ -87,6 +95,18 @@ export function GoalDrawer({ goal }: { goal?: GoalValues }) {
               <Field state={state} name="why" label={t('Why it matters (optional)')} scope={scope}>
                 <Textarea id={`${scope}-why`} {...fieldAttributes(state, 'why', scope)} defaultValue={goal?.why ?? ''} maxLength={1000} rows={3} />
               </Field>
+              {areas.length > 0 ? (
+                <Field state={state} name="lifeAreaId" label={t('Life area (optional)')} scope={scope}>
+                  <NativeSelect id={`${scope}-lifeAreaId`} {...fieldAttributes(state, 'lifeAreaId', scope)} defaultValue={goal?.lifeAreaId ?? ''} className={FIELD_CLASS}>
+                    <NativeSelectOption value="">{t('None')}</NativeSelectOption>
+                    {areas.map((a) => (
+                      <NativeSelectOption key={a.id} value={a.id}>
+                        {a.name}
+                      </NativeSelectOption>
+                    ))}
+                  </NativeSelect>
+                </Field>
+              ) : null}
               <div className="grid grid-cols-2 gap-3">
                 <TextField state={state} scope={scope} name="deadline" label={t('By (optional)')} type="date" defaultValue={goal?.deadline} />
                 <Field state={state} name="importance" label={t('How much it matters')} scope={scope}>

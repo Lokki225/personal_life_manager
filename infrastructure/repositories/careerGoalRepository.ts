@@ -12,6 +12,7 @@ import { conditionData, toGoalCondition } from './goalRows'
 const DOMAIN = 'career'
 
 const GOAL_INCLUDE = {
+  lifeArea: { select: { id: true, name: true, color: true, icon: true } },
   groups: {
     where: { parentGroupId: null, milestoneId: null, role: 'COMPLETION' as const },
     include: { conditions: { orderBy: [{ sortOrder: 'asc' as const }, { id: 'asc' as const }] } },
@@ -39,6 +40,7 @@ const toCareerGoal = (row: GoalRow) => {
     supersededAt: row.supersededAt,
     supersededById: row.supersededById,
     linkedGoalId: row.linkedGoalId,
+    lifeArea: row.lifeArea,
     createdAt: row.createdAt,
     group: {
       id: group?.id ?? `${row.id}-criteria`,

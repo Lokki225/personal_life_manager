@@ -18,6 +18,7 @@ import {
   supersedeGoal,
   updateCareerGoal,
 } from '@/application/career/goals'
+import { setGoalArea } from '@/application/lifeAreas/areas'
 import { isCareerRuleError } from '@/domain/career/errors'
 import { TOO_MANY_WRITES, writesAllowed } from '@/infrastructure/auth/limits'
 import { getSignedInUser } from '@/infrastructure/auth/sessionUser'
@@ -46,8 +47,9 @@ export async function saveGoalAction(_previous: FormState, formData: FormData): 
   let createdId: string | null = null
   const state = await goalForm.submit(formData, async (form) => {
     const fields = { name: form.name, why: form.why || null, deadline: dayOf(form.deadline), importance: form.importance || null }
+    const id = form.id ?? (createdId = (await createCareerGoal(user.id, fields)).id)
     if (form.id) await updateCareerGoal(user.id, form.id, fields)
-    else createdId = (await createCareerGoal(user.id, fields)).id
+    if (form.lifeAreaId !== undefined) await setGoalArea(user.id, id, form.lifeAreaId || null)
   })
 
   if (state.status !== 'success') return translateFormState(state, t)

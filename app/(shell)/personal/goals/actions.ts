@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache'
 
 import { abandonGoal, addGoalTask, addMilestone, createPersonalGoal, logGoalValue, setCareerRelevant } from '@/application/personal/goals'
+import { setGoalArea } from '@/application/lifeAreas/areas'
 import { syncSeries } from '@/application/personal/sync'
 import { isPersonalRuleError } from '@/domain/personal/errors'
 import { addDays, startOfDay } from '@/domain/personal/tasks'
@@ -62,6 +63,7 @@ export async function createGoalAction(_previous: FormState, formData: FormData)
         now(),
       )
       if (goal.careerRelevant) await setCareerRelevant(userId, created.id, true)
+      if (goal.lifeAreaId) await setGoalArea(userId, created.id, goal.lifeAreaId)
     }),
   )
 }

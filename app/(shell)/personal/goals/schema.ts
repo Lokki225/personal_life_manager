@@ -3,10 +3,12 @@ import { z } from 'zod'
 import { HORIZONS, PRESETS } from '@/domain/goals/presets'
 import { TIME_CONTROLS } from '@/domain/personal/chess'
 import { isPersonalRuleError } from '@/domain/personal/errors'
+import { isLifeAreaRuleError } from '@/domain/lifeAreas/areas'
 import { FormHandler } from '@/lib/forms/FormHandler'
 import { requiredText } from '@/lib/forms/fields'
 
-const options = { isRuleError: isPersonalRuleError }
+// A goal form may also set the goal's life area.
+const options = { isRuleError: (error: unknown) => isPersonalRuleError(error) || isLifeAreaRuleError(error) }
 
 // An optional number: empty is none; anything else must be a number.
 const optionalNumber = z
@@ -44,6 +46,7 @@ export const goalSchema = z.object({
   horizon: z.enum(HORIZONS, { error: 'Choose a horizon.' }).default('QUARTER'),
   // Counts for the career: once reached, Career offers it as a skill.
   careerRelevant: z.string().optional(),
+  lifeAreaId: z.string().trim().optional(),
   deadline: optionalDate,
   categoryId: z.string().trim().optional(),
   // "new" creates a measure from seriesLabel and seriesUnit; "chess" follows a

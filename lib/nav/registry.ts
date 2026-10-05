@@ -30,6 +30,8 @@ export type NodeIconName =
   | 'mail'
   | 'door-open'
   | 'id-card'
+  | 'flask'
+  | 'scale'
 
 export type NodeView = {
   id: string
@@ -106,13 +108,14 @@ export const NODES: NodeDef[] = [
     id: 'projection',
     label: m('Projection'),
     icon: 'compass',
-    defaultView: 'ideas',
-    access: 'none',
+    // Vision (life areas) is built first; it opens there until Ideas are.
+    defaultView: 'vision',
+    access: 'admin',
     views: [
       view('ideas', m('Ideas'), 'lightbulb', '/projection/ideas'),
+      view('experiments', m('Experiments'), 'flask', '/projection/experiments'),
+      view('decisions', m('Decisions'), 'scale', '/projection/decisions'),
       view('vision', m('Vision'), 'telescope', '/projection/vision'),
-      view('seasons', m('Seasons'), 'calendar-range', '/projection/seasons'),
-      view('letters', m('Letters'), 'mail', '/projection/letters'),
     ],
   },
 ]
