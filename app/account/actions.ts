@@ -8,6 +8,7 @@ import { deleteAccount } from '@/application/account/deleteAccount'
 import { changeCredentials, updateProfile } from '@/application/account/profile'
 import { notifyPerson } from '@/application/notifications/instant'
 import { notifyDevices } from '@/application/notifications/notify'
+import { logSecurityEvent, SECURITY_EVENTS } from '@/infrastructure/auth/securityLog'
 import { getSignedInUser } from '@/infrastructure/auth/sessionUser'
 import { isPushConfigured } from '@/infrastructure/push/sendPush'
 import { pushRepository } from '@/infrastructure/repositories/pushRepository'
@@ -84,6 +85,11 @@ export async function changeCredentialsAction(_previousState: FormState, formDat
     // A security notice to every device of the account.
     if (changed.email || changed.password) {
       notifyLater(() => notifyPerson(userId, { kind: 'credentialsChanged', ...changed }))
+      await logSecurityEvent({
+        kind: SECURITY_EVENTS.credentialsChanged,
+        userId,
+        detail: [changed.email ? 'email' : null, changed.password ? 'password' : null].filter(Boolean).join(', '),
+      })
     }
   }
 
@@ -104,6 +110,10 @@ export async function deleteAccountAction(_previousState: FormState, formData: F
   }
 
   const state = await deleteAccountForm.submit(formData, ({ password }) => deleteAccount(user, password))
+  await logSecurityEvent({
+    kind: state.status === 'success' ? SECURITY_EVENTS.accountDeleted : SECURITY_EVENTS.deleteRefused,
+    userId: user.id,
+  })
 
   return translateFormState(withoutValues(state), t)
 }

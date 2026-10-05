@@ -1,0 +1,23 @@
+# Dependency updates (security plan, step 9). Security fixes open a pull
+# request as soon as an advisory is published; other updates come once a week,
+# minor and patch versions grouped into one pull request. Major versions are
+# left for a deliberate upgrade.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    groups:
+      minor-and-patch:
+        update-types: [minor, patch]
+    ignore:
+      - dependency-name: '*'
+        update-types: ['version-update:semver-major']
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly

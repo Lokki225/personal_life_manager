@@ -2,6 +2,7 @@ import { createHash, randomBytes } from 'node:crypto'
 
 import bcrypt from 'bcryptjs'
 
+import { logSecurityEvent, SECURITY_EVENTS } from '../auth/securityLog'
 import { prisma } from '../prisma/client'
 
 const DAY = 24 * 60 * 60 * 1000
@@ -31,6 +32,8 @@ export const securityRepository: SecurityRepository = {
     })
 
     if (recent >= limit) {
+      // Once a minute per key at most, however long the flood.
+      await logSecurityEvent({ kind: SECURITY_EVENTS.limitReached, subject: key }, { once: 60_000 })
       return false
     }
 

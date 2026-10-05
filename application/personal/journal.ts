@@ -11,6 +11,7 @@ import {
 } from '../../domain/personal/journal'
 import { startOfDay } from '../../domain/personal/tasks'
 import { journalRepository, type EntryRecord } from '../../infrastructure/repositories/journalRepository'
+import { logSecurityEvent, SECURITY_EVENTS } from '../../infrastructure/auth/securityLog'
 import { securityRepository } from '../../infrastructure/repositories/securityRepository'
 import {
   deriveKey,
@@ -111,7 +112,16 @@ async function ownEntry(userId: string, id: string, deps: Deps) {
 const UNLOCK_LIMIT = 5
 const UNLOCK_WINDOW_MS = 15 * 60 * 1000
 
-type Guard = Pick<typeof securityRepository, 'isLimited' | 'recordAttempt'>
+type Guard = Pick<typeof securityRepository, 'isLimited' | 'recordAttempt'> & {
+  // Writes the wrong password to the security log.
+  logFailure?: (userId: string, entryId: string) => Promise<void>
+}
+
+const defaultGuard: Guard = {
+  isLimited: securityRepository.isLimited,
+  recordAttempt: securityRepository.recordAttempt,
+  logFailure: (userId, entryId) => logSecurityEvent({ kind: SECURITY_EVENTS.unlockFailed, userId, subject: entryId }),
+}
 
 // Checks an entry's password, slowing guesses down: after 5 wrong ones in 15
 // minutes, even the right one waits.
@@ -121,13 +131,13 @@ async function guardedCheck(userId: string, id: string, password: string, deps: 
     throw new PersonalRuleError('Too many wrong passwords. Try again in 15 minutes.', 'password')
   }
   const ok = await deps.checkPassword(userId, id, password)
-  if (!ok) await guard.recordAttempt(key)
+  if (!ok) await Promise.all([guard.recordAttempt(key), guard.logFailure?.(userId, id)])
   return ok
 }
 
 // The entry's key when the password opens it, or null. An entry locked
 // before encryption is sealed now, the first time its password is given.
-export async function unlockEntry(userId: string, id: string, password: string, deps: Deps = journalRepository, guard: Guard = securityRepository) {
+export async function unlockEntry(userId: string, id: string, password: string, deps: Deps = journalRepository, guard: Guard = defaultGuard) {
   const entry = await ownEntry(userId, id, deps)
   if (!(await guardedCheck(userId, id, password, deps, guard))) return null
   if (!entry.isSecured) return null
@@ -154,7 +164,7 @@ export async function removeLock(
   id: string,
   currentPassword: string,
   deps: Deps = journalRepository,
-  guard: Guard = securityRepository,
+  guard: Guard = defaultGuard,
 ) {
   const entry = await ownEntry(userId, id, deps)
   if (!entry.isSecured) return

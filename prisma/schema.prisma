@@ -757,6 +757,21 @@ model SyncConnector {
 // An action sent from a device's outbox (offline mode), by the id the device
 // gave it. Written before the action runs, so the same action sent twice
 // (a retry after a lost answer) is only done once.
+// What happened that matters for security: failed sign-ins, limits reached,
+// wrong journal passwords, account changes (security plan, decision D4). No
+// link to the user, so failures for unknown emails can be kept too.
+model SecurityEvent {
+  id        String   @id @default(cuid())
+  kind      String
+  userId    String?
+  subject   String?
+  detail    String?
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([kind, subject, createdAt])
+}
+
 model SyncReceipt {
   id        String   @id
   userId    String

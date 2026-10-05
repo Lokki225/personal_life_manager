@@ -5,6 +5,7 @@ import bcrypt from 'bcryptjs'
 
 import { prisma } from '@/infrastructure/prisma/client'
 import { clientIp } from '@/infrastructure/auth/request'
+import { logSecurityEvent, SECURITY_EVENTS } from '@/infrastructure/auth/securityLog'
 import { securityRepository } from '@/infrastructure/repositories/securityRepository'
 
 // Wrong passwords allowed for one email before sign-in pauses for it.
@@ -30,8 +31,15 @@ export const authOptions: NextAuthOptions = {
         }
 
         const email = credentials.email.trim().toLowerCase()
+        const ip = await clientIp()
         const attempts = `signIn:${email}`
-        const fromAddress = `signInIp:${await clientIp()}`
+        const fromAddress = `signInIp:${ip}`
+        const failed = () =>
+          Promise.all([
+            securityRepository.recordAttempt(attempts),
+            securityRepository.recordAttempt(fromAddress),
+            logSecurityEvent({ kind: SECURITY_EVENTS.signInFailed, subject: email, detail: ip }),
+          ])
 
         // Guessing a password is slowed down: after too many wrong ones, even
         // the right one waits, per account and per network address. The
@@ -40,13 +48,14 @@ export const authOptions: NextAuthOptions = {
           (await securityRepository.isLimited(attempts, SIGN_IN_LIMIT, SIGN_IN_WINDOW)) ||
           (await securityRepository.isLimited(fromAddress, SIGN_IN_IP_LIMIT, SIGN_IN_WINDOW))
         ) {
+          await logSecurityEvent({ kind: SECURITY_EVENTS.signInBlocked, subject: email, detail: ip }, { once: 60_000 })
           throw new Error('TooManyAttempts')
         }
 
         const user = await prisma.user.findUnique({ where: { email } })
 
         if (!user) {
-          await Promise.all([securityRepository.recordAttempt(attempts), securityRepository.recordAttempt(fromAddress)])
+          await failed()
           return null
         }
 
@@ -56,7 +65,7 @@ export const authOptions: NextAuthOptions = {
         )
 
         if (!isValidPassword) {
-          await Promise.all([securityRepository.recordAttempt(attempts), securityRepository.recordAttempt(fromAddress)])
+          await failed()
           return null
         }
 

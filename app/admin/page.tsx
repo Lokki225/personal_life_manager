@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
 import { getAdminDashboard, type FeatureKey } from '@/application/account/adminDashboard'
 import { getFeedbackInbox } from '@/application/account/feedback'
+import { getSecurityLog } from '@/application/account/securityEvents'
 import { getAppPersona } from '@/application/assistant/persona'
 import type { ActivityStatus } from '@/domain/account/activity'
 import { getSignedInUser } from '@/infrastructure/auth/sessionUser'
@@ -61,6 +62,17 @@ function ShareRow({ label, count, total, of }: { label: string; count: number; t
   )
 }
 
+// The security log's kinds, as the administrator reads them.
+const SECURITY_LABELS: Record<string, string> = {
+  'signIn.failed': m('Failed sign-in'),
+  'signIn.blocked': m('Sign-in paused'),
+  'limit.reached': m('Limit reached'),
+  'journal.unlockFailed': m('Wrong journal password'),
+  'account.credentialsChanged': m('Sign-in details changed'),
+  'account.deleteRefused': m('Account deletion refused'),
+  'account.deleted': m('Account deleted'),
+}
+
 export default async function AdminPage() {
   const [actor, t] = await Promise.all([getSignedInUser(), getT()])
 
@@ -73,14 +85,17 @@ export default async function AdminPage() {
     redirect('/finance')
   }
 
-  const [dashboard, persona, inbox] = await Promise.all([
+  const [dashboard, persona, inbox, securityLog] = await Promise.all([
     getAdminDashboard(actor),
     getAppPersona(),
     getFeedbackInbox(actor),
+    getSecurityLog(actor),
   ])
   const total = dashboard.users.length
   const of = t('of {total}', { total: String(total) })
   const dateFormatter = new Intl.DateTimeFormat(t.intl, { day: 'numeric', month: 'short', year: 'numeric' })
+  // Security events are stored as real instants: shown on the administrator's clock.
+  const timeFormatter = new Intl.DateTimeFormat(t.intl, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', timeZone: actor.timeZone ?? undefined })
   const dayFormatter = new Intl.DateTimeFormat(t.intl, { weekday: 'short', day: 'numeric', month: 'short' })
 
   const stats = [
@@ -213,6 +228,39 @@ export default async function AdminPage() {
             }))}
             newsReaders={inbox.newsReaders.map((reader) => ({ name: fullName(reader), email: reader.email }))}
           />
+        </CardContent>
+      </Card>
+
+      <Card className="gap-0 py-5">
+        <CardContent className="space-y-4">
+          <div>
+            <h2 className="text-base font-semibold">{t('Security')}</h2>
+            <p className="mt-1 text-sm text-muted-foreground">{t('Failed sign-ins, limits reached, wrong journal passwords and account changes. Kept 90 days.')}</p>
+          </div>
+          {securityLog.week.length === 0 ? (
+            <p className="text-sm text-muted-foreground">{t('Nothing this week.')}</p>
+          ) : (
+            <ul className="flex flex-wrap gap-2">
+              {securityLog.week.map((row) => (
+                <li key={row.kind} className="rounded-full border px-3 py-1 text-xs">
+                  {t(SECURITY_LABELS[row.kind] ?? row.kind)} <span className="font-semibold tabular-nums">{row.count}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+          {securityLog.recent.length > 0 ? (
+            <ul className="max-h-72 divide-y overflow-y-auto border-t text-sm">
+              {securityLog.recent.map((event) => (
+                <li key={event.id} className="flex flex-wrap items-baseline justify-between gap-x-3 py-2">
+                  <span className="font-medium">{t(SECURITY_LABELS[event.kind] ?? event.kind)}</span>
+                  <span className="min-w-0 flex-1 truncate text-xs text-muted-foreground">
+                    {[event.subject, event.detail].filter(Boolean).join(' · ')}
+                  </span>
+                  <span className="text-xs text-muted-foreground tabular-nums">{timeFormatter.format(event.createdAt)}</span>
+                </li>
+              ))}
+            </ul>
+          ) : null}
         </CardContent>
       </Card>
 
