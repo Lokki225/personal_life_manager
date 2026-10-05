@@ -20,6 +20,7 @@ import {
   addEvidenceAction,
   deleteEvidenceAction,
   endFactAction,
+  answerSuggestionAction,
   makePrimaryAction,
   markReviewedAction,
   saveFactAction,
@@ -47,9 +48,11 @@ export type FactValues = {
   expiresAt: string | null
   level: string | null
   positionId: string | null
+  financeIncomeId: string | null
 }
 
 type Option = { id: string; title: string }
+type Income = { id: string; source: string }
 
 // The fields of a fact; those of its kind only.
 function FactFields({
@@ -59,6 +62,7 @@ function FactFields({
   fact,
   positions,
   locations,
+  incomes,
 }: {
   state: FormState
   scope: string
@@ -66,6 +70,7 @@ function FactFields({
   fact?: FactValues
   positions: Option[]
   locations: string[]
+  incomes: Income[]
 }) {
   const t = useT()
 
@@ -80,6 +85,18 @@ function FactFields({
       {kind === 'POSITION' ? (
         <>
           <TextField state={state} scope={scope} name="organisation" label={t('Organisation')} defaultValue={fact?.organisation} maxLength={120} />
+          {incomes.length > 0 ? (
+            <Field state={state} name="financeIncomeId" label={t('Pay comes from (optional)')} scope={scope}>
+              <NativeSelect id={`${scope}-financeIncomeId`} {...fieldAttributes(state, 'financeIncomeId', scope)} defaultValue={fact?.financeIncomeId ?? ''} className={FIELD_CLASS}>
+                <NativeSelectOption value="">{t('Not a Finance income: I write it below')}</NativeSelectOption>
+                {incomes.map((income) => (
+                  <NativeSelectOption key={income.id} value={income.id}>
+                    {t('Finance income: {source}', { source: income.source })}
+                  </NativeSelectOption>
+                ))}
+              </NativeSelect>
+            </Field>
+          ) : null}
           <TextField
             state={state}
             scope={scope}
@@ -158,7 +175,7 @@ function FactFields({
   )
 }
 
-export function AddFactDrawer({ positions, locations }: { positions: Option[]; locations: string[] }) {
+export function AddFactDrawer({ positions, locations, incomes }: { positions: Option[]; locations: string[]; incomes: Income[] }) {
   const t = useT()
   const [kind, setKind] = useState<FactKind>('POSITION')
   const scope = 'add-fact'
@@ -192,7 +209,7 @@ export function AddFactDrawer({ positions, locations }: { positions: Option[]; l
                 </div>
                 <p className="text-xs text-muted-foreground">{t(KIND_HINTS[kind])}</p>
               </fieldset>
-              <FactFields state={state} scope={scope} kind={kind} positions={positions} locations={locations} />
+              <FactFields state={state} scope={scope} kind={kind} positions={positions} locations={locations} incomes={incomes} />
               {kind === 'POSITION' ? (
                 <label className="flex items-center gap-2 text-sm">
                   <input type="checkbox" name="primary" className="size-4 accent-node-accent" />
@@ -207,7 +224,7 @@ export function AddFactDrawer({ positions, locations }: { positions: Option[]; l
   )
 }
 
-export function EditFactDrawer({ fact, positions, locations }: { fact: FactValues; positions: Option[]; locations: string[] }) {
+export function EditFactDrawer({ fact, positions, locations, incomes }: { fact: FactValues; positions: Option[]; locations: string[]; incomes: Income[] }) {
   const t = useT()
   const scope = `edit-${fact.id}`
 
@@ -227,7 +244,7 @@ export function EditFactDrawer({ fact, positions, locations }: { fact: FactValue
             <>
               <input type="hidden" name="id" value={fact.id} />
               <input type="hidden" name="kind" value={fact.kind} />
-              <FactFields state={state} scope={scope} kind={fact.kind} fact={fact} positions={positions} locations={locations} />
+              <FactFields state={state} scope={scope} kind={fact.kind} fact={fact} positions={positions} locations={locations} incomes={incomes} />
               <label className="flex items-start gap-2 text-sm">
                 <input type="checkbox" name="confirmed" defaultChecked={fact.confirmed} className="mt-0.5 size-4 accent-node-accent" />
                 {t('I checked this myself: mark it confirmed, even without evidence')}
@@ -428,5 +445,26 @@ export function LocationsForm({ places }: { places: string[] }) {
         {state.status === 'success' && !isPending ? t('Saved.') : t('Save')}
       </Button>
     </form>
+  )
+}
+
+// A Personal goal reached that counts for the career: add it as a skill?
+export function SkillSuggestion({ goalId, name }: { goalId: string; name: string }) {
+  const t = useT()
+  const { pending, error, act } = useOneTap()
+
+  return (
+    <li className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-node-accent/40 bg-node-accent/5 px-4 py-3">
+      <p className="text-sm">{t('You reached "{goal}" in Personal. Add it as a skill?', { goal: name })}</p>
+      <span className="flex gap-1">
+        <Button type="button" className="h-9 text-xs" disabled={pending} onClick={() => act(() => answerSuggestionAction(goalId, true))}>
+          {t('Add the skill')}
+        </Button>
+        <Button type="button" variant="ghost" className="h-9 text-xs" disabled={pending} onClick={() => act(() => answerSuggestionAction(goalId, false))}>
+          {t('Not now')}
+        </Button>
+      </span>
+      <ErrorLine error={error} />
+    </li>
   )
 }

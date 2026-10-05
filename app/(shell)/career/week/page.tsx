@@ -3,7 +3,9 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { CalendarClock } from 'lucide-react'
 
+import { getRunway } from '@/application/career/money'
 import { getWeek } from '@/application/career/week'
+import { CURRENCY_CODE } from '@/domain/finance/calculations'
 import { MAX_FOCUS } from '@/domain/career/week'
 import { getSignedInUser } from '@/infrastructure/auth/sessionUser'
 import { now as clockNow, setClockZone } from '@/lib/clock'
@@ -25,7 +27,7 @@ export default async function CareerWeekPage() {
     redirect('/login')
   }
 
-  const week = await getWeek(user.id, clockNow())
+  const [week, runway] = await Promise.all([getWeek(user.id, clockNow()), getRunway(user.id, clockNow())])
   const date = new Intl.DateTimeFormat(t.intl, { weekday: 'short', day: 'numeric', month: 'short' })
   const goals = week.goals
   const opportunities = week.opportunities.map((o) => ({ id: o.id, name: o.title }))
@@ -90,6 +92,22 @@ export default async function CareerWeekPage() {
           </ul>
         ) : null}
       </section>
+
+      {runway.hasPlan ? (
+        <section className="space-y-1 rounded-xl border bg-card p-4">
+          <h2 className="text-sm font-semibold">{t('Runway')}</h2>
+          <p className="text-2xl font-semibold text-node-accent">
+            {runway.months === null ? '—' : t.plural(runway.months, '{count} month', '{count} months')}
+          </p>
+          <p className="text-xs text-muted-foreground">
+            {t('{available} at hand, outside locked chests and borrowed money, ÷ {need} a month in your plan without its savings. A calculation, as of {date}.', {
+              available: `${t.amount(runway.available)} ${CURRENCY_CODE}`,
+              need: `${t.amount(runway.monthlyNeed)} ${CURRENCY_CODE}`,
+              date: date.format(runway.asOf),
+            })}
+          </p>
+        </section>
+      ) : null}
 
       <section className="space-y-2">
         <h2 className="text-base font-semibold">{t('Coming up')}</h2>

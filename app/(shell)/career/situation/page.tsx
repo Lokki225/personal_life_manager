@@ -21,6 +21,7 @@ import {
   EndFactDrawer,
   FactQuickActions,
   LocationsForm,
+  SkillSuggestion,
   UnlinkButton,
   type FactValues,
 } from './situation-forms'
@@ -50,13 +51,18 @@ const values = (fact: ShownFact): FactValues => ({
   expiresAt: fact.expiresAt ? isoDay(fact.expiresAt) : null,
   level: fact.level,
   positionId: fact.positionId,
+  financeIncomeId: fact.financeIncomeId,
 })
 
 // One line of what a fact says beyond its title.
 function factLine(t: Translator, fact: ShownFact) {
   const parts = [
     fact.organisation,
-    fact.monthlyCompensation !== null ? `${t.amount(fact.monthlyCompensation)} ${CURRENCY_CODE} ${t('per month')}` : null,
+    fact.income
+      ? t('{amount} per month, from {source}', { amount: `${t.amount(Math.round(fact.income.perMonth))} ${CURRENCY_CODE}`, source: fact.income.source })
+      : fact.monthlyCompensation !== null
+        ? `${t.amount(fact.monthlyCompensation)} ${CURRENCY_CODE} ${t('per month')}`
+        : null,
     fact.workArrangement ? t(ARRANGEMENT_LABELS[fact.workArrangement] ?? fact.workArrangement) : null,
     fact.contractType ? t(CONTRACT_LABELS[fact.contractType] ?? fact.contractType) : null,
     fact.weeklyHours !== null ? t('{hours} h a week', { hours: fact.weeklyHours }) : null,
@@ -135,7 +141,7 @@ export default async function CareerSituationPage({ searchParams }: PageProps<'/
           </ul>
         ) : null}
         <div className="flex flex-wrap items-center gap-1">
-          <EditFactDrawer fact={values(fact)} positions={positions} locations={situation.locations} />
+          <EditFactDrawer fact={values(fact)} positions={positions} locations={situation.locations} incomes={situation.incomes} />
           {fact.current ? <EndFactDrawer factId={fact.id} title={fact.title} /> : null}
           {fact.current ? <FactQuickActions factId={fact.id} reviewDue={fact.reviewDue} canBePrimary={fact.kind === 'POSITION' && !primary} /> : null}
         </div>
@@ -152,9 +158,17 @@ export default async function CareerSituationPage({ searchParams }: PageProps<'/
         </div>
         <div className="flex flex-wrap gap-2">
           <AddEvidenceDrawer facts={current.map((f) => ({ id: f.id, title: f.title }))} />
-          <AddFactDrawer positions={positions} locations={situation.locations} />
+          <AddFactDrawer positions={positions} locations={situation.locations} incomes={situation.incomes} />
         </div>
       </header>
+
+      {situation.suggestions.length > 0 ? (
+        <ul className="space-y-2">
+          {situation.suggestions.map((goal) => (
+            <SkillSuggestion key={goal.id} goalId={goal.id} name={goal.name} />
+          ))}
+        </ul>
+      ) : null}
 
       {situation.primary?.chosen === 'latest' ? (
         <p className="rounded-lg border border-dashed px-3 py-2 text-sm text-muted-foreground">

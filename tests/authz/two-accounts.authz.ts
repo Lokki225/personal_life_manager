@@ -5,6 +5,8 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import {
   addEvidence,
   addFact,
+  addSkillFromGoal,
+  declineSkillSuggestion,
   deleteEvidence,
   endFact,
   getSituation,
@@ -25,6 +27,7 @@ import {
   markCriterionReviewed,
   pauseGoal,
   removeCriterion,
+  saveForGoal,
   supersedeGoal,
   updateCareerGoal,
 } from '@/application/career/goals'
@@ -61,6 +64,7 @@ import {
   createPersonalGoal,
   getPersonalGoal,
   logGoalValue,
+  setCareerRelevant,
 } from '@/application/personal/goals'
 import {
   createEntry,
@@ -159,6 +163,8 @@ beforeAll(async () => {
   a.opportunity = (await addOpportunity(userA, { ...careerOffer, title: 'A offer', monthlyCompensation: 900000 }, [a.careerGoal])).id
   a.bOpportunity = (await addOpportunity(userB, { ...careerOffer, title: 'B offer' }, [])).id
   a.focus = (await addFocus(userA, { title: 'A focus', goalId: a.careerGoal, opportunityId: a.opportunity })).id
+  await setCareerRelevant(userA, a.personalGoal, true)
+  await prisma.goal.update({ where: { id: a.personalGoal }, data: { achievedAt: new Date() } })
 })
 
 const careerOffer = {
@@ -415,6 +421,23 @@ describe('Career week: B cannot touch A’s focus or log about A’s records', (
     expect(await prisma.journalLink.count({ where: { entry: { userId: userB }, targetId: { in: [a.careerGoal, a.fact] } } })).toBe(0)
     expect(await prisma.careerFact.findUnique({ where: { id: a.fact } })).toMatchObject({ validTo: null })
     expect(await prisma.careerOpportunity.findUnique({ where: { id: a.opportunity } })).toMatchObject({ status: 'FOUND' })
+  })
+})
+
+describe('Career links: B cannot reach A’s money or Personal goals', () => {
+  it('cannot pay a position from A’s income, save for A’s goal, or take A’s goal as a skill', async () => {
+    await refused(() => addFact(userB, { ...careerFact, title: 'x', financeIncomeId: a.income }))
+    await refused(() => updateFact(userB, a.bFact, { ...careerFact, title: 'B position', confirmed: false, financeIncomeId: a.income }))
+    await refused(() => saveForGoal(userB, a.careerGoal, { targetAmount: 1000, alreadySaved: 0 }))
+    await refused(() => setCareerRelevant(userB, a.personalGoal, false))
+    await refused(() => addSkillFromGoal(userB, a.personalGoal))
+    await refused(() => declineSkillSuggestion(userB, a.personalGoal))
+
+    expect((await getSituation(userB)).suggestions).toEqual([])
+    expect(await prisma.careerFact.count({ where: { userId: userB, financeIncomeId: a.income } })).toBe(0)
+    expect(await prisma.goal.findUnique({ where: { id: a.careerGoal } })).toMatchObject({ linkedGoalId: null })
+    expect(await prisma.goal.findUnique({ where: { id: a.personalGoal } })).toMatchObject({ careerRelevant: true, careerPromptAnsweredAt: null })
+    expect(await prisma.careerFact.count({ where: { userId: userB, title: 'Japanese' } })).toBe(0)
   })
 })
 

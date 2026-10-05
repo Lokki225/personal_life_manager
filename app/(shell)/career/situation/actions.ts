@@ -5,6 +5,8 @@ import { revalidatePath } from 'next/cache'
 import {
   addEvidence,
   addFact,
+  addSkillFromGoal,
+  declineSkillSuggestion,
   deleteEvidence,
   endFact,
   makePrimary,
@@ -41,10 +43,11 @@ export async function saveFactAction(_previous: FormState, formData: FormData): 
 
   const state = await factForm.submit(formData, async (form) => {
     const input = factInputFrom(form)
+    const financeIncomeId = form.financeIncomeId || null
     if (form.id) {
-      await updateFact(user.id, form.id, { ...input, confirmed: Boolean(form.confirmed) })
+      await updateFact(user.id, form.id, { ...input, confirmed: Boolean(form.confirmed), financeIncomeId })
     } else {
-      await addFact(user.id, { ...input, primary: Boolean(form.primary) })
+      await addFact(user.id, { ...input, primary: Boolean(form.primary), financeIncomeId })
     }
   })
 
@@ -112,6 +115,11 @@ async function run(task: (userId: string) => Promise<unknown>): Promise<{ error:
 
 export async function makePrimaryAction(factId: string) {
   return run((userId) => makePrimary(userId, factId, now()))
+}
+
+// The offer to turn a Personal goal into a skill: yes or not now.
+export async function answerSuggestionAction(goalId: string, add: boolean) {
+  return run((userId) => (add ? addSkillFromGoal(userId, goalId, now()) : declineSkillSuggestion(userId, goalId, now())))
 }
 
 export async function markReviewedAction(factId: string) {

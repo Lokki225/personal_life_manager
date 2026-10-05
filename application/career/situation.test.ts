@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 
 import type { FactInput } from '../../domain/career/situation'
-import { addEvidence, addFact, deleteEvidence, endFact, getSituation, makePrimary, unlinkEvidence, updateFact } from './situation'
+import { addEvidence, addFact, addSkillFromGoal, declineSkillSuggestion, deleteEvidence, endFact, getSituation, makePrimary, unlinkEvidence, updateFact } from './situation'
 
 const day = (y: number, m: number, d: number) => new Date(y, m - 1, d)
 const now = new Date(2026, 9, 7, 12)
@@ -40,6 +40,9 @@ function repo(extra: object = {}) {
     deleteEvidence: vi.fn(async () => true),
     getLocations: vi.fn(async () => ['Abidjan']),
     setLocations: vi.fn(async () => {}),
+    listIncomes: vi.fn(async () => [{ id: 'i1', source: 'Salary', amount: 450000, frequency: 'monthly' }]),
+    listSkillSuggestions: vi.fn(async () => [{ id: 'pg1', name: 'Rust', achievedAt: new Date(2026, 8, 20, 18) }]),
+    answerSkillSuggestion: vi.fn(async () => true),
     ...extra,
   }
 }
@@ -127,5 +130,29 @@ describe('evidence', () => {
     await deleteEvidence('u', 'e1', r2 as never)
     expect(r2.deleteEvidence).toHaveBeenCalledWith('u', 'e1')
     expect(r2.updateFact).toHaveBeenCalledWith('u', 'f1', { source: 'SELF' })
+  })
+})
+
+describe('links with Finance and Personal', () => {
+  it('takes a position’s pay from a Finance income, keeping no second salary', async () => {
+    const r = repo()
+    await addFact('u', { ...input({ monthlyCompensation: 450000 }), financeIncomeId: 'i1' }, r as never)
+    expect(r.createFact).toHaveBeenCalledWith('u', expect.objectContaining({ financeIncomeId: 'i1', monthlyCompensation: null }))
+    await expect(addFact('u', { ...input(), financeIncomeId: 'x9' }, r as never)).rejects.toMatchObject({ field: 'financeIncomeId' })
+  })
+
+  it('shows the income a position is paid from', async () => {
+    const r = repo({ listFacts: vi.fn(async () => [fact({ financeIncomeId: 'i1' })]) })
+    expect((await getSituation('u', now, r as never)).byKind.POSITION[0].income).toEqual({ source: 'Salary', perMonth: 450000 })
+  })
+
+  it('turns a Personal goal that counts for the career into a skill, once (scenario 7)', async () => {
+    const r = repo()
+    await addSkillFromGoal('u', 'pg1', now, r as never)
+    expect(r.createFact).toHaveBeenCalledWith('u', expect.objectContaining({ kind: 'SKILL', title: 'Rust', validFrom: new Date(2026, 8, 20) }))
+    expect(r.answerSkillSuggestion).toHaveBeenCalledWith('u', 'pg1', now)
+
+    await expect(addSkillFromGoal('u', 'other', now, r as never)).rejects.toThrow('already answered')
+    await expect(declineSkillSuggestion('u', 'pg1', now, repo({ answerSkillSuggestion: vi.fn(async () => false) }) as never)).rejects.toThrow()
   })
 })

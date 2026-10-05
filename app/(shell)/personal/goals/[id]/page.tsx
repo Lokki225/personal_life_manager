@@ -17,7 +17,8 @@ import { NewEntryDrawer } from '../../journal/entry-forms'
 import { EntryCard } from '../../journal/entry-view'
 import { toTaskView } from '../../tasks/task-view'
 import { conditionLine, MetricChart } from '../goal-display'
-import { AbandonDrawer, AddMilestoneForm, GoalTaskForm, LogValueForm, SyncNowButton } from '../goal-forms'
+import { canUseCareer } from '../../../career/access'
+import { AbandonDrawer, AddMilestoneForm, CareerRelevantToggle, GoalTaskForm, LogValueForm, SyncNowButton } from '../goal-forms'
 import { HORIZON_LABELS, PRESET_LABELS, STATUS_LABELS, statusTone, TIER_LABELS } from '../goal-labels'
 
 export default async function PersonalGoalPage({ params }: PageProps<'/personal/goals/[id]'>) {
@@ -233,7 +234,8 @@ export default async function PersonalGoalPage({ params }: PageProps<'/personal/
       </section>
 
       {abandoned ? null : (
-        <div className="border-t pt-4">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-t pt-4">
+          {canUseCareer(user) ? <CareerRelevantToggle goalId={goal.id} value={goal.careerRelevant} /> : <span />}
           <AbandonDrawer goalId={goal.id} />
         </div>
       )}

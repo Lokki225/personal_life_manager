@@ -42,6 +42,7 @@ export const factSchema = z.object({
   expiresAt: optionalDate,
   level: text(60),
   positionId: z.string().trim().optional(),
+  financeIncomeId: z.string().trim().optional(),
 })
 
 export type FactFormData = z.output<typeof factSchema>

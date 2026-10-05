@@ -1,11 +1,12 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
-import { addCriterion, createCareerGoal, getCareerGoal, judge } from '@/application/career/goals'
+import { addCriterion, createCareerGoal, getCareerGoal, judge, saveForGoal } from '@/application/career/goals'
 import { writeLog } from '@/application/career/log'
 import { acceptOffer, addOpportunity, getOpportunity } from '@/application/career/opportunities'
 import { getCareerReview } from '@/application/career/review'
 import { addFocus, getWeek, setFocusDone } from '@/application/career/week'
-import { addEvidence, addFact, getSituation } from '@/application/career/situation'
+import { addEvidence, addFact, addSkillFromGoal, getSituation } from '@/application/career/situation'
+import { createPersonalGoal, setCareerRelevant } from '@/application/personal/goals'
 import type { FactInput } from '@/domain/career/situation'
 import { prisma } from '@/infrastructure/prisma/client'
 import { userRepository } from '@/infrastructure/repositories/userRepository'
@@ -127,6 +128,36 @@ describe('scenario 6: the weekly loop', () => {
     expect(review.criteria.filter((c) => c.goal === 'Cloud role')).toMatchObject([{ from: 'GAP', to: 'MET' }])
     expect(review.focusDone).toEqual(['Book the exam'])
     expect(review.focusOpen).toEqual(['Update the CV', 'Call Awa'])
+  })
+})
+
+describe('the cost of a goal', () => {
+  it('is saved for in Finance, and its progress shows on the Career goal', async () => {
+    const goal = (await createCareerGoal(userId, { name: 'Cloud certification', why: null, deadline: null, importance: null })).id
+    await saveForGoal(userId, goal, { targetAmount: 300000, alreadySaved: 120000 })
+
+    expect((await getCareerGoal(userId, goal))!.savings).toEqual({ name: 'Cloud certification', saved: 120000, target: 300000 })
+    expect(await prisma.goal.count({ where: { userId, domain: 'finance', name: 'Cloud certification' } })).toBe(1)
+    await expect(saveForGoal(userId, goal, { targetAmount: 1, alreadySaved: 0 })).rejects.toThrow('already saved for')
+  })
+})
+
+describe('scenario 7: Personal → Career', () => {
+  it('offers a reached Personal goal that counts for the career as a skill, once', async () => {
+    const learn = (
+      await createPersonalGoal(userId, { preset: 'milestones', name: 'Rust', horizon: 'YEAR', deadline: null, categoryId: null, milestones: ['Book'] }, now)
+    ).id
+    await setCareerRelevant(userId, learn, true)
+    expect((await getSituation(userId)).suggestions).toEqual([])
+
+    // Reached: the Personal engine stamps the day.
+    await prisma.goal.update({ where: { id: learn }, data: { achievedAt: today } })
+    expect((await getSituation(userId)).suggestions.map((g) => g.name)).toEqual(['Rust'])
+
+    await addSkillFromGoal(userId, learn)
+    const situation = await getSituation(userId)
+    expect(situation.byKind.SKILL.map((f) => f.title)).toContain('Rust')
+    expect(situation.suggestions).toEqual([])
   })
 })
 

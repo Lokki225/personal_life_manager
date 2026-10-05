@@ -15,7 +15,7 @@ import { TIME_CONTROLS } from '@/domain/personal/chess'
 import { fieldAttributes, initialFormState, type FormState } from '@/lib/forms/formState'
 import { useT } from '@/lib/i18n/client'
 
-import { abandonGoalAction, addGoalTaskAction, addMilestoneAction, createGoalAction, logValueAction, syncNowAction } from './actions'
+import { abandonGoalAction, addGoalTaskAction, addMilestoneAction, careerRelevantAction, createGoalAction, logValueAction, syncNowAction } from './actions'
 import { HORIZON_LABELS, PRESET_HINTS, PRESET_LABELS, TIME_CONTROL_LABELS } from './goal-labels'
 
 const scope = 'goal'
@@ -40,7 +40,17 @@ function Field({
   )
 }
 
-function GoalFields({ state, categories, series }: { state: FormState; categories: Option[]; series: (Option & { unit: string | null })[] }) {
+function GoalFields({
+  state,
+  categories,
+  series,
+  careerOpen,
+}: {
+  state: FormState
+  categories: Option[]
+  series: (Option & { unit: string | null })[]
+  careerOpen: boolean
+}) {
   const t = useT()
   const [preset, setPreset] = useState<Preset>('outcome')
   const [seriesId, setSeriesId] = useState(series[0]?.id ?? 'new')
@@ -188,11 +198,27 @@ function GoalFields({ state, categories, series }: { state: FormState; categorie
           ))}
         </NativeSelect>
       </div>
+      {careerOpen ? (
+        <label className="flex items-start gap-2 text-sm">
+          <input type="checkbox" name="careerRelevant" className="mt-0.5 size-4 accent-node-accent" />
+          {t('It counts for my career: once reached, offer it as a skill in Career')}
+        </label>
+      ) : null}
     </>
   )
 }
 
-export function NewGoalDrawer({ categories, series }: { categories: Option[]; series: (Option & { unit: string | null })[] }) {
+// `careerOpen`: whether this person can use Career, where a reached goal
+// can become a skill.
+export function NewGoalDrawer({
+  categories,
+  series,
+  careerOpen,
+}: {
+  categories: Option[]
+  series: (Option & { unit: string | null })[]
+  careerOpen: boolean
+}) {
   const t = useT()
 
   return (
@@ -208,7 +234,7 @@ export function NewGoalDrawer({ categories, series }: { categories: Option[]; se
     >
       {(close) => (
         <ActionForm action={createGoalAction} submitLabel={t('Create goal')} onDone={close}>
-          {(state) => <GoalFields state={state} categories={categories} series={series} />}
+          {(state) => <GoalFields state={state} categories={categories} series={series} careerOpen={careerOpen} />}
         </ActionForm>
       )}
     </ActionDrawer>
@@ -357,6 +383,32 @@ export function AbandonDrawer({ goalId }: { goalId: string }) {
         </ActionForm>
       )}
     </ActionDrawer>
+  )
+}
+
+// Whether this goal counts for the career, in one tap.
+export function CareerRelevantToggle({ goalId, value }: { goalId: string; value: boolean }) {
+  const t = useT()
+  const [pending, startPending] = useTransition()
+  const [error, setError] = useState<string | null>(null)
+
+  return (
+    <div className="space-y-1">
+      <label className="flex items-center gap-2 text-sm">
+        <input
+          type="checkbox"
+          checked={value}
+          disabled={pending}
+          onChange={(event) => {
+            const next = event.target.checked
+            startPending(async () => setError((await careerRelevantAction(goalId, next)).error))
+          }}
+          className="size-4 accent-node-accent"
+        />
+        {t('Counts for my career')}
+      </label>
+      {error ? <p className="text-xs text-destructive-strong">{error}</p> : null}
+    </div>
   )
 }
 

@@ -42,6 +42,8 @@ export const goalSchema = z.object({
   preset: z.enum(PRESETS, { error: 'Choose a kind of goal.' }),
   name: requiredText('Enter a goal name.', 60),
   horizon: z.enum(HORIZONS, { error: 'Choose a horizon.' }).default('QUARTER'),
+  // Counts for the career: once reached, Career offers it as a skill.
+  careerRelevant: z.string().optional(),
   deadline: optionalDate,
   categoryId: z.string().trim().optional(),
   // "new" creates a measure from seriesLabel and seriesUnit; "chess" follows a

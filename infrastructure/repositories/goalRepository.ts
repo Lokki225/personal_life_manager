@@ -65,6 +65,7 @@ async function findTrees(where: { userId: string; domain: string; id?: string })
       })),
     } satisfies GoalTree,
     abandonReason: row.abandonReason,
+    careerRelevant: row.careerRelevant,
   }))
 }
 
@@ -107,6 +108,12 @@ export const goalRepository = {
       prisma.milestone.updateMany({ where: { id: { in: milestoneIds }, completedAt: null }, data: { completedAt: at } }),
       prisma.goal.updateMany({ where: { id: { in: achievedGoalIds }, achievedAt: null }, data: { achievedAt: at } }),
     ])
+  },
+
+  // Whether a Personal goal counts for the career.
+  setCareerRelevant: async (userId: string, id: string, value: boolean) => {
+    const { count } = await prisma.goal.updateMany({ where: { id, userId, domain: 'personal' }, data: { careerRelevant: value } })
+    return count > 0
   },
 
   abandon: async (userId: string, id: string, reason: string | null, at: Date) => {
