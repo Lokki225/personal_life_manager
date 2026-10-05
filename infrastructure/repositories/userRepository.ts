@@ -219,6 +219,7 @@ export const userRepository: UserRepository = {
   deleteAccount: async (userId: string) => {
     await prisma.$transaction([
       prisma.syncReceipt.deleteMany({ where: { userId } }),
+      prisma.securityEvent.deleteMany({ where: { userId } }),
       // Limit counters are keyed by text that holds the user id.
       prisma.rateLimitHit.deleteMany({ where: { key: { contains: userId } } }),
       prisma.user.delete({ where: { id: userId } }),

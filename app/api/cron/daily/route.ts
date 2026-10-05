@@ -3,6 +3,7 @@ import { settleEveryone } from '@/application/finance/settleEveryone'
 import { sendDailyReminders } from '@/application/notifications/dailyReminders'
 import { syncAllConnectors } from '@/application/personal/sync'
 import { notificationRepository } from '@/infrastructure/repositories/notificationRepository'
+import { securityEventRepository } from '@/infrastructure/repositories/securityEventRepository'
 import { syncReceiptRepository } from '@/infrastructure/repositories/syncReceiptRepository'
 
 // The assistant writes one note per person; give it time.
@@ -32,6 +33,8 @@ export async function GET(request: Request) {
   await notificationRepository.prune(new Date(Date.now() - KEEP_DAYS * 24 * 60 * 60 * 1000))
   // Outbox ids older than any device could still be resending.
   await syncReceiptRepository.prune(new Date(Date.now() - 60 * 24 * 60 * 60 * 1000))
+  // The security log keeps 90 days.
+  await securityEventRepository.prune(new Date(Date.now() - 90 * 24 * 60 * 60 * 1000))
 
   return Response.json({ settled, ...reminders, notes: notes.written, synced })
 }

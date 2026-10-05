@@ -1610,6 +1610,18 @@ export const FR: Messages = {
     "Correct": "Corriger",
     "Expenses, savings, explanations, ticked tasks, logged sessions and the day’s line are kept on this device and sent as soon as the connection is back, even if you close the app.": "Dépenses, épargnes, explications, tâches cochées, sessions et la ligne du jour sont gardées sur cet appareil et envoyées dès le retour de la connexion, même si vous fermez l’app.",
     "The server refused these. Correct one and send it again, or discard it.": "Le serveur les a refusées. Corrigez-en une et renvoyez-la, ou abandonnez-la.",
+
+    // --- Security log (administration) -------------------------------------------
+    "Failed sign-in": "Connexion échouée",
+    "Sign-in paused": "Connexion suspendue",
+    "Limit reached": "Limite atteinte",
+    "Wrong journal password": "Mauvais mot de passe de journal",
+    "Sign-in details changed": "Identifiants modifiés",
+    "Account deletion refused": "Suppression de compte refusée",
+    "Account deleted": "Compte supprimé",
+    "Security": "Sécurité",
+    "Failed sign-ins, limits reached, wrong journal passwords and account changes. Kept 90 days.": "Connexions échouées, limites atteintes, mauvais mots de passe de journal et changements de compte. Gardés 90 jours.",
+    "Nothing this week.": "Rien cette semaine.",
   },
 
   // Text that arrives already filled in. More specific patterns come first.
