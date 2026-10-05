@@ -10,7 +10,7 @@ import { getT } from '@/lib/i18n/server'
 import { DeleteEntryButton, EditEntryDrawer, LockSettings, UnlockForm } from '../entry-forms'
 import { ENTRY_TYPE_LABELS } from '../entry-labels'
 import { EntryBody } from '../entry-view'
-import { unlockedChecker } from '../unlock'
+import { unlockedKeys } from '../unlock'
 
 const isoDay = (date: Date) =>
   `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
@@ -24,7 +24,7 @@ export default async function JournalEntryPage({ params }: PageProps<'/personal/
     redirect('/login')
   }
 
-  const entry = await getEntry(user.id, id, await unlockedChecker(user.id))
+  const entry = await getEntry(user.id, id, await unlockedKeys(user.id))
 
   if (!entry) {
     notFound()

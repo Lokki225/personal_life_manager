@@ -1,6 +1,6 @@
 import { cookies } from 'next/headers'
 
-import { signUnlock, UNLOCK_MINUTES, unlockCookieName, verifyUnlock } from '@/infrastructure/auth/unlockToken'
+import { openUnlock, sealUnlock, UNLOCK_MINUTES, unlockCookieName } from '@/infrastructure/auth/unlockToken'
 
 // The cookies that keep a locked entry open for a few minutes after its
 // password is given. Read in pages; written only in server actions.
@@ -11,14 +11,14 @@ const secret = () => {
   return value
 }
 
-// Tells, for this request, which entries are unlocked.
-export async function unlockedChecker(userId: string): Promise<(entryId: string) => boolean> {
+// Gives, for this request, the key of each entry that is unlocked.
+export async function unlockedKeys(userId: string): Promise<(entryId: string) => Buffer | null> {
   const store = await cookies()
-  return (entryId) => verifyUnlock(secret(), userId, entryId, store.get(unlockCookieName(entryId))?.value)
+  return (entryId) => openUnlock(secret(), userId, entryId, store.get(unlockCookieName(entryId))?.value)
 }
 
-export async function rememberUnlock(userId: string, entryId: string) {
-  ;(await cookies()).set(unlockCookieName(entryId), signUnlock(secret(), userId, entryId), {
+export async function rememberUnlock(userId: string, entryId: string, key: Buffer) {
+  ;(await cookies()).set(unlockCookieName(entryId), sealUnlock(secret(), userId, entryId, key), {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax',

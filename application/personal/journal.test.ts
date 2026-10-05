@@ -1,6 +1,8 @@
 import { describe, expect, it, vi } from 'vitest'
 
-import { createEntry, deleteEntry, lockEntry, removeLock, saveDailyNote, unlockEntry, updateEntry, visibleEntry } from './journal'
+import { deriveKey, isSealed, newSalt, openEntry, saltOf, sealEntry } from '../../infrastructure/crypto/entryCipher'
+
+import { createEntry, deleteEntry, getEntry, lockEntry, removeLock, saveDailyNote, unlockEntry, updateEntry, visibleEntry } from './journal'
 
 const day = new Date(2026, 9, 7, 21, 30)
 const input = { type: 'FREE' as const, title: null, body: 'A good day.', mood: null, energy: null, entryDate: day, reviewOn: null }
@@ -29,6 +31,7 @@ function repo(extra: object = {}) {
     getEntry: vi.fn(async () => entry()),
     checkPassword: vi.fn(async (_u: string, _id: string, password: string) => password === 'open sesame'),
     setLock: vi.fn(async () => true),
+    setContent: vi.fn(async () => {}),
     deleteEntry: vi.fn(async () => true),
     ...extra,
   }
@@ -67,17 +70,6 @@ describe('createEntry', () => {
 })
 
 describe('locked entries', () => {
-  const locked = () => repo({ getEntry: vi.fn(async () => entry({ isSecured: true })) })
-
-  it('cannot be changed or deleted until unlocked', async () => {
-    await expect(updateEntry('u', 'e', input, false, locked() as never)).rejects.toThrow('Unlock this entry first.')
-    await expect(deleteEntry('u', 'e', false, locked() as never)).rejects.toThrow('Unlock this entry first.')
-
-    const r = locked()
-    await updateEntry('u', 'e', input, true, r as never)
-    expect(r.updateEntry).toHaveBeenCalled()
-  })
-
   // A limiter that remembers wrong passwords in memory.
   const guard = () => {
     const hits: string[] = []
@@ -87,33 +79,82 @@ describe('locked entries', () => {
     }
   }
 
-  it('lose their lock only with the current password', async () => {
-    const r = locked()
-    await expect(removeLock('u', 'e', 'guess', r as never, guard())).rejects.toMatchObject({ field: 'password' })
-    await removeLock('u', 'e', 'open sesame', r as never, guard())
-    expect(r.setLock).toHaveBeenCalledWith('u', 'e', null)
+  // An entry locked with "open sesame", stored as the app stores it now.
+  async function sealedEntry() {
+    const salt = newSalt()
+    const key = await deriveKey('open sesame', salt)
+    return { key, record: entry({ isSecured: true, title: null, body: sealEntry(key, salt, { title: 'Title', body: 'Secret thoughts' }) }) }
+  }
+  const lockedRepo = (record: object) => repo({ getEntry: vi.fn(async () => record) })
+
+  it('are stored sealed: the database never holds the text', async () => {
+    const r = repo()
+    await createEntry('u', { ...input, title: 'Hidden', body: 'Very private', password: 'open sesame' }, r as never)
+
+    const [, data, , password] = r.createEntry.mock.calls[0] as [string, { title: string | null; body: string }, unknown, string]
+    expect(password).toBe('open sesame')
+    expect(data.title).toBeNull()
+    expect(isSealed(data.body)).toBe(true)
+    expect(data.body).not.toContain('private')
+    expect(openEntry(await deriveKey('open sesame', saltOf(data.body)), data.body)).toEqual({ title: 'Hidden', body: 'Very private' })
   })
 
-  it('are locked with a password of at least 4 characters, once', async () => {
+  it('give their key to the right password only, and stop after 5 wrong ones', async () => {
+    const { key, record } = await sealedEntry()
+    const r = lockedRepo(record)
+    const g = guard()
+
+    expect(await unlockEntry('u', 'e', 'open sesame', r as never, g)).toEqual(key)
+    for (let i = 0; i < 5; i++) expect(await unlockEntry('u', 'e', `guess ${i}`, r as never, g)).toBeNull()
+    await expect(unlockEntry('u', 'e', 'open sesame', r as never, g)).rejects.toThrow('Too many wrong passwords. Try again in 15 minutes.')
+  })
+
+  it('locked before encryption are sealed the first time their password is given', async () => {
+    const r = lockedRepo(entry({ isSecured: true }))
+    const key = await unlockEntry('u', 'e', 'open sesame', r as never, guard())
+
+    const [, , content] = r.setContent.mock.calls[0] as unknown as [string, string, { title: string | null; body: string }]
+    expect(content.title).toBeNull()
+    expect(openEntry(key!, content.body)).toEqual({ title: 'Title', body: 'Secret thoughts about @[Chess](goal:g1)' })
+  })
+
+  it('cannot be changed or deleted without their key, and stay sealed when changed', async () => {
+    const { key, record } = await sealedEntry()
+    await expect(updateEntry('u', 'e', input, null, lockedRepo(record) as never)).rejects.toThrow('Unlock this entry first.')
+    await expect(updateEntry('u', 'e', input, Buffer.alloc(32), lockedRepo(record) as never)).rejects.toThrow('Unlock this entry first.')
+    await expect(deleteEntry('u', 'e', false, lockedRepo(record) as never)).rejects.toThrow('Unlock this entry first.')
+
+    const r = lockedRepo(record)
+    await updateEntry('u', 'e', { ...input, body: 'New words' }, key, r as never)
+    const [, , data] = r.updateEntry.mock.calls[0] as unknown as [string, string, { body: string }]
+    expect(openEntry(key, data.body)?.body).toBe('New words')
+  })
+
+  it('are locked with a password of at least 4 characters, once, and sealed then', async () => {
     const r = repo()
     await expect(lockEntry('u', 'e', 'abc', r as never)).rejects.toMatchObject({ field: 'password' })
     await lockEntry('u', 'e', 'open sesame', r as never)
-    expect(r.setLock).toHaveBeenCalledWith('u', 'e', 'open sesame')
-    await expect(lockEntry('u', 'e', 'open sesame', locked() as never)).rejects.toThrow('This entry is already locked.')
+
+    const [, , password, content] = r.setLock.mock.calls[0] as unknown as [string, string, string, { title: null; body: string }]
+    expect(password).toBe('open sesame')
+    expect(content.title).toBeNull()
+    expect(openEntry(await deriveKey('open sesame', saltOf(content.body)), content.body)?.title).toBe('Title')
+    await expect(lockEntry('u', 'e', 'open sesame', lockedRepo(entry({ isSecured: true })) as never)).rejects.toThrow('This entry is already locked.')
   })
 
-  it('stop taking guesses after 5 wrong passwords, even the right one', async () => {
-    const r = locked()
-    const g = guard()
-    for (let i = 0; i < 5; i++) expect(await unlockEntry('u', 'e', `guess ${i}`, r as never, g)).toBe(false)
-    await expect(unlockEntry('u', 'e', 'open sesame', r as never, g)).rejects.toThrow('Too many wrong passwords. Try again in 15 minutes.')
-    expect(await unlockEntry('u', 'e', 'open sesame', r as never, guard())).toBe(true)
+  it('lose their lock only with the current password, and are stored plain again', async () => {
+    const { record } = await sealedEntry()
+    const r = lockedRepo(record)
+    await expect(removeLock('u', 'e', 'guess', r as never, guard())).rejects.toMatchObject({ field: 'password' })
+    await removeLock('u', 'e', 'open sesame', r as never, guard())
+    expect(r.setLock).toHaveBeenCalledWith('u', 'e', null, { title: 'Title', body: 'Secret thoughts' })
   })
 
-  it('show only their date and kind until unlocked', () => {
-    const shown = visibleEntry(entry({ isSecured: true }), false)
-    expect(shown).toMatchObject({ locked: true, title: null, body: null, preview: null, mood: null, type: 'FREE' })
-    expect(visibleEntry(entry({ isSecured: true }), true)).toMatchObject({ locked: false, preview: 'Secret thoughts about Chess' })
+  it('show only their date and kind until opened with their key', async () => {
+    const { key, record } = await sealedEntry()
+    expect(visibleEntry(record)).toMatchObject({ locked: true, title: null, body: null, preview: null, mood: null, type: 'FREE' })
+    expect(await getEntry('u', 'e', () => null, lockedRepo(record) as never)).toMatchObject({ locked: true, body: null })
+    expect(await getEntry('u', 'e', () => key, lockedRepo(record) as never)).toMatchObject({ locked: false, title: 'Title', body: 'Secret thoughts', mood: 4 })
   })
 })
 

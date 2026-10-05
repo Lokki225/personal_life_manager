@@ -58,13 +58,19 @@ export const journalRepository = {
     })
   },
 
-  // Locks an entry with a password, or opens it for good with null.
-  setLock: async (userId: string, id: string, password: string | null) => {
+  // Locks an entry with a password, or opens it for good with null, with its
+  // content as it must now be stored (sealed when locked, plain when opened).
+  setLock: async (userId: string, id: string, password: string | null, content?: { title: string | null; body: string }) => {
     const { count } = await prisma.journalEntry.updateMany({
       where: { id, userId },
-      data: { isSecured: password !== null, passwordHash: password === null ? null : await bcrypt.hash(password, 10) },
+      data: { ...content, isSecured: password !== null, passwordHash: password === null ? null : await bcrypt.hash(password, 10) },
     })
     return count > 0
+  },
+
+  // Stores a locked entry's content sealed, for one locked before encryption.
+  setContent: async (userId: string, id: string, content: { title: string | null; body: string }) => {
+    await prisma.journalEntry.updateMany({ where: { id, userId }, data: content })
   },
 
   checkPassword: async (userId: string, id: string, password: string) => {

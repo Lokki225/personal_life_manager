@@ -32,5 +32,5 @@ export async function getWeeklyReview(userId: string, day: Date, now: Date = clo
 
   const written = entries.find((e) => e.type === 'REVIEW')
 
-  return { start, end, review, reviewEntry: written ? visibleEntry(written, false) : null }
+  return { start, end, review, reviewEntry: written ? visibleEntry(written) : null }
 }
