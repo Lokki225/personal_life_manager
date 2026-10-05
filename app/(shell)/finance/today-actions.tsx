@@ -220,6 +220,7 @@ export function AddExpenseDrawer({
 
   return (
     <ActionDrawer
+      worksOffline
       title={t('Add an expense')}
       description={
         chests.length > 0
@@ -285,6 +286,7 @@ export function SaveRemainingDrawer({
 
   return (
     <ActionDrawer
+      worksOffline
       title={t('Save what is left')}
       description={t("Up to {amount} {currency} is left from today's budget.", {
         amount: available,
@@ -336,6 +338,7 @@ export function ExceptionDrawer({ overspend }: { overspend: number }) {
 
   return (
     <ActionDrawer
+      worksOffline
       title={t('Explain the overspend')}
       description={t('You are {amount} {currency} over today. A short reason helps the review.', {
         amount: overspend,

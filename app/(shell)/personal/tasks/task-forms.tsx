@@ -4,6 +4,7 @@ import { startTransition, useActionState, useOptimistic, useState, useTransition
 import { Check, CircleAlert, Ellipsis, Loader2, Plus, Repeat } from 'lucide-react'
 import { DropdownMenu } from 'radix-ui'
 
+import { useIsOffline } from '@/components/offline/connection'
 import { ActionDrawer, ActionForm, FIELD_CLASS } from '@/components/forms/action-drawer'
 import { Button } from '@/components/ui/button'
 import { FieldError } from '@/components/ui/field-error'
@@ -116,6 +117,7 @@ const MENU_ITEM =
 // Move a task to another day, to the inbox, or get rid of it.
 export function TaskMenu({ task }: { task: TaskView }) {
   const t = useT()
+  const offline = useIsOffline()
   const [pending, startPending] = useTransition()
   const [error, setError] = useState<string | null>(null)
   const act = (action: () => Promise<{ error: string | null }>) =>
@@ -127,7 +129,7 @@ export function TaskMenu({ task }: { task: TaskView }) {
         <DropdownMenu.Trigger
           className="-mr-1 flex size-10 items-center justify-center rounded-full text-muted-foreground outline-none hover:bg-accent focus-visible:ring-[3px] focus-visible:ring-node-accent/40"
           aria-label={t('Options for {task}', { task: task.title })}
-          disabled={pending}
+          disabled={pending || offline}
         >
           {pending ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : <Ellipsis className="size-5" aria-hidden="true" />}
         </DropdownMenu.Trigger>
@@ -171,6 +173,7 @@ export function TaskMenu({ task }: { task: TaskView }) {
 // Title only, for today. The fastest way in.
 export function QuickAdd({ when = 'today' }: { when?: 'today' | 'inbox' }) {
   const t = useT()
+  const offline = useIsOffline()
   const [formKey, setFormKey] = useState(0)
   const [state, formAction, isPending] = useActionState(async (previous: FormState, formData: FormData) => {
     const next = await addTaskAction(previous, formData)
@@ -199,7 +202,7 @@ export function QuickAdd({ when = 'today' }: { when?: 'today' | 'inbox' }) {
           autoComplete="off"
           className={FIELD_CLASS}
         />
-        <Button type="submit" disabled={isPending} className="h-12 shrink-0 px-4" aria-label={t('Add')}>
+        <Button type="submit" disabled={isPending || offline} className="h-12 shrink-0 px-4" aria-label={t('Add')} title={offline ? t('Adding a task needs a connection.') : undefined}>
           {isPending ? <Loader2 className="animate-spin" aria-hidden="true" /> : <Plus aria-hidden="true" />}
         </Button>
       </div>
@@ -346,6 +349,7 @@ export function CarryReasons({ tasks }: { tasks: TaskView[] }) {
 
 function CarryReasonRow({ task }: { task: TaskView }) {
   const t = useT()
+  const offline = useIsOffline()
   const [pending, startPending] = useTransition()
   const [error, setError] = useState<string | null>(null)
 
@@ -357,7 +361,7 @@ function CarryReasonRow({ task }: { task: TaskView }) {
           <button
             key={reason}
             type="button"
-            disabled={pending}
+            disabled={pending || offline}
             onClick={() => startPending(async () => setError((await carryReasonAction(task.id, reason)).error))}
             className="min-h-9 rounded-full border bg-card px-3 text-xs font-medium transition-colors outline-none hover:border-node-accent focus-visible:ring-[3px] focus-visible:ring-node-accent/40 disabled:opacity-50"
           >
@@ -372,6 +376,7 @@ function CarryReasonRow({ task }: { task: TaskView }) {
 
 export function CapacityForm({ capacity }: { capacity: number }) {
   const t = useT()
+  const offline = useIsOffline()
   const [state, formAction, isPending] = useActionState(capacityAction, initialFormState)
 
   return (
@@ -383,7 +388,7 @@ export function CapacityForm({ capacity }: { capacity: number }) {
       <Label htmlFor="capacity" className="text-muted-foreground">
         {t('Tasks a day can hold')}
       </Label>
-      <NativeSelect id="capacity" name="capacity" defaultValue={String(capacity)} disabled={isPending} className="h-10 w-20">
+      <NativeSelect id="capacity" name="capacity" defaultValue={String(capacity)} disabled={isPending || offline} className="h-10 w-20">
         {Array.from({ length: 15 }, (_, i) => i + 1).map((n) => (
           <NativeSelectOption key={n} value={String(n)}>
             {n}

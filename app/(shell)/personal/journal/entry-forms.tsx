@@ -3,6 +3,7 @@
 import { startTransition, useActionState, useRef, useState, useTransition, type FormEvent } from 'react'
 import { CircleAlert, Link2, Loader2, Lock, LockOpen, Pencil, Plus, Trash2 } from 'lucide-react'
 
+import { useIsOffline } from '@/components/offline/connection'
 import { ActionDrawer, ActionForm, FIELD_CLASS } from '@/components/forms/action-drawer'
 import { Button } from '@/components/ui/button'
 import { FieldError } from '@/components/ui/field-error'
@@ -264,6 +265,7 @@ function PasswordForm({
   autoComplete: string
 }) {
   const t = useT()
+  const offline = useIsOffline()
   const [state, formAction, isPending] = useActionState(action, initialFormState)
   const submit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -276,7 +278,7 @@ function PasswordForm({
       <input type="hidden" name="id" value={entryId} />
       <div className="flex gap-2">
         <Input {...fieldAttributes(state, 'password', `pw-${label}`)} type="password" autoComplete={autoComplete} aria-label={t('Password')} placeholder={t('Password')} className={FIELD_CLASS} />
-        <Button type="submit" disabled={isPending} className="h-12 shrink-0">
+        <Button type="submit" disabled={isPending || offline} className="h-12 shrink-0" title={offline ? t('This needs a connection.') : undefined}>
           {isPending ? <Loader2 className="animate-spin" aria-hidden="true" /> : null}
           {label}
         </Button>
@@ -295,13 +297,14 @@ export function UnlockForm({ entryId }: { entryId: string }) {
 // Lock an open entry, or take the lock off a locked one (which needs its password).
 export function LockSettings({ entryId, isSecured }: { entryId: string; isSecured: boolean }) {
   const t = useT()
+  const offline = useIsOffline()
   const [open, setOpen] = useState(false)
   const [pending, startPending] = useTransition()
 
   return (
     <div className="space-y-2">
       <div className="flex flex-wrap gap-2">
-        <Button type="button" variant="outline" className="h-11" onClick={() => setOpen((v) => !v)} aria-expanded={open}>
+        <Button type="button" variant="outline" className="h-11" disabled={offline} onClick={() => setOpen((v) => !v)} aria-expanded={open}>
           {isSecured ? <LockOpen aria-hidden="true" /> : <Lock aria-hidden="true" />}
           {isSecured ? t('Remove the lock') : t('Lock with a password')}
         </Button>
@@ -325,6 +328,7 @@ export function LockSettings({ entryId, isSecured }: { entryId: string; isSecure
 
 export function DeleteEntryButton({ entryId }: { entryId: string }) {
   const t = useT()
+  const offline = useIsOffline()
   const [confirming, setConfirming] = useState(false)
   const [pending, startPending] = useTransition()
   const [error, setError] = useState<string | null>(null)
@@ -334,7 +338,7 @@ export function DeleteEntryButton({ entryId }: { entryId: string }) {
       <Button
         type="button"
         variant="outline"
-        disabled={pending}
+        disabled={pending || offline}
         className={cn('h-11', confirming ? 'border-destructive text-destructive-strong' : 'text-muted-foreground')}
         onClick={() => {
           if (!confirming) return setConfirming(true)

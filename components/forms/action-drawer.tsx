@@ -1,6 +1,6 @@
 'use client'
 
-import { startTransition, useActionState, useState, type FormEvent, type ReactNode } from 'react'
+import { cloneElement, isValidElement, startTransition, useActionState, useState, type FormEvent, type ReactElement, type ReactNode } from 'react'
 import { CircleAlert, Loader2 } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
@@ -13,6 +13,7 @@ import {
   DrawerTrigger,
 } from '@/components/ui/drawer'
 import { initialFormState, type FormState } from '@/lib/forms/formState'
+import { useIsOffline } from '@/components/offline/connection'
 import { useT } from '@/lib/i18n/client'
 
 // A form in a bottom drawer, shared by every node.
@@ -73,18 +74,36 @@ export function ActionForm({
   )
 }
 
+// Most drawers change the plan, move money or need the server, so offline
+// their trigger is disabled with the reason. A capture drawer (an expense, a
+// session) passes `worksOffline`: what it sends waits for the connection.
 export function ActionDrawer({
   trigger,
   title,
   description,
   children,
+  worksOffline = false,
+  offlineReason,
 }: {
   trigger: ReactNode
   title: string
   description: string
   children: (close: () => void) => ReactNode
+  worksOffline?: boolean
+  offlineReason?: string
 }) {
+  const t = useT()
   const [open, setOpen] = useState(false)
+  const offline = useIsOffline()
+
+  if (offline && !worksOffline && isValidElement(trigger)) {
+    const reason = offlineReason ?? t('This needs a connection.')
+    return cloneElement(trigger as ReactElement<{ disabled?: boolean; title?: string; 'aria-description'?: string }>, {
+      disabled: true,
+      title: reason,
+      'aria-description': reason,
+    })
+  }
 
   return (
     <Drawer open={open} onOpenChange={setOpen}>
