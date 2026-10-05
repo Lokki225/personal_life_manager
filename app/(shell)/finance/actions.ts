@@ -9,9 +9,6 @@ import { consolidateBuffer } from '@/application/finance/consolidateBuffer'
 import { coverOverspend } from '@/application/finance/coverOverspend'
 import { editExpense, removeExpense } from '@/application/finance/manageExpense'
 import { removeAllocation, removeIncome, saveAllocation, saveIncome } from '@/application/finance/managePlan'
-import { recordDailyException } from '@/application/finance/recordDailyException'
-import { recordDailyExpense } from '@/application/finance/recordDailyExpense'
-import { saveDailyRemaining } from '@/application/finance/saveDailyRemaining'
 import { syncPlanToChests } from '@/application/finance/syncPlanToChests'
 import { transferBetweenChests } from '@/application/finance/transferBetweenChests'
 import { notifyReachedGoals } from '@/application/notifications/instant'
@@ -30,9 +27,6 @@ import {
   incomeForm,
   planAllocationForm,
   consolidateForm,
-  exceptionForm,
-  expenseForm,
-  saveRemainingForm,
   transferForm,
 } from './schema'
 
@@ -40,35 +34,6 @@ import {
 function refreshFinance(userId: string) {
   revalidatePath('/finance', 'layout')
   notifyLater(() => notifyReachedGoals(userId))
-}
-
-export async function addExpense(_previousState: FormState, formData: FormData): Promise<FormState> {
-  const [user, t] = await Promise.all([getSignedInUser(), getT()])
-  const userId = user?.id
-  // Days are counted on this person's clock from here on.
-  setClockZone(user?.timeZone)
-
-  if (!userId) {
-    return signedOutState(t)
-  }
-
-  const state = await expenseForm.submit(formData, (expense) =>
-    recordDailyExpense({
-      userId,
-      amount: expense.amount,
-      category: expense.category,
-      description: expense.description || null,
-      cause: expense.cause ?? null,
-      reason: expense.reason || null,
-      chestId: expense.chestId || null,
-    }),
-  )
-
-  if (state.status === 'success') {
-    refreshFinance(userId)
-  }
-
-  return translateFormState(state, t)
 }
 
 export async function confirmIncomeAction(_previousState: FormState, formData: FormData): Promise<FormState> {
@@ -83,52 +48,6 @@ export async function confirmIncomeAction(_previousState: FormState, formData: F
 
   const state = await confirmIncomeForm.submit(formData, (income) =>
     confirmIncome({ userId, incomeId: income.incomeId, amount: income.amount }),
-  )
-
-  if (state.status === 'success') {
-    refreshFinance(userId)
-  }
-
-  return translateFormState(state, t)
-}
-
-export async function saveRemaining(_previousState: FormState, formData: FormData): Promise<FormState> {
-  const [user, t] = await Promise.all([getSignedInUser(), getT()])
-  const userId = user?.id
-  // Days are counted on this person's clock from here on.
-  setClockZone(user?.timeZone)
-
-  if (!userId) {
-    return signedOutState(t)
-  }
-
-  const state = await saveRemainingForm.submit(formData, (saving) =>
-    saveDailyRemaining({
-      userId,
-      amount: saving.amount,
-      destinationChestId: saving.destinationChestId || null,
-    }),
-  )
-
-  if (state.status === 'success') {
-    refreshFinance(userId)
-  }
-
-  return translateFormState(state, t)
-}
-
-export async function recordException(_previousState: FormState, formData: FormData): Promise<FormState> {
-  const [user, t] = await Promise.all([getSignedInUser(), getT()])
-  const userId = user?.id
-  // Days are counted on this person's clock from here on.
-  setClockZone(user?.timeZone)
-
-  if (!userId) {
-    return signedOutState(t)
-  }
-
-  const state = await exceptionForm.submit(formData, (exception) =>
-    recordDailyException({ userId, category: exception.category, reason: exception.reason }),
   )
 
   if (state.status === 'success') {

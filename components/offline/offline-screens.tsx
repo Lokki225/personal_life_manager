@@ -8,8 +8,10 @@ import { Meter } from '@/components/ui/meter'
 import { CURRENCY_CODE, todayFigures } from '@/domain/finance/calculations'
 import { useT } from '@/lib/i18n/client'
 import { m } from '@/lib/i18n/translate'
-import { offlineDb, offlineUser } from '@/lib/offline/db'
+import { offlineDb, offlineUser, type OutboxItem } from '@/lib/offline/db'
+import { outboxItems } from '@/lib/offline/outbox'
 import {
+  isoDay,
   SNAPSHOT_PATHS,
   snapshotKeyFor,
   STALE_AFTER_MS,
@@ -21,13 +23,16 @@ import {
 } from '@/lib/offline/snapshots'
 import { cn } from '@/lib/utils'
 
+import { outboxItemLabel } from './outbox-item-label'
+import { pendingToday } from './pending-today'
+
 // The address that was asked for, read as soon as this file loads: the
 // service worker answered it with the offline page, and the router may
 // rewrite the address once it starts.
 const askedPath = typeof window === 'undefined' ? '/' : window.location.pathname
 
-// `now` is taken once, when the snapshot is read.
-type Loaded = { key: SnapshotKey; data: unknown; savedAt: number; now: number } | null
+// `now` is taken once, when the snapshot is read; `outbox` is what waits to be sent.
+type Loaded = { key: SnapshotKey; data: unknown; savedAt: number; now: number; outbox: OutboxItem[] } | null
 
 // The screens readable offline (Ressources/offline-mode-codebase-plan.md,
 // step 4), drawn from what the last online visit left on this device.
@@ -43,7 +48,8 @@ export function OfflineScreens() {
       const userId = offlineUser()
       const store = offlineDb()
       const row = key && userId && store ? await store.snapshots.get({ userId, key } as never).catch(() => undefined) : undefined
-      if (!cancelled) setLoaded(row && key ? { key, data: row.data, savedAt: row.savedAt, now: Date.now() } : null)
+      const outbox = userId ? await outboxItems(userId).catch(() => []) : []
+      if (!cancelled) setLoaded(row && key ? { key, data: row.data, savedAt: row.savedAt, now: Date.now(), outbox } : null)
     }
 
     void load()
@@ -78,7 +84,7 @@ export function OfflineScreens() {
       {loaded ? (
         <>
           <SavedAt savedAt={loaded.savedAt} now={loaded.now} />
-          {loaded.key === 'finance.today' ? <FinanceToday data={loaded.data as FinanceTodaySnapshot} /> : null}
+          {loaded.key === 'finance.today' ? <FinanceToday data={loaded.data as FinanceTodaySnapshot} outbox={loaded.outbox} now={loaded.now} /> : null}
           {loaded.key === 'finance.review' ? <FinanceReview data={loaded.data as FinanceReviewSnapshot} /> : null}
           {loaded.key === 'personal.today' ? <PersonalToday data={loaded.data as PersonalTodaySnapshot} /> : null}
           {loaded.key === 'personal.review' ? <PersonalReview data={loaded.data as PersonalReviewSnapshot} /> : null}
@@ -138,10 +144,12 @@ function Tile({ label, value, tone }: { label: string; value: string; tone?: 'go
   )
 }
 
-function FinanceToday({ data }: { data: FinanceTodaySnapshot }) {
+function FinanceToday({ data, outbox, now }: { data: FinanceTodaySnapshot; outbox: OutboxItem[]; now: number }) {
   const t = useT()
   const money = useMoney()
-  const { remaining, overspend } = todayFigures({ budget: data.budget, spent: data.spent, saved: data.saved })
+  // What waits in the outbox counts already, when the snapshot is of today.
+  const pending = data.day === isoDay(new Date(now)) ? pendingToday(outbox, new Date(now)) : { waiting: [], spent: 0, saved: 0 }
+  const { remaining, overspend } = todayFigures({ budget: data.budget, spent: data.spent + pending.spent, saved: data.saved + pending.saved })
 
   return (
     <section className="space-y-3">
@@ -153,10 +161,17 @@ function FinanceToday({ data }: { data: FinanceTodaySnapshot }) {
         <p className="text-xs text-muted-foreground">{t('Daily budget: {amount}', { amount: money(data.budget) })}</p>
       </div>
       <div className="grid grid-cols-3 gap-2">
-        <Tile label={t('Spent today')} value={money(data.spent)} />
+        <Tile label={t('Spent today')} value={money(data.spent + pending.spent)} />
         <Tile label={t('This month')} value={money(data.monthSpent)} tone={data.monthSpent > data.monthBudget ? 'bad' : undefined} />
         <Tile label={t('Saved')} value={money(data.totalSaved)} />
       </div>
+      {pending.waiting.length > 0 ? (
+        <ul className="space-y-0.5 rounded-xl border border-dashed bg-card px-3 py-2 text-sm text-muted-foreground">
+          {pending.waiting.map((item) => (
+            <li key={item.id}>⏱ {outboxItemLabel(t, item)}</li>
+          ))}
+        </ul>
+      ) : null}
       {data.expenses.length > 0 ? (
         <ul className="divide-y rounded-xl border bg-card">
           {data.expenses.map((expense, index) => (

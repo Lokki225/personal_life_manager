@@ -747,3 +747,15 @@ model SyncConnector {
 
   @@index([userId])
 }
+
+// An action sent from a device's outbox (offline mode), by the id the device
+// gave it. Written before the action runs, so the same action sent twice
+// (a retry after a lost answer) is only done once.
+model SyncReceipt {
+  id        String   @id
+  userId    String
+  action    String
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
+}
