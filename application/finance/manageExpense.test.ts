@@ -49,8 +49,8 @@ describe('editExpense', () => {
 
     await editExpense('user-1', { id: 'lunch', amount: 1800, category: 'food', description: ' Lunch ' }, deps, today)
 
-    expect(deps.updateExpense).toHaveBeenCalledWith('lunch', { amount: 1800, category: 'food', description: 'Lunch' })
-    expect(deps.updateException).toHaveBeenCalledWith('x-taxi', { plannedAmount: 200, actualAmount: 800, difference: 600 })
+    expect(deps.updateExpense).toHaveBeenCalledWith('user-1', 'lunch', { amount: 1800, category: 'food', description: 'Lunch' })
+    expect(deps.updateException).toHaveBeenCalledWith('user-1', 'x-taxi', { plannedAmount: 200, actualAmount: 800, difference: 600 })
     expect(deps.createException).not.toHaveBeenCalled()
     expect(deps.deleteException).not.toHaveBeenCalled()
   })
@@ -59,7 +59,7 @@ describe('editExpense', () => {
     // Lunch drops to 500: the taxi fits again.
     const fits = depsOf([{ ...lunch, amount: 500 }, taxi])
     await editExpense('user-1', { id: 'lunch', amount: 500, category: 'food' }, fits, today)
-    expect(fits.deleteException).toHaveBeenCalledWith('x-taxi')
+    expect(fits.deleteException).toHaveBeenCalledWith('user-1', 'x-taxi')
 
     // Lunch jumps to 2,500 with no exception of its own yet.
     const over = depsOf([{ ...lunch, amount: 2500 }, taxi])
@@ -67,7 +67,7 @@ describe('editExpense', () => {
     expect(over.createException).toHaveBeenCalledWith(
       expect.objectContaining({ expenseId: 'lunch', difference: 500, category: 'unexplained', date: today }),
     )
-    expect(over.updateException).toHaveBeenCalledWith('x-taxi', { plannedAmount: 0, actualAmount: 800, difference: 800 })
+    expect(over.updateException).toHaveBeenCalledWith('user-1', 'x-taxi', { plannedAmount: 0, actualAmount: 800, difference: 800 })
   })
 
   it('refuses an expense of another day, of a 31st, or that is not the user’s', async () => {
@@ -89,8 +89,8 @@ describe('removeExpense', () => {
 
     await removeExpense('user-1', 'taxi', deps, today)
 
-    expect(deps.deleteException).toHaveBeenCalledWith('x-taxi')
-    expect(deps.deleteExpense).toHaveBeenCalledWith('taxi')
+    expect(deps.deleteException).toHaveBeenCalledWith('user-1', 'x-taxi')
+    expect(deps.deleteExpense).toHaveBeenCalledWith('user-1', 'taxi')
   })
 
   it('clears the exception of a later expense that fits once an earlier one is gone', async () => {
@@ -98,8 +98,8 @@ describe('removeExpense', () => {
 
     await removeExpense('user-1', 'lunch', deps, today)
 
-    expect(deps.deleteExpense).toHaveBeenCalledWith('lunch')
-    expect(deps.deleteException).toHaveBeenCalledWith('x-taxi')
+    expect(deps.deleteExpense).toHaveBeenCalledWith('user-1', 'lunch')
+    expect(deps.deleteException).toHaveBeenCalledWith('user-1', 'x-taxi')
   })
 })
 
@@ -109,7 +109,7 @@ describe('an expense paid from a chest', () => {
 
     await editExpense('user-1', { id: 'laptop-bought', amount: 310000, category: 'shopping', description: 'Laptop' }, deps, today)
 
-    expect(deps.updateChestExpense).toHaveBeenCalledWith('laptop-bought', {
+    expect(deps.updateChestExpense).toHaveBeenCalledWith('user-1', 'laptop-bought', {
       amount: 310000,
       category: 'shopping',
       description: 'Laptop',
@@ -139,6 +139,6 @@ describe('an expense paid from a chest', () => {
 
     await editExpense('user-1', { id: 'lunch', amount: 1500, category: 'food' }, deps, today)
 
-    expect(deps.updateException).toHaveBeenCalledWith('x-taxi', { plannedAmount: 500, actualAmount: 800, difference: 300 })
+    expect(deps.updateException).toHaveBeenCalledWith('user-1', 'x-taxi', { plannedAmount: 500, actualAmount: 800, difference: 300 })
   })
 })

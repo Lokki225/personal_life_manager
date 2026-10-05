@@ -13,7 +13,7 @@ type RecordDailyExceptionDeps = {
     overspendExplained: boolean
   }>
   listExceptions: (userId: string) => Promise<{ id: string; date: Date; category: string }[]>
-  update: (id: string, data: { category: string; reason: string }) => Promise<unknown>
+  update: (userId: string, id: string, data: { category: string; reason: string }) => Promise<unknown>
   create: typeof createBudgetException
 }
 
@@ -52,7 +52,7 @@ export async function recordDailyException(
 
   if (waiting.length > 0) {
     for (const exception of waiting) {
-      await deps.update(exception.id, { category: input.category, reason })
+      await deps.update(input.userId, exception.id, { category: input.category, reason })
     }
 
     return

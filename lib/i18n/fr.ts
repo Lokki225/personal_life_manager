@@ -163,7 +163,7 @@ export const FR: Messages = {
     'We could not sign you in right now. Check your connection and try again.':
       'Connexion impossible pour le moment. Vérifiez votre connexion et réessayez.',
     'How the app should call you': "Comment l'application doit vous appeler",
-    'At least 8 characters.': 'Au moins 8 caractères.',
+    'At least 10 characters.': 'Au moins 10 caractères.',
     'Confirm password': 'Confirmer le mot de passe',
     'Creating your account...': 'Création de votre compte...',
     'Create account': 'Créer le compte',
@@ -172,7 +172,7 @@ export const FR: Messages = {
     'This email is too long.': 'Cet e-mail est trop long.',
     'Enter a valid email, like you@example.com.': 'Saisissez un e-mail valide, par exemple vous@exemple.com.',
     'Choose a password.': 'Choisissez un mot de passe.',
-    'Use at least 8 characters.': 'Utilisez au moins 8 caractères.',
+    'Use at least 10 characters.': 'Utilisez au moins 10 caractères.',
     'Use at most 72 characters.': 'Utilisez au maximum 72 caractères.',
     'Type the password again.': 'Saisissez à nouveau le mot de passe.',
     'The two passwords do not match.': 'Les deux mots de passe ne correspondent pas.',
@@ -994,8 +994,8 @@ export const FR: Messages = {
     'Sign-in details': 'Identifiants de connexion',
     'The email and password you sign in with.': "L'e-mail et le mot de passe avec lesquels vous vous connectez.",
     'New password': 'Nouveau mot de passe',
-    'Leave empty to keep your password. At least 8 characters.':
-      'Laissez vide pour garder votre mot de passe. Au moins 8 caractères.',
+    'Leave empty to keep your password. At least 10 characters.':
+      'Laissez vide pour garder votre mot de passe. Au moins 10 caractères.',
     'Current password': 'Mot de passe actuel',
     'Needed to change your email or your password.': 'Nécessaire pour changer votre e-mail ou votre mot de passe.',
     'Enter your first name.': 'Saisissez votre prénom.',

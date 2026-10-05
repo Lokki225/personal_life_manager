@@ -20,17 +20,27 @@ async function ensureDefaultChests(userId: string) {
 }
 
 async function main() {
+  // Example data is for a development database only: never production, and
+  // never with a password written in the code or printed.
+  if (process.env.NODE_ENV === 'production' || process.env.VERCEL_ENV === 'production') {
+    throw new Error('The seed only runs against a development database.')
+  }
+
+  const email = (process.env.SEED_EMAIL ?? 'seed@example.invalid').toLowerCase()
+  const password = process.env.SEED_PASSWORD
+
+  if (!password || password.length < 10) {
+    throw new Error('Set SEED_PASSWORD (at least 10 characters) to seed the example account.')
+  }
+
   // --- User ---
-  const passwordHash = await bcrypt.hash('changeme123', 10)
+  const passwordHash = await bcrypt.hash(password, 10)
   const user = await prisma.user.upsert({
-    where: { email: 'franklinlokki@gmail.com' },
+    where: { email },
     update: {},
-    create: {
-      email: 'franklinlokki@gmail.com',
-      passwordHash,
-    },
+    create: { email, passwordHash },
   })
-  console.log(`Seeded user: ${user.email} (password: changeme123 — change after first login)`)
+  console.log(`Seeded user: ${user.email} (password from SEED_PASSWORD)`)
 
   // --- Default chests (idempotent) ---
   const chests = await ensureDefaultChests(user.id)

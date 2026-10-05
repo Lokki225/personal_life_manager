@@ -139,7 +139,7 @@ export function SignUpForm() {
             {showPassword ? <EyeOff aria-hidden="true" /> : <Eye aria-hidden="true" />}
           </Button>
         </div>
-        <p className="text-xs text-muted-foreground">{t('At least 8 characters.')}</p>
+        <p className="text-xs text-muted-foreground">{t('At least 10 characters.')}</p>
         <FieldError state={state} name="password" />
       </div>
 

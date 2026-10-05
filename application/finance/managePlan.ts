@@ -9,8 +9,8 @@ type ManagePlanDeps = {
     userId: string,
     data: { name: string; amount: number; period: string; category: string; startDate: Date },
   ) => Promise<unknown>
-  update: (id: string, data: { name: string; amount: number; period: string; category: string }) => Promise<unknown>
-  remove: (id: string) => Promise<unknown>
+  update: (userId: string, id: string, data: { name: string; amount: number; period: string; category: string }) => Promise<unknown>
+  remove: (userId: string, id: string) => Promise<unknown>
 }
 
 const defaultDeps: ManagePlanDeps = {
@@ -53,12 +53,12 @@ export async function saveAllocation(
   }
 
   await ownAllocation(userId, allocation.id, deps)
-  await deps.update(allocation.id, data)
+  await deps.update(userId, allocation.id, data)
 }
 
 export async function removeAllocation(userId: string, id: string, deps: ManagePlanDeps = defaultDeps): Promise<void> {
   await ownAllocation(userId, id, deps)
-  await deps.remove(id)
+  await deps.remove(userId, id)
 }
 
 type IncomeDeps = {
@@ -67,7 +67,7 @@ type IncomeDeps = {
     userId: string,
     data: { source: string; amount: number; frequency: string; payDay: number },
   ) => Promise<unknown>
-  update: (id: string, data: { source: string; amount: number; payDay: number }) => Promise<unknown>
+  update: (userId: string, id: string, data: { source: string; amount: number; payDay: number }) => Promise<unknown>
   remove: (userId: string, id: string) => Promise<unknown>
 }
 
@@ -114,7 +114,7 @@ export async function saveIncome(
     throw new FinanceRuleError(INCOME_NOT_FOUND)
   }
 
-  await deps.update(income.id, data)
+  await deps.update(userId, income.id, data)
 }
 
 // Removes an income from the plan. One always stays: a plan without any

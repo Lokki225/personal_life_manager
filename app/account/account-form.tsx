@@ -381,7 +381,7 @@ export function CredentialsForm({ email }: { email: string }) {
           state={state}
           name="newPassword"
           label={t('New password')}
-          hint={t('Leave empty to keep your password. At least 8 characters.')}
+          hint={t('Leave empty to keep your password. At least 10 characters.')}
         >
           <Input
             id="newPassword"

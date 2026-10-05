@@ -41,12 +41,10 @@ export const getSignedInUser = cache(async (): Promise<SignedInUser | null> => {
     bufferSweepDay: true,
   }
 
+  // Only the id identifies the account: an email can be changed, so a session
+  // is never matched to an account by its email.
   if (typeof sessionUser?.id === 'string' && sessionUser.id.length > 0) {
     return prisma.user.findUnique({ where: { id: sessionUser.id }, select })
-  }
-
-  if (typeof sessionUser?.email === 'string' && sessionUser.email.length > 0) {
-    return prisma.user.findUnique({ where: { email: sessionUser.email.toLowerCase() }, select })
   }
 
   return null

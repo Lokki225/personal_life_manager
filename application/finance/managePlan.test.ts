@@ -33,7 +33,7 @@ describe('saveAllocation', () => {
 
     await saveAllocation('user-1', { ...rent, id: 'alloc-1', amount: 120000 }, deps, today)
 
-    expect(deps.update).toHaveBeenCalledWith('alloc-1', {
+    expect(deps.update).toHaveBeenCalledWith('user-1', 'alloc-1', {
       name: 'Rent',
       amount: 120000,
       period: 'monthly',
@@ -57,7 +57,7 @@ describe('removeAllocation', () => {
     const deps = depsOf()
 
     await removeAllocation('user-1', 'alloc-1', deps)
-    expect(deps.remove).toHaveBeenCalledWith('alloc-1')
+    expect(deps.remove).toHaveBeenCalledWith('user-1', 'alloc-1')
 
     await expect(removeAllocation('user-1', 'someone-else', deps)).rejects.toThrow('This allocation no longer exists.')
     expect(deps.remove).toHaveBeenCalledTimes(1)
@@ -86,7 +86,7 @@ describe('incomes', () => {
     const deps = depsOf()
 
     await saveIncome('user-1', { ...salary, id: 'income-1' }, deps)
-    expect(deps.update).toHaveBeenCalledWith('income-1', { source: 'Salary', amount: 350000, payDay: 27 })
+    expect(deps.update).toHaveBeenCalledWith('user-1', 'income-1', { source: 'Salary', amount: 350000, payDay: 27 })
 
     await expect(saveIncome('user-1', { ...salary, id: 'someone-else' }, deps)).rejects.toThrow(
       'This income no longer exists.',
