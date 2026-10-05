@@ -11,54 +11,70 @@ This block is written and re-added by `next dev` — verify at `node_modules/nex
 # Personal Life Manager Agent Instructions
 
 ## Project goal
-This repository is the Personal Life Manager finance MVP. The product vision is a global life system with a first production domain focused on finance: income, allocation, expense, savings, buffer, exceptions, and financial state tracking.
+Personal Life Manager is a life graph: a few nodes of a person's life, each with its own screens, sharing one goal engine, one task list and one journal. The specs in `Ressources/` are the source of truth for what to build; the `*-codebase-plan.md` files there record how each one lands in this code.
+
+| Node | State | Code |
+|---|---|---|
+| Finance | Live for everyone: income, plan, daily budget, expenses, savings and chests, Buffer, debts, exceptions, goals, review | `domain/finance`, `application/finance`, `app/(shell)/finance` |
+| Personal | Live for everyone: tasks, sessions, goals and measures, journal (locked entries encrypted), weekly review | `domain/personal`, `application/personal`, `app/(shell)/personal` |
+| Career | Being built, administrators only: situation (facts and evidence), goals with criteria, opportunities side by side, weekly loop | `domain/career`, `application/career`, `app/(shell)/career` |
+| Projection | Planned ("Coming soon"): ideas, vision, seasons, letters | — |
+
+Shared across nodes:
+- **Goal engine** (`domain/goals`, spec `goal-completion-mechanism.md`): goals and conditions in shared tables, each node adds its own measurement sources; results are counts per level, never a percentage.
+- **Tasks and journal**: shared tables owned by Personal; Career uses them with `Task.domain = 'career'` and `JournalType.CAREER_LOG`. Personal reads only `domain = 'personal'`.
+- **Navigation**: `lib/nav/registry.ts` lists the nodes, their views and who can open them (`all`, `admin`, `none`).
+- **Assistant and API**: one operation registry (`application/api`) used by the assistant and by API keys.
+- **Offline**: Finance and Personal captures go through an outbox; Career is online only.
 
 ## Core architecture rules
 - Treat Next.js as the delivery layer, not the application architecture.
 - Keep business logic in domain-focused modules and keep them framework-independent.
 - Follow the flow: UI → use case → domain → repository → database.
-- Do not put Prisma calls in components or route files.
-- Do not inline finance calculations in server actions or components. Put them in domain logic, preferably under `domain/finance`.
-- Repository access should be isolated to infrastructure/repository code only.
+- Do not put Prisma calls in components, route files or use cases. Repository access is isolated to `infrastructure/repositories`.
+- Do not inline calculations or rules in server actions or components. Put them in the node's `domain/` folder.
+- Every repository method takes the owner's `userId` and filters by it (security plan F1). Every server action checks the session, the node's access and `writesAllowed`.
 
-## Recommended structure
-- `app/`: route entry points and thin UI composition
-- `application/finance/`: orchestration and use cases
-- `domain/finance/`: entities, calculations, and pure business rules
-- `infrastructure/`: Prisma client, repositories, persistence adapters
+## Structure
+- `app/`: route entry points and thin UI composition (`app/(shell)/<node>` for the nodes)
+- `application/<node>/`: orchestration and use cases
+- `domain/<node>/`, `domain/goals/`: entities, calculations and pure rules
+- `infrastructure/`: Prisma client, repositories, auth, outside services
+- `tests/authz/`: integration suites on the development database (`npm run test:authz`), never production
 - `public/`: static assets
 
 ## Domain-first expectations
-- Prefer pure TypeScript functions for money calculations such as daily budget, remaining allocation, overspending, and savings helpers.
-- Keep functions deterministic and testable without database or HTTP dependencies.
-- Add or update unit tests for any calculation or finance rule change.
-- Treat the V1 scope as finance-only. Avoid broad generic life-system features unrelated to the finance MVP unless explicitly requested.
+- Prefer pure TypeScript functions for rules and calculations; keep them deterministic and testable without a database or HTTP.
+- Add or update unit tests for any rule or calculation change, and authorization cases for any new record a person owns.
+- Dates are wall-clock dates on the person's clock: call `setClockZone` in each action and page, and pass `now` into domain functions.
+- Every user-facing text goes through `t()` / `m()` and has a French translation in `lib/i18n/fr.ts` (the i18n test checks it).
 
 ## Styling and UI
-- Use Tailwind CSS classes in Next.js components.
+- Use Tailwind CSS classes in Next.js components; each node has its accent (`--node-accent`).
 - Keep page and component code lean; move reusable logic to utilities or use cases.
 - Prefer minimal, readable, production-quality UI over decorative complexity.
 
 ## Scope guardrails
-- Do not implement unrelated domains such as career, health, or full project management in this V1 unless the user specifically asks for them.
-- Do not add broad “generic intent/goal/task” infrastructure before the finance domain truly needs it.
-- Preserve the roadmap’s intent: record intent, actual execution, deviation, explanation, adjustment, and re-plan.
+- Build what the specs in `Ressources/` describe, in the order of their codebase plan; a node in progress stays `admin` in the registry until it launches.
+- Do not build from outdated specs (`career_node_specification_v0.3.md`, `career_node_roadmap.md`).
+- Preserve the loop every node follows: intent, execution, deviation, explanation, adjustment, re-plan.
+- Ask before adding a node or a shared concept the specs do not describe.
 
 ## Workflow for change requests
-1. Start from the finance domain and user outcome.
-2. Keep changes narrow and targeted.
-3. Add tests for new business rules and calculations.
-4. Validate with the smallest relevant command, typically `npm run lint` for TypeScript/Next.js changes.
+1. Start from the node's spec and the user outcome.
+2. Keep changes narrow; one step of a plan per pull request.
+3. Add tests for new rules, and authorization cases for new owned records.
+4. Validate with lint, `npx vitest run`, `npm run test:authz` and `npm run build`.
 5. Explain trade-offs briefly when choosing between app-level convenience and domain purity.
 
 ## Things to avoid
-- Direct database access from `app/` or components
+- Direct database access from `app/`, components or use cases
 - Mixing Prisma models with UI logic
-- Storing finance calculations in render code instead of domain functions
-- Expanding scope beyond the finance MVP without explicit approval
+- Storing calculations in render code instead of domain functions
+- Keeping a node's sensitive data (pay, locked journal text) on the device
+- Running tests, seeds or load tests against production
 
 ## Project snapshot
-- Stack: Next.js 16 App Router, TypeScript, Tailwind CSS
-- Primary domain: finance
-- Long-term direction: a life graph with finance as the first concrete implementation
-- Current goal: deliver a clearly scoped finance MVP that tracks intended vs actual financial state
+- Stack: Next.js 16 App Router, TypeScript, Tailwind CSS, Prisma 7 on Neon Postgres, deployed on Vercel (merging to `main` deploys)
+- Nodes: Finance and Personal live, Career in progress (admin only), Projection planned
+- Long-term direction: the life graph, with each node tracking intended vs actual

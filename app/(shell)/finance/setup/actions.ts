@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation'
 import { depositSetupMonth } from '@/application/finance/confirmIncome'
 import { createSetupPlan } from '@/application/finance/createSetupPlan'
 import { ensureDefaultChests } from '@/application/finance/ensureDefaultChests'
+import { TOO_MANY_WRITES, writesAllowed } from '@/infrastructure/auth/limits'
 import { getSignedInUser, resolveSessionUserId } from '@/infrastructure/auth/sessionUser'
 import { setClockZone } from '@/lib/clock'
 import { translateFormState, type FormState } from '@/lib/forms/formState'
@@ -16,6 +17,10 @@ export async function saveSetupPlan(_previousState: FormState, formData: FormDat
   const [userId, user] = await Promise.all([resolveSessionUserId(), getSignedInUser()])
   // The plan starts today on this person's clock.
   setClockZone(user?.timeZone)
+
+  if (!(await writesAllowed(userId))) {
+    return { status: 'error', fieldErrors: {}, formErrors: [(await getT())(TOO_MANY_WRITES)] }
+  }
 
   const state = await setupForm.submit(formData, async (plan) => {
     await createSetupPlan(userId, plan)
