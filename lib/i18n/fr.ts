@@ -1540,6 +1540,9 @@ export const FR: Messages = {
     "You are offline": "Vous êtes hors ligne",
     "What you send now waits on this page and goes as soon as the connection is back. Keep the page open until then.": "Ce que vous envoyez maintenant attend sur cette page et part dès que la connexion revient. Gardez la page ouverte d'ici là.",
     "Actions that change your plan, move money between chests or need the server are paused.": "Les actions qui modifient votre plan, déplacent de l'argent entre coffres ou ont besoin du serveur sont en pause.",
+
+    // --- Security ----------------------------------------------------------------
+    "Too many wrong passwords. Try again in 15 minutes.": "Trop de mots de passe erronés. Réessayez dans 15 minutes.",
   },
 
   // Text that arrives already filled in. More specific patterns come first.

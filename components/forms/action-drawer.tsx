@@ -1,6 +1,17 @@
 'use client'
 
-import { cloneElement, isValidElement, startTransition, useActionState, useState, type FormEvent, type ReactElement, type ReactNode } from 'react'
+import {
+  cloneElement,
+  isValidElement,
+  startTransition,
+  useActionState,
+  useEffect,
+  useRef,
+  useState,
+  type FormEvent,
+  type ReactElement,
+  type ReactNode,
+} from 'react'
 import { CircleAlert, Loader2 } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
@@ -14,6 +25,8 @@ import {
 } from '@/components/ui/drawer'
 import { initialFormState, type FormState } from '@/lib/forms/formState'
 import { useIsOffline } from '@/components/offline/connection'
+import { useOfflineUser } from '@/components/offline/offline-user'
+import { clearDraft, fillForm, formValues, loadDraft, saveDraft } from '@/lib/offline/drafts'
 import { useT } from '@/lib/i18n/client'
 
 // A form in a bottom drawer, shared by every node.
@@ -23,27 +36,57 @@ export type FormAction = (previousState: FormState, formData: FormData) => Promi
 export const FIELD_CLASS = 'h-12 text-base'
 
 // The form lives inside the drawer content, so it starts fresh on every open.
+// With a `draftKey`, what is typed is kept on the device until it is sent,
+// so a closed drawer, a reload or a lost connection loses nothing.
 export function ActionForm({
   action,
   submitLabel,
   onDone,
   children,
+  draftKey,
 }: {
   action: FormAction
   submitLabel: string
   onDone: () => void
   children: (state: FormState) => ReactNode
+  draftKey?: string
 }) {
   const t = useT()
+  const userId = useOfflineUser()
+  const form = useRef<HTMLFormElement>(null)
+  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const drafting = Boolean(draftKey && userId)
+
   const [state, formAction, isPending] = useActionState(async (previousState: FormState, formData: FormData) => {
     const nextState = await action(previousState, formData)
 
     if (nextState.status === 'success') {
+      if (drafting) void clearDraft(userId!, draftKey!)
       onDone()
     }
 
     return nextState
   }, initialFormState)
+
+  // The draft comes back when the form opens again.
+  useEffect(() => {
+    if (!drafting) return
+    let cancelled = false
+    void loadDraft(userId!, draftKey!).then((values) => {
+      if (!cancelled && values && form.current) fillForm(form.current, values)
+    })
+    return () => {
+      cancelled = true
+      if (saveTimer.current) clearTimeout(saveTimer.current)
+    }
+  }, [drafting, userId, draftKey])
+
+  const keepDraft = () => {
+    if (!drafting || !form.current) return
+    if (saveTimer.current) clearTimeout(saveTimer.current)
+    const current = form.current
+    saveTimer.current = setTimeout(() => void saveDraft(userId!, draftKey!, formValues(current)), 300)
+  }
 
   // Dispatching by hand keeps what was typed when the server returns an error.
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
@@ -53,7 +96,7 @@ export function ActionForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4 px-4 pb-6" noValidate>
+    <form ref={form} onSubmit={handleSubmit} onInput={keepDraft} onChange={keepDraft} className="space-y-4 px-4 pb-6" noValidate>
       {children(state)}
 
       {state.formErrors.length > 0 ? (

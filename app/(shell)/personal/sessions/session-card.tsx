@@ -133,7 +133,7 @@ function LogSessionDrawer({ goals }: { goals: Goal[] }) {
       }
     >
       {(close) => (
-        <ActionForm action={logSessionAction} submitLabel={t('Log session')} onDone={close}>
+        <ActionForm draftKey="personal.logSession" action={logSessionAction} submitLabel={t('Log session')} onDone={close}>
           {(state) => (
             <>
               <div className="grid gap-2">
