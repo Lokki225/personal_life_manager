@@ -45,11 +45,13 @@ function GoalFields({
   categories,
   series,
   careerOpen,
+  areas,
 }: {
   state: FormState
   categories: Option[]
   series: (Option & { unit: string | null })[]
   careerOpen: boolean
+  areas: Option[]
 }) {
   const t = useT()
   const [preset, setPreset] = useState<Preset>('outcome')
@@ -198,6 +200,19 @@ function GoalFields({
           ))}
         </NativeSelect>
       </div>
+      {areas.length > 0 ? (
+        <div className="grid gap-2">
+          <Label htmlFor={id('lifeAreaId')}>{t('Life area (optional)')}</Label>
+          <NativeSelect id={id('lifeAreaId')} {...fieldAttributes(state, 'lifeAreaId', scope)} defaultValue="" className={FIELD_CLASS}>
+            <NativeSelectOption value="">{t('None')}</NativeSelectOption>
+            {areas.map((a) => (
+              <NativeSelectOption key={a.id} value={a.id}>
+                {a.name}
+              </NativeSelectOption>
+            ))}
+          </NativeSelect>
+        </div>
+      ) : null}
       {careerOpen ? (
         <label className="flex items-start gap-2 text-sm">
           <input type="checkbox" name="careerRelevant" className="mt-0.5 size-4 accent-node-accent" />
@@ -214,10 +229,12 @@ export function NewGoalDrawer({
   categories,
   series,
   careerOpen,
+  areas = [],
 }: {
   categories: Option[]
   series: (Option & { unit: string | null })[]
   careerOpen: boolean
+  areas?: Option[]
 }) {
   const t = useT()
 
@@ -234,7 +251,7 @@ export function NewGoalDrawer({
     >
       {(close) => (
         <ActionForm action={createGoalAction} submitLabel={t('Create goal')} onDone={close}>
-          {(state) => <GoalFields state={state} categories={categories} series={series} careerOpen={careerOpen} />}
+          {(state) => <GoalFields state={state} categories={categories} series={series} careerOpen={careerOpen} areas={areas} />}
         </ActionForm>
       )}
     </ActionDrawer>

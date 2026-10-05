@@ -4,7 +4,9 @@ import { notFound, redirect } from 'next/navigation'
 import { ArrowLeft, CalendarClock } from 'lucide-react'
 
 import { Badge } from '@/components/ui/badge'
+import { AreaChip } from '@/components/life-areas/area-chip'
 import { getCareerGoal } from '@/application/career/goals'
+import { listLifeAreas } from '@/application/lifeAreas/areas'
 import { levelOf } from '@/domain/goals/engine'
 import { getSignedInUser } from '@/infrastructure/auth/sessionUser'
 import { now as clockNow, setClockZone } from '@/lib/clock'
@@ -12,6 +14,7 @@ import { getT } from '@/lib/i18n/server'
 import { cn } from '@/lib/utils'
 
 import { STATUS_LABELS, statusTone } from '../../../personal/goals/goal-labels'
+import { canUseProjection } from '../../../projection/access'
 import { IMPORTANCE_LABELS, isoDay, LEVEL_HINTS, LEVEL_LABELS, RESULT_LABELS } from '../../labels'
 import { Meter } from '@/components/ui/meter'
 import { CURRENCY_CODE } from '@/domain/finance/calculations'
@@ -39,7 +42,7 @@ export default async function CareerGoalPage({ params }: PageProps<'/career/goal
     redirect('/login')
   }
 
-  const goal = await getCareerGoal(user.id, id, clockNow())
+  const [goal, areas] = await Promise.all([getCareerGoal(user.id, id, clockNow()), canUseProjection(user) ? listLifeAreas(user.id) : Promise.resolve([])])
 
   if (!goal) {
     notFound()
@@ -59,6 +62,7 @@ export default async function CareerGoalPage({ params }: PageProps<'/career/goal
       <header className="space-y-2">
         <div className="flex flex-wrap items-center gap-2">
           <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">{goal.name}</h1>
+          {goal.lifeArea ? <AreaChip area={goal.lifeArea} /> : null}
           <Badge variant={statusTone(status) === 'success' ? 'default' : 'secondary'}>{t(STATUS_LABELS[status])}</Badge>
         </div>
         <p className="text-sm text-muted-foreground">
@@ -74,7 +78,15 @@ export default async function CareerGoalPage({ params }: PageProps<'/career/goal
         {goal.why ? <p className="text-sm whitespace-pre-wrap">{goal.why}</p> : null}
         <div className="flex flex-wrap items-center gap-1">
           <GoalDrawer
-            goal={{ id: goal.id, name: goal.name, why: goal.why, deadline: goal.deadline ? isoDay(goal.deadline) : null, importance: goal.importance }}
+            goal={{
+              id: goal.id,
+              name: goal.name,
+              why: goal.why,
+              deadline: goal.deadline ? isoDay(goal.deadline) : null,
+              importance: goal.importance,
+              lifeAreaId: goal.lifeArea?.id ?? null,
+            }}
+            areas={areas.map((a) => ({ id: a.id, name: a.name }))}
           />
         </div>
       </header>

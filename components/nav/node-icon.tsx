@@ -18,7 +18,9 @@ import {
   Wallet,
   type LucideIcon,
   DoorOpen,
+  FlaskConical,
   IdCard,
+  Scale,
   type LucideProps,
 } from 'lucide-react'
 
@@ -44,6 +46,8 @@ const ICONS: Record<NodeIconName, LucideIcon> = {
   mail: Mail,
   'door-open': DoorOpen,
   'id-card': IdCard,
+  flask: FlaskConical,
+  scale: Scale,
 }
 
 export function NodeIcon({ name, ...props }: { name: NodeIconName } & LucideProps) {

@@ -15,6 +15,7 @@ const GROUP_INCLUDE = {
 
 const TREE_INCLUDE = {
   category: { select: { id: true, name: true } },
+  lifeArea: { select: { id: true, name: true, color: true, icon: true } },
   groups: { where: { parentGroupId: null, milestoneId: null }, include: GROUP_INCLUDE },
   milestones: { orderBy: { order: 'asc' as const }, include: { groups: { where: { parentGroupId: null }, include: GROUP_INCLUDE } } },
 }
@@ -66,6 +67,7 @@ async function findTrees(where: { userId: string; domain: string; id?: string })
     } satisfies GoalTree,
     abandonReason: row.abandonReason,
     careerRelevant: row.careerRelevant,
+    lifeArea: row.lifeArea,
   }))
 }
 

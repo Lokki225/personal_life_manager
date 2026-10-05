@@ -43,6 +43,7 @@ import {
 } from '@/application/career/opportunities'
 import { writeLog } from '@/application/career/log'
 import { addFocus, bringToThisWeek, getWeek, removeFocus, setFocusDone } from '@/application/career/week'
+import { createLifeArea, listLifeAreas, moveLifeArea, removeLifeArea, setGoalArea, updateLifeArea } from '@/application/lifeAreas/areas'
 import { fundGoal } from '@/application/finance/fundGoal'
 import { confirmIncome, depositSetupMonth } from '@/application/finance/confirmIncome'
 import { recordChestExpense } from '@/application/finance/chestExpense'
@@ -163,6 +164,8 @@ beforeAll(async () => {
   a.opportunity = (await addOpportunity(userA, { ...careerOffer, title: 'A offer', monthlyCompensation: 900000 }, [a.careerGoal])).id
   a.bOpportunity = (await addOpportunity(userB, { ...careerOffer, title: 'B offer' }, [])).id
   a.focus = (await addFocus(userA, { title: 'A focus', goalId: a.careerGoal, opportunityId: a.opportunity })).id
+  a.area = (await createLifeArea(userA, { name: 'Tech', statement: 'Private plans', color: 'blue', icon: 'code' })).id
+  a.bArea = (await createLifeArea(userB, { name: 'Music', statement: null, color: null, icon: null })).id
   await setCareerRelevant(userA, a.personalGoal, true)
   await prisma.goal.update({ where: { id: a.personalGoal }, data: { achievedAt: new Date() } })
 })
@@ -438,6 +441,24 @@ describe('Career links: B cannot reach A’s money or Personal goals', () => {
     expect(await prisma.goal.findUnique({ where: { id: a.careerGoal } })).toMatchObject({ linkedGoalId: null })
     expect(await prisma.goal.findUnique({ where: { id: a.personalGoal } })).toMatchObject({ careerRelevant: true, careerPromptAnsweredAt: null })
     expect(await prisma.careerFact.count({ where: { userId: userB, title: 'Japanese' } })).toBe(0)
+  })
+})
+
+describe('Life areas: B cannot touch A’s', () => {
+  it('cannot see, change, reorder or delete A’s areas', async () => {
+    expect((await listLifeAreas(userB)).map((x) => x.id)).toEqual([a.bArea])
+    await refused(() => updateLifeArea(userB, a.area, { name: 'Hacked', statement: null, color: null, icon: null }))
+    await refused(() => moveLifeArea(userB, a.area, 'down'))
+    await refused(() => removeLifeArea(userB, a.area))
+    expect(await prisma.lifeArea.findUnique({ where: { id: a.area } })).toMatchObject({ name: 'Tech', statement: 'Private plans' })
+  })
+
+  it('cannot put A’s goal in an area, nor B’s goal in A’s area', async () => {
+    await refused(() => setGoalArea(userB, a.personalGoal, a.bArea))
+    await refused(() => setGoalArea(userB, a.careerGoal, null))
+    await refused(() => setGoalArea(userB, a.bCareerGoal, a.area))
+    expect(await prisma.goal.findUnique({ where: { id: a.bCareerGoal } })).toMatchObject({ lifeAreaId: null })
+    expect(await prisma.goal.count({ where: { lifeAreaId: a.bArea } })).toBe(0)
   })
 })
 

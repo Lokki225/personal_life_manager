@@ -205,6 +205,9 @@ model Goal {
   careerPromptAnsweredAt DateTime?
   // Career: the Finance savings goal that pays for it.
   linkedGoalId           String?
+  // The part of life it serves, at most one.
+  lifeAreaId             String?
+  lifeArea               LifeArea? @relation(fields: [lifeAreaId], references: [id], onDelete: SetNull)
   groups        ConditionGroup[]
   milestones    Milestone[]
   tasks         Task[]
@@ -450,6 +453,7 @@ model User {
   careerFacts       CareerFact[]
   careerEvidence    CareerEvidence[]
   careerOpportunities CareerOpportunity[]
+  lifeAreas           LifeArea[]
 }
 
 // What was already sent to a person, so the same event is never sent twice.
@@ -1001,6 +1005,26 @@ model CareerStatusChange {
   changedAt     DateTime                @default(now())
 
   @@index([opportunityId, changedAt])
+}
+
+// A part of the person's life they invest in (Projection spec §4): Tech,
+// Music, Family. Goals in every node, and later projects and ideas, belong to
+// one area at most; tasks and sessions inherit it through their goal.
+model LifeArea {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name      String
+  // "In 5 years…", in the person's words.
+  statement String?
+  // A colour and an icon from the app's own lists.
+  color     String?
+  icon      String?
+  sortOrder Int      @default(0)
+  goals     Goal[]
+  createdAt DateTime @default(now())
+
+  @@index([userId, sortOrder])
 }
 
 // What happened that matters for security: failed sign-ins, limits reached,

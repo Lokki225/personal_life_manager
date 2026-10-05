@@ -15,7 +15,11 @@ import type { Translator } from '@/lib/i18n/translate'
 import { cn } from '@/lib/utils'
 
 import { conditionLine } from './goal-display'
+import { AreaChip } from '@/components/life-areas/area-chip'
+import { listLifeAreas } from '@/application/lifeAreas/areas'
+
 import { canUseCareer } from '../../career/access'
+import { canUseProjection } from '../../projection/access'
 import { NewGoalDrawer } from './goal-forms'
 import { HORIZON_LABELS, STATUS_LABELS, statusTone, TIER_LABELS } from './goal-labels'
 
@@ -28,10 +32,11 @@ export default async function PersonalGoalsPage({ searchParams }: PageProps<'/pe
     redirect('/login')
   }
 
-  const [goals, categories, series] = await Promise.all([
+  const [goals, categories, series, areas] = await Promise.all([
     listPersonalGoals(user.id, clockNow()),
     ensureDefaultCategories(user.id),
     listMeasures(user.id),
+    canUseProjection(user) ? listLifeAreas(user.id) : Promise.resolve([]),
   ])
   // The horizon filter lives in the address, so the switcher reopens on it.
   const horizon = HORIZONS.find((h) => h === params.horizon) ?? null
@@ -50,6 +55,7 @@ export default async function PersonalGoalsPage({ searchParams }: PageProps<'/pe
         </div>
         <NewGoalDrawer
           careerOpen={canUseCareer(user)}
+          areas={areas.map((a) => ({ id: a.id, name: a.name }))}
           categories={categories.map(({ id, name }) => ({ id, name }))}
           series={series.map((s) => ({ id: s.id, name: s.label, unit: s.unit }))}
         />
@@ -136,6 +142,7 @@ function GoalCard({ goal, t }: { goal: GoalSummary; t: Translator }) {
         <div className="min-w-0">
           <p className="font-semibold leading-snug">{goal.name}</p>
           {goal.category ? <p className="text-xs text-node-accent">{t(goal.category.name)}</p> : null}
+          {goal.lifeArea ? <AreaChip area={goal.lifeArea} className="mt-1" /> : null}
         </div>
         <div className="flex shrink-0 items-center gap-1">
           <Badge variant={tone === 'success' ? 'default' : 'secondary'}>{t(STATUS_LABELS[evaluation.status])}</Badge>
