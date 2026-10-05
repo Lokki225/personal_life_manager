@@ -4,6 +4,7 @@ import { useEffect, useState, useTransition } from 'react'
 import { CircleAlert, Clock, Loader2, Play, Square } from 'lucide-react'
 
 import { useIsOffline } from '@/components/offline/connection'
+import { useQueuedAction } from '@/components/offline/queued-action'
 import { ActionDrawer, ActionForm, FIELD_CLASS } from '@/components/forms/action-drawer'
 import { Button } from '@/components/ui/button'
 import { FieldError } from '@/components/ui/field-error'
@@ -13,7 +14,8 @@ import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select'
 import { fieldAttributes } from '@/lib/forms/formState'
 import { useT } from '@/lib/i18n/client'
 
-import { logSessionAction, startSessionAction, stopSessionAction } from './actions'
+import { startSessionAction, stopSessionAction } from './actions'
+import { logSessionForm } from './schema'
 
 type Goal = { id: string; name: string }
 
@@ -116,6 +118,11 @@ export function SessionCard({
 function LogSessionDrawer({ goals }: { goals: Goal[] }) {
   const t = useT()
   const scope = 'log-session'
+  const queuedLog = useQueuedAction('personal.logSession', logSessionForm, (session) => ({
+    minutes: session.minutes,
+    goalId: session.goalId || null,
+    note: session.note || null,
+  }))
 
   return (
     <ActionDrawer
@@ -133,7 +140,7 @@ function LogSessionDrawer({ goals }: { goals: Goal[] }) {
       }
     >
       {(close) => (
-        <ActionForm draftKey="personal.logSession" action={logSessionAction} submitLabel={t('Log session')} onDone={close}>
+        <ActionForm draftKey="personal.logSession" action={queuedLog} submitLabel={t('Log session')} onDone={close}>
           {(state) => (
             <>
               <div className="grid gap-2">

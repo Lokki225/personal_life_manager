@@ -25,6 +25,9 @@ function deps() {
         'finance.addExpense': handler,
         'finance.saveRemaining': handler,
         'finance.recordException': handler,
+        'personal.toggleTask': handler,
+        'personal.logSession': handler,
+        'personal.saveDailyNote': handler,
       },
     },
   }
@@ -51,7 +54,7 @@ describe('processSyncItems', () => {
     expect(first).toEqual([{ id: 'item-1', status: 'synced' }])
     expect(again).toEqual([{ id: 'item-1', status: 'synced' }])
     expect(d.handler).toHaveBeenCalledTimes(1)
-    expect(d.handler.mock.calls[0]).toEqual([user, { amount: 1500, category: 'food' }, new Date(2026, 9, 7, 9), now])
+    expect(d.handler.mock.calls[0]).toEqual([user, { amount: 1500, category: 'food' }, new Date(2026, 9, 7, 9), now, new Date(2026, 9, 7, 9)])
   })
 
   it('refuses unknown actions, bad dates and bad payloads before anything runs', async () => {
@@ -74,6 +77,26 @@ describe('processSyncItems', () => {
     expect(results[1]).toMatchObject({ error: 'fr:This action is dated in the future.' })
     expect(d.handler).not.toHaveBeenCalled()
     expect(d.deps.claim).not.toHaveBeenCalled()
+  })
+
+  it('accepts the Personal captures, and refuses a session longer than a day of work', async () => {
+    const at = new Date(2026, 9, 7, 9).toISOString()
+    const results = await processSyncItems(
+      user,
+      [
+        { id: 't', action: 'personal.toggleTask', payload: { taskId: 'task-1', done: true, title: 'Run' }, occurredAt: at },
+        { id: 's', action: 'personal.logSession', payload: { minutes: 45, goalId: null }, occurredAt: at },
+        { id: 'n', action: 'personal.saveDailyNote', payload: { body: 'Good day.' }, occurredAt: at },
+        { id: 'x', action: 'personal.logSession', payload: { minutes: 2000 }, occurredAt: at },
+        { id: 'y', action: 'personal.saveDailyNote', payload: { body: '   ' }, occurredAt: at },
+      ],
+      now,
+      translate,
+      d.deps as never,
+    )
+
+    expect(results.map((r) => r.status)).toEqual(['synced', 'synced', 'synced', 'rejected', 'rejected'])
+    expect(d.handler).toHaveBeenCalledTimes(3)
   })
 
   it('gives the id back when a rule refuses the action, so a fixed retry can run', async () => {

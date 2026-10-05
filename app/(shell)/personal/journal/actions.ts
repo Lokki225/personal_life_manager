@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 
-import { createEntry, deleteEntry, lockEntry, removeLock, saveDailyNote, unlockEntry, updateEntry } from '@/application/personal/journal'
+import { createEntry, deleteEntry, lockEntry, removeLock, unlockEntry, updateEntry } from '@/application/personal/journal'
 import { isPersonalRuleError, PersonalRuleError } from '@/domain/personal/errors'
 import { TOO_MANY_WRITES, writesAllowed } from '@/infrastructure/auth/limits'
 import { getSignedInUser } from '@/infrastructure/auth/sessionUser'
@@ -12,7 +12,7 @@ import { signedOutState, translateFormState, type FormState } from '@/lib/forms/
 import { getT } from '@/lib/i18n/server'
 
 import { canUsePersonal } from '../access'
-import { dailyNoteForm, entryForm, passwordForm } from './schema'
+import { entryForm, passwordForm } from './schema'
 import { forgetUnlock, rememberUnlock, unlockedChecker } from './unlock'
 
 const refresh = () => revalidatePath('/personal', 'layout')
@@ -126,17 +126,4 @@ export async function deleteEntryAction(entryId: string): Promise<{ error: strin
 
   refresh()
   redirect('/personal/journal')
-}
-
-export async function saveDailyNoteAction(_previous: FormState, formData: FormData): Promise<FormState> {
-  const [user, t] = await signedIn()
-  setClockZone(user?.timeZone)
-  if (!canUsePersonal(user)) return signedOutState(t)
-  if (!(await writesAllowed(user.id))) {
-    return { status: 'error', fieldErrors: {}, formErrors: [t(TOO_MANY_WRITES)] }
-  }
-
-  const state = await dailyNoteForm.submit(formData, ({ body }) => saveDailyNote(user.id, body, now()))
-  if (state.status === 'success') refresh()
-  return translateFormState(state, t)
 }

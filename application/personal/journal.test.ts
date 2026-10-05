@@ -132,4 +132,13 @@ describe('saveDailyNote', () => {
     expect(r.createEntry).not.toHaveBeenCalled()
     expect(r.updateEntry).toHaveBeenCalledWith('u', 'e', expect.objectContaining({ body: 'Better than expected.', mood: 4 }), [])
   })
+  it('keeps a line written later, when an older one arrives from a device', async () => {
+    const r = repo({ findDailyNote: vi.fn(async () => entry({ type: 'DAILY', updatedAt: new Date(2026, 9, 7, 22) })) })
+
+    await saveDailyNote('u', 'Written offline at nine.', day, r as never, new Date(2026, 9, 7, 21))
+    expect(r.updateEntry).not.toHaveBeenCalled()
+
+    await saveDailyNote('u', 'Written offline at eleven.', day, r as never, new Date(2026, 9, 7, 23))
+    expect(r.updateEntry).toHaveBeenCalledWith('u', 'e', expect.objectContaining({ body: 'Written offline at eleven.' }), [])
+  })
 })

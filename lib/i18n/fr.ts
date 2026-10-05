@@ -1585,6 +1585,11 @@ export const FR: Messages = {
     // --- Rate limits -------------------------------------------------------------
     "Too many changes in a minute. Wait a moment and try again.": "Trop de modifications en une minute. Patientez un instant et réessayez.",
     "Wait a minute before syncing again.": "Attendez une minute avant de synchroniser à nouveau.",
+
+    // --- Personal items waiting on the device ------------------------------------
+    "Task done · {task}": "Tâche faite · {task}",
+    "Task not done · {task}": "Tâche à refaire · {task}",
+    "Session · {minutes} min": "Session · {minutes} min",
   },
 
   // Text that arrives already filled in. More specific patterns come first.

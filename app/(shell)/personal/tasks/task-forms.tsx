@@ -5,6 +5,8 @@ import { Check, CircleAlert, Ellipsis, Loader2, Plus, Repeat } from 'lucide-reac
 import { DropdownMenu } from 'radix-ui'
 
 import { useIsOffline } from '@/components/offline/connection'
+import { useOutbox } from '@/components/offline/outbox-provider'
+import { useQueuedTap } from '@/components/offline/queued-action'
 import { ActionDrawer, ActionForm, FIELD_CLASS } from '@/components/forms/action-drawer'
 import { Button } from '@/components/ui/button'
 import { FieldError } from '@/components/ui/field-error'
@@ -24,7 +26,6 @@ import {
   deleteTaskAction,
   dropTaskAction,
   scheduleTaskAction,
-  toggleTaskAction,
 } from './actions'
 import type { TaskView } from './task-view'
 
@@ -46,16 +47,20 @@ function ErrorLine({ error }: { error: string | null }) {
   ) : null
 }
 
-// A task with its tick box. Ticking shows at once; the server catches up.
+// A task with its tick box. Ticking shows at once; the server catches up. A
+// tick waiting on the device keeps showing until it is sent.
 export function TaskRow({ task, done, showDate = false }: { task: TaskView; done: boolean; showDate?: boolean }) {
   const t = useT()
-  const [optimisticDone, setOptimisticDone] = useOptimistic(done)
+  const { items } = useOutbox()
+  const waiting = items.findLast((item) => item.action === 'personal.toggleTask' && (item.payload as { taskId?: string }).taskId === task.id)
+  const [optimisticDone, setOptimisticDone] = useOptimistic(waiting ? Boolean((waiting.payload as { done?: boolean }).done) : done)
   const [error, setError] = useState<string | null>(null)
+  const sendToggle = useQueuedTap('personal.toggleTask')
 
   const toggle = () =>
     startTransition(async () => {
       setOptimisticDone(!optimisticDone)
-      setError((await toggleTaskAction(task.id, !optimisticDone)).error)
+      setError(await sendToggle({ taskId: task.id, done: !optimisticDone, title: task.title }))
     })
 
   return (
