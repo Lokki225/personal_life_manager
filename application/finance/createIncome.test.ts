@@ -14,6 +14,7 @@ describe('createIncome', () => {
         status: 'expected',
       }),
       listIncomes: vi.fn(),
+      listOneOffIncomes: vi.fn(),
       updateIncome: vi.fn(),
       deleteIncome: vi.fn(),
       removeIncome: vi.fn(),

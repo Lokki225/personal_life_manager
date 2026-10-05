@@ -4,7 +4,7 @@ import { BookOpen, ChevronDown, ChevronRight, Lock, Target, TriangleAlert } from
 
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
-import { depositSetupMonth, listPendingIncomes, listSetupMonthIncomes } from '@/application/finance/confirmIncome'
+import { depositSetupMonth, listOneOffIncomes, listPendingIncomes, listSetupMonthIncomes } from '@/application/finance/confirmIncome'
 import { hasSetupPlan } from '@/application/finance/createSetupPlan'
 import { getHistory } from '@/application/finance/getHistory'
 import { recomputeFinanceState } from '@/application/finance/recomputeFinanceState'
@@ -66,12 +66,13 @@ export default async function FinanceTodayPage() {
 
   const now = clockNow()
   // Loaded together with the setup check: one trip to the database, not two.
-  const [isSetUp, state, monthEvents, pendingIncomes, setupMonthIncomes] = await Promise.all([
+  const [isSetUp, state, monthEvents, pendingIncomes, setupMonthIncomes, oneOffIncomes] = await Promise.all([
     hasSetupPlan(userId),
     recomputeFinanceState({ userId, referenceDate: now }),
     getHistory({ userId, period: 'month', referenceDate: now }),
     listPendingIncomes(userId, now),
     listSetupMonthIncomes(userId, now),
+    listOneOffIncomes(userId, now),
   ])
 
   if (!isSetUp) {
@@ -559,6 +560,23 @@ export default async function FinanceTodayPage() {
                     </span>
                     <Money value={income.amount} className="shrink-0 font-semibold" />
                     <EditIncomeDrawer income={income} canDelete={state.incomes.length > 1} />
+                  </li>
+                ))}
+                {/* Money that came once this month: not part of the plan. */}
+                {oneOffIncomes.map((income) => (
+                  <li key={income.id} className="flex items-center gap-3 py-1.5 text-sm">
+                    <span className="min-w-0 flex-1">
+                      <span className="block font-medium">
+                        <span className="line-clamp-2">{income.source}</span>
+                      </span>
+                      <span className="text-xs text-muted-foreground">
+                        {t('Came once, on {date}', {
+                          date: new Intl.DateTimeFormat(t.intl, { day: 'numeric', month: 'long' }).format(income.receivedAt),
+                        })}
+                      </span>
+                    </span>
+                    <Money value={income.amount} className="shrink-0 font-semibold text-success" />
+                    <span className="size-11 shrink-0" aria-hidden="true" />
                   </li>
                 ))}
               </ul>

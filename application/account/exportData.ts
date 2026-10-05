@@ -7,6 +7,7 @@ type ExportDeps = {
   finance: Pick<
     typeof financeRepository,
     | 'listIncomes'
+    | 'listOneOffIncomes'
     | 'listAllocations'
     | 'listExpenses'
     | 'listBudgetExceptions'
@@ -28,10 +29,11 @@ const withoutSecrets = (row: object) =>
 // Everything one person recorded, in one object: their own backup, and what
 // they would take with them. It holds no password and nobody else's data.
 export async function exportUserData(userId: string, deps: ExportDeps = defaultDeps, now: Date = new Date()) {
-  const [profile, incomes, allocations, expenses, exceptions, chests, movements, goals, debts, projects, personal] =
+  const [profile, incomes, oneOffIncomes, allocations, expenses, exceptions, chests, movements, goals, debts, projects, personal] =
     await Promise.all([
       deps.getProfile(userId),
       deps.finance.listIncomes(userId),
+      deps.finance.listOneOffIncomes(userId),
       deps.finance.listAllocations(userId),
       deps.finance.listExpenses(userId),
       deps.finance.listBudgetExceptions(userId),
@@ -49,6 +51,7 @@ export async function exportUserData(userId: string, deps: ExportDeps = defaultD
     profile,
     finance: {
       incomes,
+      oneOffIncomes,
       allocations,
       expenses,
       exceptions,

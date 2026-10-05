@@ -9,6 +9,7 @@ describe('exportUserData', () => {
       getProfile: vi.fn().mockResolvedValue({ email: 'awa@example.com', firstName: 'Awa' }),
       finance: {
         listIncomes: list([{ id: 'income-1' }]),
+        listOneOffIncomes: list([{ id: 'gift-1' }]),
         listAllocations: list([]),
         listExpenses: list([{ id: 'expense-1', amount: 500 }]),
         listBudgetExceptions: list([]),
@@ -26,6 +27,7 @@ describe('exportUserData', () => {
     expect(data.exportedAt).toBe('2026-10-03T12:00:00.000Z')
     expect(data.profile).toEqual({ email: 'awa@example.com', firstName: 'Awa' })
     expect(data.finance.expenses).toEqual([{ id: 'expense-1', amount: 500 }])
+    expect(data.finance.oneOffIncomes).toEqual([{ id: 'gift-1' }])
     expect(data.finance.chests).toEqual([{ id: 'chest-1', name: 'Vault' }])
     expect(JSON.stringify(data)).not.toContain('secret-hash')
   })

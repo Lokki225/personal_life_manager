@@ -351,11 +351,11 @@ export const operations = {
     method: 'POST',
     path: '/finance/incomes',
     needs: 'WRITE',
-    does: 'Adds a monthly income to the plan.',
+    does: 'Adds a monthly income to the plan, with its "payDay". Without "payDay", it is money that came once (a gift): it goes to the chests now and stays out of the plan.',
     status: 201,
-    input: z.object({ source: text('source', 60), amount: amountField, payDay: payDayField }),
+    input: z.object({ source: text('source', 60), amount: amountField, payDay: payDayField.optional() }),
     run: async (user, income) => {
-      await saveIncome(user.id, income)
+      await saveIncome(user.id, { ...income, payDay: income.payDay ?? null })
 
       return plan(user)
     },

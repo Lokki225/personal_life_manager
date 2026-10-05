@@ -476,8 +476,10 @@ model Income {
   notes        String?
   projectId    String? // optional: income can come from a project
   project      Project?        @relation(fields: [projectId], references: [id])
-  // Day of the month the income usually arrives (1-31).
-  payDay       Int             @default(1)
+  // Day of the month the income usually arrives (1-31). None for money that
+  // came once (a gift): it is counted as received when recorded, and is not
+  // part of the monthly plan.
+  payDay       Int?
   receipts     IncomeReceipt[]
   createdAt    DateTime        @default(now())
 }

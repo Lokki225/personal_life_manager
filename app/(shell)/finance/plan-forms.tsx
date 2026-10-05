@@ -260,7 +260,7 @@ function IncomeDrawer({ income, canDelete = false, trigger }: { income?: PlanInc
       description={
         income
           ? t('It counts from the next time this income is confirmed.')
-          : t('It counts as received this month, and you confirm it from next month.')
+          : t('A pay day makes it part of your plan: it counts as received this month, and you confirm it from next month. Without one, it is money that came once, like a gift: it goes to your chests now.')
       }
       trigger={trigger}
     >
@@ -291,7 +291,9 @@ function IncomeDrawer({ income, canDelete = false, trigger }: { income?: PlanInc
                   autoFocus={false}
                 />
                 <div className="grid gap-2">
-                  <Label htmlFor={`${scope}-payDay`}>{t('Pay day (day of the month)')}</Label>
+                  <Label htmlFor={`${scope}-payDay`}>
+                    {income ? t('Pay day (day of the month)') : t('Pay day (day of the month, optional)')}
+                  </Label>
                   <Input
                     id={`${scope}-payDay`}
                     {...fieldAttributes(state, 'payDay', scope)}
@@ -299,7 +301,8 @@ function IncomeDrawer({ income, canDelete = false, trigger }: { income?: PlanInc
                     inputMode="numeric"
                     min={1}
                     max={31}
-                    defaultValue={income?.payDay ?? 1}
+                    defaultValue={income?.payDay ?? ''}
+                    placeholder={income ? undefined : t('None: it came once')}
                     className={FIELD_CLASS}
                   />
                   <FieldError state={state} name="payDay" scope={scope} />
