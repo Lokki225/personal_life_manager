@@ -10,6 +10,7 @@ import {
   type Horizon,
   type Preset,
 } from '../../domain/goals/presets'
+import type { TimeControl } from '../../domain/personal/chess'
 import { PersonalRuleError } from '../../domain/personal/errors'
 import { linkToken } from '../../domain/personal/journal'
 import { addDays, parseRecurrence, startOfDay } from '../../domain/personal/tasks'
@@ -20,6 +21,7 @@ import { now as clockNow } from '../../lib/clock'
 import { addTask, type NewTask } from './tasks'
 import { createEntry } from './journal'
 import { createSeries, logMetric } from './sessions'
+import { connectChess, getSyncStatus, syncIfStale } from './sync'
 
 type Deps = typeof goalRepository & typeof personalRepository
 const defaultDeps: Deps = { ...personalRepository, ...goalRepository }
@@ -33,6 +35,8 @@ export type NewGoal = {
   // Outcome: an existing measure, or a new one, with where it stands today.
   seriesId?: string | null
   newSeries?: { label: string; unit: string | null } | null
+  // Or a chess.com rating, synced from now on.
+  chess?: { username: string; timeControl: TimeControl } | null
   currentValue?: number | null
   target?: number | null
   // Milestone path: the steps, in order.
@@ -68,6 +72,13 @@ export async function createPersonalGoal(userId: string, input: NewGoal, now: Da
       const target = positive(input.target, 'target', 'Enter the value to reach.')
       let seriesId = input.seriesId ?? null
       let unit: string | null = null
+
+      if (input.chess) {
+        // The rating comes from chess.com: today's is recorded on connecting.
+        const connected = await connectChess(userId, input.chess, now)
+        plan = outcomePreset({ ...common, seriesId: connected.seriesId, target, unit: null })
+        break
+      }
 
       if (seriesId) {
         const series = (await deps.listSeries(userId)).find((s) => s.id === seriesId)
@@ -158,15 +169,23 @@ export async function getPersonalGoal(userId: string, goalId: string, now: Date 
   const goal = await deps.getTree(userId, goalId, 'personal')
   if (!goal) return null
 
+  // A synced measure catches up first when it has not synced for a while.
+  const synced = seriesOf(goal)[0]
+  if (synced) await syncIfStale(userId, synced, now)
+
   const [[{ evaluation }], tasks, sessions] = await Promise.all([
     evaluateAll(userId, [goal], now, deps),
     deps.listTasks(userId),
     deps.listSessions(userId, addDays(startOfDay(now), -6), addDays(startOfDay(now), 1)),
   ])
   const seriesId = seriesOf(goal)[0] ?? null
-  const [series, entries] = seriesId
-    ? await Promise.all([deps.listSeries(userId).then((all) => all.find((s) => s.id === seriesId) ?? null), deps.listEntries(userId, seriesId)])
-    : [null, []]
+  const [series, entries, sync] = seriesId
+    ? await Promise.all([
+        deps.listSeries(userId).then((all) => all.find((s) => s.id === seriesId) ?? null),
+        deps.listEntries(userId, seriesId),
+        getSyncStatus(userId, seriesId),
+      ])
+    : [null, [], null]
   const milestoneIds = new Set(goal.tree.milestones.map((m) => m.id))
 
   return {
@@ -183,6 +202,7 @@ export async function getPersonalGoal(userId: string, goalId: string, now: Date 
       .map((t) => ({ ...t, recurrence: parseRecurrence(t.recurrence) })),
     sessions: sessions.filter((s) => s.goal?.id === goal.id),
     series,
+    sync,
     entries: entries.map((e) => ({ value: Number(e.value), recordedAt: e.recordedAt })),
   }
 }

@@ -1,6 +1,7 @@
 import { z } from 'zod'
 
 import { HORIZONS, PRESETS } from '@/domain/goals/presets'
+import { TIME_CONTROLS } from '@/domain/personal/chess'
 import { isPersonalRuleError } from '@/domain/personal/errors'
 import { FormHandler } from '@/lib/forms/FormHandler'
 import { requiredText } from '@/lib/forms/fields'
@@ -43,8 +44,11 @@ export const goalSchema = z.object({
   horizon: z.enum(HORIZONS, { error: 'Choose a horizon.' }).default('QUARTER'),
   deadline: optionalDate,
   categoryId: z.string().trim().optional(),
-  // "new" creates a measure from seriesLabel and seriesUnit.
+  // "new" creates a measure from seriesLabel and seriesUnit; "chess" follows a
+  // chess.com rating.
   seriesId: z.string().trim().optional(),
+  chessUsername: z.string().trim().max(25, 'Enter a chess.com username.').optional(),
+  timeControl: z.enum(TIME_CONTROLS).default('rapid'),
   seriesLabel: z.string().trim().max(40, 'Keep it under 40 characters.').optional(),
   seriesUnit: z.string().trim().max(12, 'Keep it under 12 characters.').optional(),
   currentValue: optionalNumber,

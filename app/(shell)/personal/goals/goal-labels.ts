@@ -50,3 +50,10 @@ export const TIER_LABELS = {
   target: m('target met'),
   stretch: m('stretch met'),
 } as const
+
+export const TIME_CONTROL_LABELS = {
+  rapid: m('Rapid'),
+  blitz: m('Blitz'),
+  bullet: m('Bullet'),
+  daily: m('Daily'),
+} as const

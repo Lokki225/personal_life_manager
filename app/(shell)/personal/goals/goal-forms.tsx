@@ -1,7 +1,7 @@
 'use client'
 
-import { startTransition, useActionState, useState, type FormEvent } from 'react'
-import { Flag, Loader2, Plus } from 'lucide-react'
+import { startTransition, useActionState, useState, useTransition, type FormEvent } from 'react'
+import { Flag, Loader2, Plus, RefreshCw } from 'lucide-react'
 
 import { ActionDrawer, ActionForm, FIELD_CLASS } from '@/components/forms/action-drawer'
 import { Button } from '@/components/ui/button'
@@ -10,11 +10,12 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select'
 import { HORIZONS, PRESETS, type Preset } from '@/domain/goals/presets'
+import { TIME_CONTROLS } from '@/domain/personal/chess'
 import { fieldAttributes, initialFormState, type FormState } from '@/lib/forms/formState'
 import { useT } from '@/lib/i18n/client'
 
-import { abandonGoalAction, addGoalTaskAction, addMilestoneAction, createGoalAction, logValueAction } from './actions'
-import { HORIZON_LABELS, PRESET_HINTS, PRESET_LABELS } from './goal-labels'
+import { abandonGoalAction, addGoalTaskAction, addMilestoneAction, createGoalAction, logValueAction, syncNowAction } from './actions'
+import { HORIZON_LABELS, PRESET_HINTS, PRESET_LABELS, TIME_CONTROL_LABELS } from './goal-labels'
 
 const scope = 'goal'
 
@@ -79,9 +80,28 @@ function GoalFields({ state, categories, series }: { state: FormState; categorie
                 </NativeSelectOption>
               ))}
               <NativeSelectOption value="new">{t('Something new…')}</NativeSelectOption>
+              <NativeSelectOption value="chess">{t('A chess.com rating')}</NativeSelectOption>
             </NativeSelect>
             <FieldError state={state} name="seriesId" scope={scope} />
           </div>
+          {seriesId === 'chess' ? (
+            <>
+              <div className="grid grid-cols-[1fr_8rem] gap-2">
+                <Field state={state} name="chessUsername" label={t('chess.com username')} autoComplete="off" maxLength={25} />
+                <div className="grid gap-2">
+                  <Label htmlFor={id('timeControl')}>{t('Time control')}</Label>
+                  <NativeSelect id={id('timeControl')} name="timeControl" defaultValue="rapid" className={FIELD_CLASS}>
+                    {TIME_CONTROLS.map((control) => (
+                      <NativeSelectOption key={control} value={control}>
+                        {t(TIME_CONTROL_LABELS[control])}
+                      </NativeSelectOption>
+                    ))}
+                  </NativeSelect>
+                </div>
+              </div>
+              <p className="-mt-2 text-xs text-muted-foreground">{t('Your rating is read from chess.com now, then once a day.')}</p>
+            </>
+          ) : null}
           {seriesId === 'new' ? (
             <div className="grid grid-cols-[1fr_7rem] gap-2">
               <Field state={state} name="seriesLabel" label={t('Name')} placeholder={t('Chess rapid rating')} maxLength={40} />
@@ -89,7 +109,9 @@ function GoalFields({ state, categories, series }: { state: FormState; categorie
             </div>
           ) : null}
           <div className="grid grid-cols-2 gap-2">
-            <Field state={state} name="currentValue" label={t('Where you are now')} inputMode="decimal" placeholder="1543" />
+            {seriesId === 'chess' ? null : (
+              <Field state={state} name="currentValue" label={t('Where you are now')} inputMode="decimal" placeholder="1543" />
+            )}
             <Field state={state} name="target" label={t('Target')} inputMode="decimal" placeholder="1800" />
           </div>
         </>
@@ -333,5 +355,27 @@ export function AbandonDrawer({ goalId }: { goalId: string }) {
         </ActionForm>
       )}
     </ActionDrawer>
+  )
+}
+
+export function SyncNowButton({ seriesId }: { seriesId: string }) {
+  const t = useT()
+  const [pending, startPending] = useTransition()
+  const [error, setError] = useState<string | null>(null)
+
+  return (
+    <div className="space-y-1">
+      <Button
+        type="button"
+        variant="outline"
+        className="h-10"
+        disabled={pending}
+        onClick={() => startPending(async () => setError((await syncNowAction(seriesId)).error))}
+      >
+        <RefreshCw className={pending ? 'animate-spin' : undefined} aria-hidden="true" />
+        {t('Sync now')}
+      </Button>
+      {error ? <p className="text-xs text-destructive-strong">{error}</p> : null}
+    </div>
   )
 }

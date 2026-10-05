@@ -1,6 +1,7 @@
 import { sendAssistantNotes } from '@/application/assistant/notes'
 import { settleEveryone } from '@/application/finance/settleEveryone'
 import { sendDailyReminders } from '@/application/notifications/dailyReminders'
+import { syncAllConnectors } from '@/application/personal/sync'
 import { notificationRepository } from '@/infrastructure/repositories/notificationRepository'
 
 // The assistant writes one note per person; give it time.
@@ -24,8 +25,10 @@ export async function GET(request: Request) {
   // Then the notes: whoever got one is not also reminded to record spending.
   const notes = await sendAssistantNotes()
   const reminders = await sendDailyReminders(undefined, notes.notified)
+  // Measures read from outside (chess.com ratings) catch up once a day.
+  const synced = await syncAllConnectors()
 
   await notificationRepository.prune(new Date(Date.now() - KEEP_DAYS * 24 * 60 * 60 * 1000))
 
-  return Response.json({ settled, ...reminders, notes: notes.written })
+  return Response.json({ settled, ...reminders, notes: notes.written, synced })
 }
