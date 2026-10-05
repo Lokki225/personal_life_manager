@@ -235,7 +235,7 @@ export function AddExpenseDrawer({
       }
     >
       {(close) => (
-        <ActionForm action={addExpense} submitLabel={t('Add expense')} onDone={close}>
+        <ActionForm draftKey="finance.addExpense" action={addExpense} submitLabel={t('Add expense')} onDone={close}>
           {(state) => <ExpenseFields state={state} left={left} hasBudget={hasBudget} chests={chests} />}
         </ActionForm>
       )}
@@ -300,7 +300,7 @@ export function SaveRemainingDrawer({
       }
     >
       {(close) => (
-        <ActionForm action={saveRemaining} submitLabel={t('Save')} onDone={close}>
+        <ActionForm draftKey="finance.saveRemaining" action={saveRemaining} submitLabel={t('Save')} onDone={close}>
           {(state) => (
             <>
               <AmountField state={state} scope={scope} defaultValue={available} />
@@ -352,7 +352,7 @@ export function ExceptionDrawer({ overspend }: { overspend: number }) {
       }
     >
       {(close) => (
-        <ActionForm action={recordException} submitLabel={t('Record')} onDone={close}>
+        <ActionForm draftKey="finance.recordException" action={recordException} submitLabel={t('Record')} onDone={close}>
           {(state) => (
             <>
               <CategoryChips categories={EXCEPTION_CATEGORIES} legend={t('What caused it?')} />
