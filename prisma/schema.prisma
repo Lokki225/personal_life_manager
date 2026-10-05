@@ -134,6 +134,8 @@ model MoneyMovement {
   // Who recorded it when not the person in the app: "assistant" or
   // "api:<key name>". Empty for the person and for what the app does itself.
   origin             String?
+
+  @@index([userId, date])
 }
 
 model Goal {
@@ -575,6 +577,8 @@ model Expense {
   // Who recorded it when not the person in the app: "assistant" or
   // "api:<key name>". Empty for the person and for what the app does itself.
   origin            String?
+
+  @@index([userId, date])
 }
 
 model BudgetException {
@@ -596,6 +600,8 @@ model BudgetException {
   // Who recorded it when not the person in the app: "assistant" or
   // "api:<key name>". Empty for the person and for what the app does itself.
   origin        String?
+
+  @@index([userId, date])
 }
 
 model Project {

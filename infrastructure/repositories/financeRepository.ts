@@ -16,6 +16,11 @@ export type ExpenseRecordWithProject = ExpenseRecord & {
     name: string
   } | null
 }
+// Only the records dated within, both ends included. Without it, all of them.
+export type DateRange = { from: Date; to: Date }
+
+const inRange = (range?: DateRange) => (range ? { date: { gte: range.from, lte: range.to } } : {})
+
 export type MoneyMovementRecordWithChests = MoneyMovementRecord & {
   sourceChest?: { id: string; name: string } | null
   destinationChest?: { id: string; name: string } | null
@@ -168,7 +173,7 @@ export interface AllocationRepository {
 
 export interface ExpenseRepository {
   createExpense: (userId: string, data: CreateExpenseData) => Promise<ExpenseRecord>
-  listExpenses: (userId: string) => Promise<ExpenseRecordWithProject[]>
+  listExpenses: (userId: string, range?: DateRange) => Promise<ExpenseRecordWithProject[]>
   updateExpense: (userId: string, id: string, data: UpdateExpenseData) => Promise<ExpenseRecord>
   deleteExpense: (userId: string, id: string) => Promise<ExpenseRecord>
   // An expense paid from a chest, with the money leaving that chest, together.
@@ -203,7 +208,7 @@ export type UpdateBudgetExceptionData = Partial<CreateBudgetExceptionData>
 
 export interface BudgetExceptionRepository {
   createBudgetException: (userId: string, data: CreateBudgetExceptionData) => Promise<BudgetExceptionRecord>
-  listBudgetExceptions: (userId: string) => Promise<BudgetExceptionRecord[]>
+  listBudgetExceptions: (userId: string, range?: DateRange) => Promise<BudgetExceptionRecord[]>
   updateBudgetException: (userId: string, id: string, data: UpdateBudgetExceptionData) => Promise<BudgetExceptionRecord>
   deleteBudgetException: (userId: string, id: string) => Promise<BudgetExceptionRecord>
 }
@@ -269,11 +274,16 @@ export interface ChestRepository {
   // Deletes one of the user's chests and unlinks it from past movements, so
   // the balances of the other chests stay exactly as they were.
   removeChest: (userId: string, chestId: string) => Promise<void>
+  // What came into and what left each chest, summed by the database.
+  chestTotals: (userId: string) => Promise<{
+    inflows: { chestId: string | null; amount: number }[]
+    outflows: { chestId: string | null; amount: number }[]
+  }>
 }
 
 export interface MovementRepository {
   createMovement: (userId: string, data: CreateMovementData) => Promise<MoneyMovementRecord>
-  listMovements: (userId: string) => Promise<MoneyMovementRecordWithChests[]>
+  listMovements: (userId: string, range?: DateRange) => Promise<MoneyMovementRecordWithChests[]>
 }
 
 export interface GoalRepository {
@@ -700,9 +710,9 @@ export const financeRepository: SetupPlanRepository &
     })
   },
 
-  listExpenses: async (userId: string) => {
+  listExpenses: async (userId: string, range?: DateRange) => {
     return prisma.expense.findMany({
-      where: { userId },
+      where: { userId, ...inRange(range) },
       orderBy: { createdAt: 'desc' },
       include: {
         project: {
@@ -805,9 +815,9 @@ export const financeRepository: SetupPlanRepository &
     })
   },
 
-  listBudgetExceptions: async (userId: string) => {
+  listBudgetExceptions: async (userId: string, range?: DateRange) => {
     return prisma.budgetException.findMany({
-      where: { userId },
+      where: { userId, ...inRange(range) },
       orderBy: { createdAt: 'desc' },
     })
   },
@@ -898,6 +908,17 @@ export const financeRepository: SetupPlanRepository &
     })
   },
 
+  chestTotals: async (userId: string) => {
+    const [inflows, outflows] = await Promise.all([
+      prisma.moneyMovement.groupBy({ by: ['destinationChestId'], where: { userId }, _sum: { amount: true } }),
+      prisma.moneyMovement.groupBy({ by: ['sourceChestId'], where: { userId }, _sum: { amount: true } }),
+    ])
+    return {
+      inflows: inflows.map((row) => ({ chestId: row.destinationChestId, amount: Number(row._sum.amount ?? 0) })),
+      outflows: outflows.map((row) => ({ chestId: row.sourceChestId, amount: Number(row._sum.amount ?? 0) })),
+    }
+  },
+
   removeChest: async (userId: string, chestId: string) => {
     await prisma.$transaction([
       prisma.moneyMovement.updateMany({
@@ -933,15 +954,18 @@ export const financeRepository: SetupPlanRepository &
     })
   },
 
-  listMovements: async (userId: string) => {
-    return prisma.moneyMovement.findMany({
-      where: { userId },
-      orderBy: { date: 'desc' },
-      include: {
-        sourceChest: { select: { id: true, name: true } },
-        destinationChest: { select: { id: true, name: true } },
-      },
-    })
+  // The chests' names come from one small query, not one join per movement.
+  listMovements: async (userId: string, range?: DateRange) => {
+    const [movements, chests] = await Promise.all([
+      prisma.moneyMovement.findMany({ where: { userId, ...inRange(range) }, orderBy: { date: 'desc' } }),
+      prisma.chest.findMany({ where: { userId }, select: { id: true, name: true } }),
+    ])
+    const byId = new Map(chests.map((chest) => [chest.id, chest]))
+    return movements.map((movement) => ({
+      ...movement,
+      sourceChest: movement.sourceChestId ? (byId.get(movement.sourceChestId) ?? null) : null,
+      destinationChest: movement.destinationChestId ? (byId.get(movement.destinationChestId) ?? null) : null,
+    }))
   },
 
   createGoal: async (userId: string, data: CreateGoalData) => {
