@@ -107,3 +107,22 @@ describe('incomes', () => {
     expect(deps.remove).toHaveBeenCalledTimes(1)
   })
 })
+
+describe('saveIncome without a pay day', () => {
+  it('records money that came once, out of the plan', async () => {
+    const deps = { listIncomes: vi.fn(), create: vi.fn(), update: vi.fn(), remove: vi.fn() }
+    const oneOff = vi.fn(async () => {})
+
+    await saveIncome('user-1', { source: 'Gift from my uncle', amount: 50000, payDay: null }, deps, oneOff)
+
+    expect(oneOff).toHaveBeenCalledWith('user-1', { source: 'Gift from my uncle', amount: 50000 })
+    expect(deps.create).not.toHaveBeenCalled()
+  })
+
+  it('keeps the pay day of an income already in the plan', async () => {
+    const deps = { listIncomes: vi.fn(), create: vi.fn(), update: vi.fn(), remove: vi.fn() }
+    await expect(saveIncome('user-1', { id: 'i1', source: 'Salary', amount: 1, payDay: null }, deps, vi.fn())).rejects.toMatchObject({
+      field: 'payDay',
+    })
+  })
+})

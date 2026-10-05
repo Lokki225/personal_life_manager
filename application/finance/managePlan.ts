@@ -1,6 +1,7 @@
 import { FinanceRuleError } from '../../domain/finance/errors'
 import { financeRepository } from '../../infrastructure/repositories/financeRepository'
 import { now as clockNow } from '../../lib/clock'
+import { recordOneOffIncome } from './confirmIncome'
 
 type ManagePlanDeps = {
   listAllocations: (userId: string) => Promise<{ id: string }[]>
@@ -83,12 +84,22 @@ const INCOME_NOT_FOUND = 'This income no longer exists.'
 //
 // A new income counts as received for the month it is added in, like the
 // income of the setup month. A corrected one counts from the next time it is
-// confirmed: what already arrived this month is not rewritten.
+// confirmed: what already arrived this month is not rewritten. A new income
+// without a pay day is money that came once: it is received now, out of the plan.
 export async function saveIncome(
   userId: string,
-  income: { id?: string | null; source: string; amount: number; payDay: number },
+  income: { id?: string | null; source: string; amount: number; payDay: number | null },
   deps: IncomeDeps = defaultIncomeDeps,
+  oneOff: typeof recordOneOffIncome = recordOneOffIncome,
 ): Promise<void> {
+  if (income.payDay === null) {
+    if (income.id) {
+      throw new FinanceRuleError('An income of your plan needs its pay day.', 'payDay')
+    }
+    await oneOff(userId, { source: income.source, amount: income.amount })
+    return
+  }
+
   const data = { source: income.source.trim(), amount: income.amount, payDay: income.payDay }
 
   if (!income.id) {

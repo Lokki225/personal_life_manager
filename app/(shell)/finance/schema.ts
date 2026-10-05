@@ -63,7 +63,13 @@ export const incomeSchema = z.object({
   id: z.string().trim().optional(),
   source: requiredText('Enter an income source.', 60),
   amount: moneyField,
-  payDay: payDayField,
+  // Empty for money that came once, such as a gift.
+  payDay: z
+    .string()
+    .trim()
+    .optional()
+    .transform((value) => value || null)
+    .pipe(payDayField.nullable()),
 })
 
 export const deleteIncomeSchema = z.object({

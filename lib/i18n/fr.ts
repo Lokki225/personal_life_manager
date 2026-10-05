@@ -1520,6 +1520,13 @@ export const FR: Messages = {
     "This player has no rating in that time control yet.": "Ce joueur n'a pas encore de classement dans cette cadence.",
     "chess.com could not be reached. Try again in a moment.": "chess.com est injoignable. Réessayez dans un instant.",
     "This measure is not synced.": "Cette mesure n'est pas synchronisée.",
+
+    // --- Finance: money that came once -------------------------------------------
+    "Came once, on {date}": "Reçu une fois, le {date}",
+    "A pay day makes it part of your plan: it counts as received this month, and you confirm it from next month. Without one, it is money that came once, like a gift: it goes to your chests now.": "Avec un jour de paie, il fait partie de votre plan : il compte comme reçu ce mois-ci, et vous le confirmez à partir du mois prochain. Sans jour de paie, c'est de l'argent reçu une fois, comme un cadeau : il va dans vos coffres tout de suite.",
+    "Pay day (day of the month, optional)": "Jour de paie (jour du mois, facultatif)",
+    "None: it came once": "Aucun : reçu une fois",
+    "An income of your plan needs its pay day.": "Un revenu de votre plan a besoin de son jour de paie.",
   },
 
   // Text that arrives already filled in. More specific patterns come first.

@@ -135,3 +135,66 @@ export async function confirmIncome(
     throw new FinanceRuleError('This income is already confirmed for this month.')
   }
 }
+
+type OneOffDeps = Pick<ConfirmIncomeDeps, 'listAllocations' | 'confirm'> & {
+  create: typeof financeRepository.createIncome
+}
+
+const defaultOneOffDeps: OneOffDeps = {
+  listAllocations: financeRepository.listAllocations,
+  confirm: financeRepository.confirmIncomeReceipt,
+  create: financeRepository.createIncome,
+}
+
+// Money that came once, without being expected (a gift): it is received now,
+// so it goes to the chests at once, the same way as a confirmed income. It
+// stays out of the monthly plan and is never asked for again.
+export async function recordOneOffIncome(
+  userId: string,
+  input: { source: string; amount: number },
+  referenceDate: Date = clockNow(),
+  deps: OneOffDeps = defaultOneOffDeps,
+): Promise<void> {
+  const source = input.source.trim()
+
+  if (!source) throw new FinanceRuleError('Enter an income source.', 'source')
+  if (!(input.amount >= 1)) throw new FinanceRuleError('Enter an amount greater than zero.', 'amount')
+
+  const [income, allocations] = await Promise.all([
+    deps.create(userId, {
+      source,
+      amount: input.amount,
+      frequency: 'occasional',
+      payDay: null,
+      status: 'received',
+      actualDate: referenceDate,
+    }),
+    deps.listAllocations(userId),
+  ])
+  const plan = allocations.map((allocation) => ({
+    amount: Number(allocation.amount || 0),
+    period: (allocation.period === 'weekly' ? 'weekly' : 'monthly') as BudgetPeriod,
+    category: allocation.category,
+  }))
+
+  await deps.confirm(userId, {
+    incomeId: income.id,
+    amount: input.amount,
+    periodStart: monthStart(referenceDate),
+    periodEnd: new Date(referenceDate.getFullYear(), referenceDate.getMonth() + 1, 0, 23, 59, 59, 999),
+    receivedAt: referenceDate,
+    // Planned savings still missing this month come first; the rest goes to the Base Chest.
+    depositsFor: (receivedBefore) => receiptDeposits(plan, receivedBefore, input.amount, referenceDate),
+  })
+}
+
+// Money that came once this month, for the plan's page.
+export async function listOneOffIncomes(userId: string, referenceDate: Date = clockNow()) {
+  const incomes = await financeRepository.listOneOffIncomes(userId, monthStart(referenceDate))
+  return incomes.map((income) => ({
+    id: income.id,
+    source: income.source,
+    amount: Number(income.amount),
+    receivedAt: income.actualDate ?? income.createdAt,
+  }))
+}

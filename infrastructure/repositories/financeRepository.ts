@@ -5,6 +5,8 @@ import { prisma } from '../prisma/client'
 import { conditionData, toGoalCondition } from './goalRows'
 
 export type IncomeRecord = NonNullable<Awaited<ReturnType<typeof prisma.income.findFirst>>>
+// An income of the monthly plan: it has a pay day. Money that came once has none.
+export type PlanIncomeRecord = IncomeRecord & { payDay: number }
 export type AllocationRecord = NonNullable<Awaited<ReturnType<typeof prisma.allocation.findFirst>>>
 export type GoalRecord = NonNullable<Awaited<ReturnType<typeof prisma.goal.findFirst>>>
 export type ExpenseRecord = NonNullable<Awaited<ReturnType<typeof prisma.expense.findFirst>>>
@@ -39,7 +41,7 @@ export type CreateIncomeData = {
   status?: string
   notes?: string | null
   projectId?: string | null
-  payDay?: number
+  payDay?: number | null
 }
 
 export type UpdateIncomeData = Partial<CreateIncomeData>
@@ -148,7 +150,9 @@ export interface DebtRepository {
 
 export interface IncomeRepository {
   createIncome: (userId: string, data: CreateIncomeData) => Promise<IncomeRecord>
-  listIncomes: (userId: string) => Promise<IncomeRecord[]>
+  // The plan's incomes only; money that came once is listed apart.
+  listIncomes: (userId: string) => Promise<PlanIncomeRecord[]>
+  listOneOffIncomes: (userId: string, since?: Date) => Promise<IncomeRecord[]>
   updateIncome: (id: string, data: UpdateIncomeData) => Promise<IncomeRecord>
   deleteIncome: (id: string) => Promise<IncomeRecord>
   // Deletes one of the user's incomes along with its confirmations. Money
@@ -563,9 +567,8 @@ export const financeRepository: SetupPlanRepository &
       user: { connect: { id: userId } },
     }
 
-    if (data.payDay !== undefined) {
-      createData.payDay = data.payDay
-    }
+    // No pay day given keeps the plan's usual 1st; null is money that came once.
+    createData.payDay = data.payDay === undefined ? 1 : data.payDay
 
     if (data.expectedDate !== undefined && data.expectedDate !== null) {
       createData.expectedDate = data.expectedDate
@@ -589,9 +592,17 @@ export const financeRepository: SetupPlanRepository &
   },
 
   listIncomes: async (userId: string) => {
-    return prisma.income.findMany({
-      where: { userId },
+    const incomes = await prisma.income.findMany({
+      where: { userId, payDay: { not: null } },
       orderBy: { createdAt: 'desc' },
+    })
+    return incomes as PlanIncomeRecord[]
+  },
+
+  listOneOffIncomes: async (userId: string, since?: Date) => {
+    return prisma.income.findMany({
+      where: { userId, payDay: null, ...(since ? { actualDate: { gte: since } } : {}) },
+      orderBy: { actualDate: 'desc' },
     })
   },
 

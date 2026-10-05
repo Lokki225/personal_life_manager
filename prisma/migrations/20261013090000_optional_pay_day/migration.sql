@@ -1,0 +1,4 @@
+-- AlterTable
+ALTER TABLE "Income" ALTER COLUMN "payDay" DROP NOT NULL,
+ALTER COLUMN "payDay" DROP DEFAULT;
+
