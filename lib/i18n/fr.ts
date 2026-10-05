@@ -1576,7 +1576,6 @@ export const FR: Messages = {
     "Offline · {count} waiting": "Hors ligne · {count} en attente",
     "Sending {count}…": "Envoi de {count}…",
     "Connection and sending: details": "Connexion et envoi : détails",
-    "Expenses, savings, explanations and logged sessions are kept on this device and sent as soon as the connection is back, even if you close the app.": "Les dépenses, l'épargne, les explications et les séances notées restent sur cet appareil et partent dès que la connexion revient, même si vous fermez l'application.",
     "Send now": "Envoyer maintenant",
     "Not sent": "Non envoyé",
     "Discard": "Abandonner",
@@ -1601,6 +1600,16 @@ export const FR: Messages = {
     "Removes your account and everything recorded in it, for good. Export your data first if you want to keep it.": "Supprime votre compte et tout ce qu’il contient, définitivement. Exportez vos données avant si vous voulez les garder.",
     "Tick the box to confirm.": "Cochez la case pour confirmer.",
     "You are the only administrator. Give the role to someone else first.": "Vous êtes le seul administrateur. Donnez d’abord ce rôle à quelqu’un d’autre.",
+
+    // --- Correcting what was not sent --------------------------------------------
+    "Description": "Description",
+    "Reason": "Raison",
+    "Note": "Note",
+    "Check the values and try again.": "Vérifiez les valeurs et réessayez.",
+    "Send again": "Renvoyer",
+    "Correct": "Corriger",
+    "Expenses, savings, explanations, ticked tasks, logged sessions and the day’s line are kept on this device and sent as soon as the connection is back, even if you close the app.": "Dépenses, épargnes, explications, tâches cochées, sessions et la ligne du jour sont gardées sur cet appareil et envoyées dès le retour de la connexion, même si vous fermez l’app.",
+    "The server refused these. Correct one and send it again, or discard it.": "Le serveur les a refusées. Corrigez-en une et renvoyez-la, ou abandonnez-la.",
   },
 
   // Text that arrives already filled in. More specific patterns come first.
