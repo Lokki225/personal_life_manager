@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs'
+
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 import { fundGoal } from '@/application/finance/fundGoal'
@@ -35,6 +37,7 @@ import { syncSeries } from '@/application/personal/sync'
 import { addTask, deleteTask, dropTask, scheduleTask, setCarryReason, setTaskDone } from '@/application/personal/tasks'
 import { prisma } from '@/infrastructure/prisma/client'
 import { financeRepository } from '@/infrastructure/repositories/financeRepository'
+import { userRepository } from '@/infrastructure/repositories/userRepository'
 import { createTranslator } from '@/lib/i18n/translate'
 
 // User A records one thing of every kind; user B, signed in as themselves,
@@ -55,26 +58,9 @@ async function newUser(name: string) {
   return user.id
 }
 
-// Everything one test user recorded, in an order the foreign keys accept.
+// Deleting the account removes everything the test user recorded.
 async function removeUser(userId: string) {
-  if (!userId) return
-  await prisma.journalEntry.deleteMany({ where: { userId } })
-  await prisma.session.deleteMany({ where: { userId } })
-  await prisma.task.deleteMany({ where: { userId } })
-  await prisma.metricSeries.deleteMany({ where: { userId } })
-  await prisma.syncConnector.deleteMany({ where: { userId } })
-  await prisma.moneyMovement.deleteMany({ where: { userId } })
-  await prisma.debtPayment.deleteMany({ where: { debt: { userId } } })
-  await prisma.debt.deleteMany({ where: { userId } })
-  await prisma.incomeReceipt.deleteMany({ where: { userId } })
-  await prisma.income.deleteMany({ where: { userId } })
-  await prisma.budgetException.deleteMany({ where: { userId } })
-  await prisma.expense.deleteMany({ where: { userId } })
-  await prisma.allocation.deleteMany({ where: { userId } })
-  await prisma.goal.deleteMany({ where: { userId } })
-  await prisma.chest.deleteMany({ where: { userId } })
-  await prisma.category.deleteMany({ where: { userId } })
-  await prisma.user.delete({ where: { id: userId } })
+  if (userId && (await prisma.user.findUnique({ where: { id: userId } }))) await userRepository.deleteAccount(userId)
 }
 
 // B's attempt must fail, whatever the error.
@@ -233,5 +219,42 @@ describe('Shared views', () => {
   it('give B only B’s own numbers', async () => {
     const badges = await getBadges(userB, () => true, createTranslator('en'), new Date())
     expect(badges.personal).toBe('0 tasks open')
+  })
+})
+
+// Last: A deletes their account (Ressources/security-test-plan.md, 9.3).
+describe('Deleting an account', () => {
+  it('still refuses to delete a chest that money moved through', async () => {
+    await refused(() => prisma.chest.delete({ where: { id: a.baseChest } }))
+  })
+
+  it('removes every record of A, and leaves B as they were', async () => {
+    // Every model with a userId, read from the schema so a new one is not missed.
+    const ownedByUser = [...readFileSync('prisma/schema.prisma', 'utf8').matchAll(/^model (\w+) \{([^}]*)\}/gm)]
+      .filter(([, , body]) => /^\s+userId\s/m.test(body))
+      .map(([, name]) => name)
+    const countFor = async (userId: string) => {
+      const counts: Record<string, number> = {}
+      for (const name of ownedByUser) {
+        const delegate = (prisma as unknown as Record<string, { count: (args: object) => Promise<number> }>)[name[0].toLowerCase() + name.slice(1)]
+        counts[name] = await delegate.count({ where: { userId } })
+      }
+      return counts
+    }
+    expect(ownedByUser.length).toBeGreaterThan(20)
+    const before = await countFor(userA)
+    const others = await countFor(userB)
+    expect(before.Expense + before.Task + before.JournalEntry + before.Goal).toBeGreaterThan(0)
+
+    await userRepository.deleteAccount(userA)
+
+    expect(await prisma.user.findUnique({ where: { id: userA } })).toBeNull()
+    expect(Object.values(await countFor(userA)).every((count) => count === 0)).toBe(true)
+    // Records without a userId of their own go with their parent.
+    expect(await prisma.milestone.count({ where: { goalId: a.personalGoal } })).toBe(0)
+    expect(await prisma.metricEntry.count({ where: { seriesId: a.series } })).toBe(0)
+    expect(await prisma.debtPayment.count({ where: { debtId: a.debt } })).toBe(0)
+    expect(await prisma.journalLink.count({ where: { entryId: a.entry } })).toBe(0)
+    expect(await countFor(userB)).toEqual(others)
   })
 })

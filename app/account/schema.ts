@@ -78,6 +78,13 @@ export const deleteApiTokenSchema = z.object({
 const options = { isRuleError: isAccountRuleError }
 
 export const profileForm = new FormHandler(profileSchema, options)
+// Deleting the account: the password, and a tick saying it is understood.
+export const deleteAccountSchema = z.object({
+  password: z.string({ error: 'Enter your current password.' }).min(1, 'Enter your current password.'),
+  understood: z.literal('on', { error: 'Tick the box to confirm.' }),
+})
+
 export const credentialsForm = new FormHandler(credentialsSchema, options)
+export const deleteAccountForm = new FormHandler(deleteAccountSchema, options)
 export const apiTokenForm = new FormHandler(apiTokenSchema, options)
 export const deleteApiTokenForm = new FormHandler(deleteApiTokenSchema, options)

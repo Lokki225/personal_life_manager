@@ -74,6 +74,10 @@ export interface UserRepository {
   listUsers: () => Promise<UserSummary[]>
   // Resolves to false when the user does not exist.
   setRole: (userId: string, role: UserRole) => Promise<boolean>
+  countAdmins: () => Promise<number>
+  // Removes the account and everything it recorded. The database removes the
+  // records with the user; the rest is cleared here.
+  deleteAccount: (userId: string) => Promise<void>
   recordVisit: (userId: string, at: Date, locale: string) => Promise<void>
   // Marks the days up to `through` as settled, only if they still stand at
   // `previous`. Resolves to false when someone else settled them first.
@@ -208,6 +212,17 @@ export const userRepository: UserRepository = {
     const { count } = await prisma.user.updateMany({ where: { id: userId }, data: { role } })
 
     return count > 0
+  },
+
+  countAdmins: () => prisma.user.count({ where: { role: 'ADMIN' } }),
+
+  deleteAccount: async (userId: string) => {
+    await prisma.$transaction([
+      prisma.syncReceipt.deleteMany({ where: { userId } }),
+      // Limit counters are keyed by text that holds the user id.
+      prisma.rateLimitHit.deleteMany({ where: { key: { contains: userId } } }),
+      prisma.user.delete({ where: { id: userId } }),
+    ])
   },
 
   recordVisit: async (userId: string, at: Date, locale: string) => {

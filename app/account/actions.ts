@@ -4,19 +4,21 @@ import { revalidatePath } from 'next/cache'
 
 import { notifyLater } from '@/app/notify-later'
 import { createApiToken, deleteApiToken } from '@/application/account/apiTokens'
+import { deleteAccount } from '@/application/account/deleteAccount'
 import { changeCredentials, updateProfile } from '@/application/account/profile'
 import { notifyPerson } from '@/application/notifications/instant'
 import { notifyDevices } from '@/application/notifications/notify'
 import { getSignedInUser } from '@/infrastructure/auth/sessionUser'
 import { isPushConfigured } from '@/infrastructure/push/sendPush'
 import { pushRepository } from '@/infrastructure/repositories/pushRepository'
+import { securityRepository } from '@/infrastructure/repositories/securityRepository'
 import { userRepository } from '@/infrastructure/repositories/userRepository'
 import { notificationRepository } from '@/infrastructure/repositories/notificationRepository'
 import { isValidTimeZone, setClockZone } from '@/lib/clock'
 import { signedOutState, translateFormState, type FormState } from '@/lib/forms/formState'
 import { getT } from '@/lib/i18n/server'
 
-import { apiTokenForm, credentialsForm, deleteApiTokenForm, profileForm, REMOVE_PICTURE } from './schema'
+import { apiTokenForm, credentialsForm, deleteAccountForm, deleteApiTokenForm, profileForm, REMOVE_PICTURE } from './schema'
 
 // What was typed stays in the form itself, so it is never sent back: not a
 // picture, and above all not a password.
@@ -84,6 +86,24 @@ export async function changeCredentialsAction(_previousState: FormState, formDat
       notifyLater(() => notifyPerson(userId, { kind: 'credentialsChanged', ...changed }))
     }
   }
+
+  return translateFormState(withoutValues(state), t)
+}
+
+// Deletes the account for good. The device signs out and clears itself after.
+export async function deleteAccountAction(_previousState: FormState, formData: FormData): Promise<FormState> {
+  const [user, t] = await Promise.all([getSignedInUser(), getT()])
+
+  if (!user) {
+    return signedOutState(t)
+  }
+
+  // A few tries only: the password is what guards this.
+  if (!(await securityRepository.allowAttempt(`deleteAccount:${user.id}`, 5, 15 * 60_000))) {
+    return { status: 'error', fieldErrors: {}, formErrors: [t('Too many tries. Wait 15 minutes and try again.')] }
+  }
+
+  const state = await deleteAccountForm.submit(formData, ({ password }) => deleteAccount(user, password))
 
   return translateFormState(withoutValues(state), t)
 }
