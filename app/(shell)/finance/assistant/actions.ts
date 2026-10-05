@@ -9,6 +9,7 @@ import { getAppPersona, savePersonalPersona } from '@/application/assistant/pers
 import { notifyReachedGoals } from '@/application/notifications/instant'
 import { AiBusy, AiModelUnavailable, AiOutOfCredit } from '@/infrastructure/ai/model'
 import { availableProviders, isAssistantConfigured, resolveProvider } from '@/infrastructure/ai/providers'
+import { TOO_MANY_WRITES, writesAllowed } from '@/infrastructure/auth/limits'
 import { getSignedInUser } from '@/infrastructure/auth/sessionUser'
 import { assistantRepository } from '@/infrastructure/repositories/assistantRepository'
 import { setClockZone } from '@/lib/clock'
@@ -124,6 +125,10 @@ export async function setNotesAction(enabled: boolean): Promise<{ error?: string
     return { error: t('Your session has ended. Sign in again to continue.') }
   }
 
+  if (!(await writesAllowed(user.id))) {
+    return { error: t(TOO_MANY_WRITES) }
+  }
+
   await assistantRepository.setNotesEnabled(user.id, enabled === true)
 
   return {}
@@ -134,6 +139,10 @@ export async function setProviderAction(provider: unknown): Promise<{ error?: st
 
   if (!user) {
     return { error: t('Your session has ended. Sign in again to continue.') }
+  }
+
+  if (!(await writesAllowed(user.id))) {
+    return { error: t(TOO_MANY_WRITES) }
   }
 
   const choice = providerSchema.safeParse({ provider })
@@ -152,6 +161,10 @@ export async function savePersonaAction(_previousState: FormState, formData: For
 
   if (!user) {
     return signedOutState(t)
+  }
+
+  if (!(await writesAllowed(user.id))) {
+    return { status: 'error', fieldErrors: {}, formErrors: [t(TOO_MANY_WRITES)] }
   }
 
   const state = await personaForm.submit(formData, (persona) =>

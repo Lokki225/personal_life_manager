@@ -43,3 +43,11 @@ describe('the code never builds SQL from text', () => {
     expect(uses(/\$(query|execute)Raw\b/).filter((path) => !path.startsWith('infrastructure/repositories/'))).toEqual([])
   })
 })
+
+describe('every write is limited', () => {
+  it('checks the write limit in every server action file of the nodes', () => {
+    const actions = files.filter((file) => /^app\/\(shell\)\/.*actions\.ts$/.test(file.path))
+    expect(actions.length).toBeGreaterThan(10)
+    expect(actions.filter((file) => !/writesAllowed\(/.test(file.text)).map((file) => file.path)).toEqual([])
+  })
+})
