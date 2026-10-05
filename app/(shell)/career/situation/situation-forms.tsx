@@ -1,18 +1,19 @@
 'use client'
 
-import { startTransition, useActionState, useState, useTransition, type ComponentProps, type FormEvent, type ReactNode } from 'react'
+import { startTransition, useActionState, useState, useTransition, type FormEvent } from 'react'
 import { CircleAlert, Link2, Loader2, Plus, Trash2, X } from 'lucide-react'
 
 import { ActionDrawer, ActionForm, FIELD_CLASS } from '@/components/forms/action-drawer'
 import { Button } from '@/components/ui/button'
 import { FieldError } from '@/components/ui/field-error'
-import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select'
 import { CONTRACT_TYPES, FACT_KINDS, WORK_ARRANGEMENTS, type FactKind } from '@/domain/career/situation'
 import { CURRENCY_CODE } from '@/domain/finance/calculations'
 import { fieldAttributes, initialFormState, type FormState } from '@/lib/forms/formState'
 import { useT } from '@/lib/i18n/client'
+
+import { Field, Textarea, TextField } from '../fields'
 
 import { ARRANGEMENT_LABELS, CONTRACT_LABELS, isoDay, KIND_HINTS, KIND_LABELS } from '../labels'
 import {
@@ -49,63 +50,6 @@ export type FactValues = {
 }
 
 type Option = { id: string; title: string }
-
-// The journal's text area, in a smaller size.
-function Textarea(props: ComponentProps<'textarea'>) {
-  return (
-    <textarea
-      {...props}
-      className="rounded-md border border-input bg-transparent px-3 py-2 text-base outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
-    />
-  )
-}
-
-function Field({ state, name, label, scope, children }: { state: FormState; name: string; label: string; scope: string; children: ReactNode }) {
-  return (
-    <div className="grid gap-2">
-      <Label htmlFor={`${scope}-${name}`}>{label}</Label>
-      {children}
-      <FieldError state={state} name={name} scope={scope} />
-    </div>
-  )
-}
-
-function TextField({
-  state,
-  scope,
-  name,
-  label,
-  defaultValue,
-  type = 'text',
-  maxLength,
-  inputMode,
-  list,
-}: {
-  state: FormState
-  scope: string
-  name: string
-  label: string
-  defaultValue?: string | number | null
-  type?: string
-  maxLength?: number
-  inputMode?: 'numeric'
-  list?: string
-}) {
-  return (
-    <Field state={state} name={name} label={label} scope={scope}>
-      <Input
-        id={`${scope}-${name}`}
-        {...fieldAttributes(state, name, scope)}
-        type={type}
-        defaultValue={defaultValue ?? ''}
-        maxLength={maxLength}
-        inputMode={inputMode}
-        list={list}
-        className={FIELD_CLASS}
-      />
-    </Field>
-  )
-}
 
 // The fields of a fact; those of its kind only.
 function FactFields({

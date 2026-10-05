@@ -1,13 +1,82 @@
 import type { Metadata } from 'next'
+import Link from 'next/link'
+import { redirect } from 'next/navigation'
+import { ChevronRight, Target } from 'lucide-react'
 
-import { m } from '@/lib/i18n/translate'
+import { Badge } from '@/components/ui/badge'
+import { listCareerGoals } from '@/application/career/goals'
+import { getSignedInUser } from '@/infrastructure/auth/sessionUser'
+import { now as clockNow, setClockZone } from '@/lib/clock'
+import { getT } from '@/lib/i18n/server'
 
-import { ComingLater } from '../../coming-later'
+import { STATUS_LABELS, statusTone } from '../../personal/goals/goal-labels'
+import { GoalDrawer } from './goal-forms'
+import { summaryLines } from './goal-text'
 
 export const metadata: Metadata = {
-  title: 'Career | Personal Life Manager',
+  title: 'Career goals | Personal Life Manager',
 }
 
-export default function CareerGoalsPage() {
-  return <ComingLater title={m('Goals')} text={m('What you want next, by your own criteria, compared with where you stand.')} />
+export default async function CareerGoalsPage() {
+  const [user, t] = await Promise.all([getSignedInUser(), getT()])
+  // Days are counted on this person's clock from here on.
+  setClockZone(user?.timeZone)
+
+  if (!user) {
+    redirect('/login')
+  }
+
+  const goals = await listCareerGoals(user.id, clockNow())
+  const date = new Intl.DateTimeFormat(t.intl, { day: 'numeric', month: 'short', year: 'numeric' })
+
+  return (
+    <main className="mx-auto w-full max-w-2xl space-y-5 px-4 py-6 sm:px-6">
+      <header className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">{t('Goals')}</h1>
+          <p className="mt-1 text-sm text-muted-foreground">{t('What you want next, compared with where you stand.')}</p>
+        </div>
+        <GoalDrawer />
+      </header>
+
+      {goals.length === 0 ? (
+        <div className="rounded-xl border border-dashed p-8 text-center">
+          <Target className="mx-auto size-8 text-muted-foreground" aria-hidden="true" />
+          <p className="mt-3 font-medium">{t('Say what you want next')}</p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {t('"A better job", "A software engineering role": then the criteria that make it better for you.')}
+          </p>
+        </div>
+      ) : (
+        <ul className="space-y-2">
+          {goals.map((goal) => {
+            const lines = summaryLines(t, goal.evaluation.summary)
+            return (
+              <li key={goal.id}>
+                <Link href={`/career/goals/${goal.id}`} className="flex items-center gap-3 rounded-xl border bg-card p-4 transition-colors hover:border-node-accent">
+                  <div className="min-w-0 flex-1 space-y-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="font-medium">{goal.name}</p>
+                      <Badge variant={statusTone(goal.evaluation.status) === 'success' ? 'default' : 'secondary'}>{t(STATUS_LABELS[goal.evaluation.status])}</Badge>
+                    </div>
+                    {lines.length > 0 ? (
+                      lines.map((line) => (
+                        <p key={line} className="text-sm text-muted-foreground">
+                          {line}
+                        </p>
+                      ))
+                    ) : (
+                      <p className="text-sm text-muted-foreground">{t('No criteria yet.')}</p>
+                    )}
+                    {goal.deadline ? <p className="text-xs text-muted-foreground">{t('By {date}', { date: date.format(goal.deadline) })}</p> : null}
+                  </div>
+                  <ChevronRight className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+                </Link>
+              </li>
+            )
+          })}
+        </ul>
+      )}
+    </main>
+  )
 }
