@@ -1,7 +1,8 @@
 // The Personal journal: entry kinds, links written into the text, and the
 // small rules around them. No database.
 
-export const JOURNAL_TYPES = ['FREE', 'DAILY', 'DECISION', 'IDEA', 'REVIEW'] as const
+// CAREER_LOG lines are written from Career, and read here with the rest.
+export const JOURNAL_TYPES = ['FREE', 'DAILY', 'DECISION', 'IDEA', 'REVIEW', 'CAREER_LOG'] as const
 export type JournalType = (typeof JOURNAL_TYPES)[number]
 
 // The kinds a person writes by hand; reviews are written from the review page.

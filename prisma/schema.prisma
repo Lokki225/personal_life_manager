@@ -62,6 +62,42 @@ enum ConditionOperator {
   EQ
   GT
   LT
+  // A text value among the accepted ones ("remote or hybrid").
+  IN
+}
+
+// Required conditions decide achievement; preferred ones are counted but never
+// block it; info ones are only shown.
+enum ConditionLevel {
+  REQUIRED
+  PREFERRED
+  INFO
+}
+
+// AUTO: achieved when the required conditions hold. CONFIRM: the app says the
+// criteria are met and the person confirms.
+enum AchievementMode {
+  AUTO
+  CONFIRM
+}
+
+enum GoalImportance {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+// What a condition is evaluated against: the person's own situation, or an
+// alternative such as a Career opportunity.
+enum SubjectType {
+  SELF
+  OPPORTUNITY
+}
+
+enum JudgementResult {
+  MET
+  GAP
+  UNKNOWN
 }
 
 // The shared goal engine (Ressources/goal-completion-mechanism.md): a goal is
@@ -155,6 +191,14 @@ model Goal {
   achievedAt    DateTime?
   abandonedAt   DateTime?
   abandonReason String?
+  // Why it matters, in the person's words, and how much (not how urgent).
+  why             String?
+  importance      GoalImportance?
+  achievementMode AchievementMode @default(AUTO)
+  // Set by the person: paused (no reminders), or replaced by another goal.
+  pausedAt        DateTime?
+  supersededAt    DateTime?
+  supersededById  String?
   groups        ConditionGroup[]
   milestones    Milestone[]
   tasks         Task[]
@@ -201,8 +245,33 @@ model Condition {
   unit        String?
   floor       Decimal?
   stretch     Decimal?
+  // What the person reads, when the measurement alone does not say it.
+  label          String?
+  level          ConditionLevel      @default(REQUIRED)
+  // For IN: the accepted text values.
+  acceptedValues Json?
+  // Overrides the source's own freshness rule.
+  staleAfterDays Int?
+  sortOrder      Int                 @default(0)
+  judgements     ConditionJudgement[]
 
   @@index([groupId])
+}
+
+// The person's verdict on a condition that cannot be measured, for one
+// subject. The latest one counts.
+model ConditionJudgement {
+  id          String          @id @default(cuid())
+  conditionId String
+  condition   Condition       @relation(fields: [conditionId], references: [id], onDelete: Cascade)
+  subjectType SubjectType     @default(SELF)
+  // The opportunity's id when the subject is one.
+  subjectId   String?
+  result      JudgementResult
+  note        String?
+  judgedAt    DateTime        @default(now())
+
+  @@index([conditionId, subjectType, subjectId, judgedAt])
 }
 
 model Milestone {
@@ -269,12 +338,21 @@ model Task {
   sortOrder   Int              @default(0)
   // Who recorded it when not the person: "assistant" or "api:<key name>".
   origin      String?
+  // The node it belongs to: "personal" (Today, the task list) or "career"
+  // (a weekly focus item, never shown in Personal).
+  domain      String           @default("personal")
+  // A Career focus item: the Monday of its week, on the person's clock.
+  focusWeek   DateTime?
+  // What else it is about, e.g. relatedType "careerOpportunity".
+  relatedType String?
+  relatedId   String?
   completions TaskCompletion[]
   carries     TaskCarry[]
   createdAt   DateTime         @default(now())
 
   @@index([userId, dueDate])
   @@index([userId, status])
+  @@index([userId, domain, focusWeek])
 }
 
 // One completion per day a task is done; a recurring task has one per
@@ -333,6 +411,11 @@ model User {
   notifyMoney           Boolean   @default(true)
   // For administrators: new accounts and new opinions.
   notifyAdmin           Boolean   @default(true)
+  notifyCareer          Boolean   @default(true)
+  // The day of the weekly reviews: 1 is Monday, 7 is Sunday.
+  reviewDay             Int       @default(7)
+  // The places a Career "location" condition can accept, in the person's words.
+  careerLocations       Json      @default("[]")
   createdAt             DateTime  @default(now())
 
   incomes           Income[]
@@ -679,6 +762,8 @@ enum JournalType {
   DECISION
   IDEA
   REVIEW
+  // A line in the Career quick log.
+  CAREER_LOG
 }
 
 // A journal entry. Open by default; a secured one asks for its password

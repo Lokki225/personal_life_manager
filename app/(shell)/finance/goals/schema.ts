@@ -1,6 +1,9 @@
 import { z } from 'zod'
 
-import { ConditionOperator, GoalLogic } from '@/app/generated/prisma/enums'
+import { GoalLogic } from '@/app/generated/prisma/enums'
+
+// Finance compares amounts and counts; choices (IN) belong to other nodes.
+const FINANCE_OPERATORS = ['GTE', 'LTE', 'EQ', 'GT', 'LT'] as const
 import { GOAL_MEASUREMENTS } from '@/application/finance/measurements'
 import { isFinanceRuleError } from '@/domain/finance/errors'
 import { FormHandler } from '@/lib/forms/FormHandler'
@@ -32,7 +35,7 @@ export const fundGoalSchema = z.object({
 const conditionSchema = z.object(
   {
     measurement: z.enum(GOAL_MEASUREMENTS, { error: 'Choose what to measure.' }),
-    operator: z.enum(ConditionOperator, { error: 'Choose a comparison.' }),
+    operator: z.enum(FINANCE_OPERATORS, { error: 'Choose a comparison.' }),
     // Zero is a valid target, e.g. "at most 0 exceptions".
     targetValue: z
       .string({ error: 'Enter a target.' })

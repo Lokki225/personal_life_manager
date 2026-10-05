@@ -1,7 +1,7 @@
-import { evaluateGroup, inRange, windowRange, type ConditionGroup, type ConditionResult } from './engine'
+import { evaluateGroup, inRange, pointsOf, windowRange, type ConditionGroup, type ConditionResult } from './engine'
 import { paceKind, projectDate, tierOf } from './pace'
 import { hasEvidence, personalResolver, type PersonalEvidence } from './personalSources'
-import { deriveStatus, shouldStampAchieved, type GoalStatus } from './status'
+import { deriveStatus, shouldStampAchieved, type AchievementMode, type GoalStatus } from './status'
 
 // Evaluates a Personal goal: its milestones first (a milestone done stays
 // done), then its completion and health trees, its pace and its status.
@@ -14,6 +14,9 @@ export type GoalTree = {
   deadline: Date | null
   achievedAt: Date | null
   abandonedAt: Date | null
+  achievementMode?: AchievementMode
+  pausedAt?: Date | null
+  supersededAt?: Date | null
   // The goal's root groups, completion and health.
   groups: ConditionGroup[]
   milestones: { id: string; name: string; order: number | null; completedAt: Date | null; groups: ConditionGroup[] }[]
@@ -73,7 +76,7 @@ export function evaluatePersonalGoal(goal: GoalTree, evidence: PersonalEvidence,
   const kind = main ? paceKind(main.aggregation) : null
   const projected =
     main && kind && goal.deadline
-      ? projectDate(inRange(resolve(main), windowRange(main.window, now, goal.startDate)), main.target, kind, goal.startDate, now)
+      ? projectDate(inRange(pointsOf(resolve, main), windowRange(main.window, now, goal.startDate)), main.target, kind, goal.startDate, now)
       : null
 
   const seriesIds = goal.groups.flatMap((g) => g.conditions).flatMap((c) => (typeof c.sourceRef.seriesId === 'string' ? [c.sourceRef.seriesId] : []))
@@ -82,6 +85,9 @@ export function evaluatePersonalGoal(goal: GoalTree, evidence: PersonalEvidence,
     latch: goal.latch,
     achievedAt: goal.achievedAt,
     abandonedAt: goal.abandonedAt,
+    achievementMode: goal.achievementMode,
+    pausedAt: goal.pausedAt ?? null,
+    supersededAt: goal.supersededAt ?? null,
     deadline: goal.deadline,
     satisfied: completion.satisfied,
     hasEvidence: hasEvidence(withMilestones, goal.id, seriesIds),

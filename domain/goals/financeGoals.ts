@@ -54,7 +54,8 @@ export type FinanceCondition = {
   chestId: string | null
   // The expense category of a category spending.
   category: string | null
-  operator: Operator
+  // Finance compares amounts and counts only.
+  operator: Exclude<Operator, 'IN'>
   targetValue: number
   unit: string | null
 }
@@ -122,7 +123,7 @@ export function measurementOf(
 export function toFinanceCondition(condition: GoalCondition): FinanceCondition {
   const measurement = measurementOf(condition)
 
-  if (!measurement) {
+  if (!measurement || condition.operator === 'IN') {
     throw new Error(`Condition ${condition.id} is not a Finance measurement`)
   }
 
