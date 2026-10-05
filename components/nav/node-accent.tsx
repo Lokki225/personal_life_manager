@@ -3,16 +3,19 @@
 import type { PropsWithChildren } from 'react'
 import { usePathname } from 'next/navigation'
 
-import { nodeFromPath } from '@/lib/nav/registry'
+import { isGlobalPath, nodeFromPath } from '@/lib/nav/registry'
 
-import { accentOf } from './node-switcher'
+import { accentOf, NEUTRAL_ACCENT } from './node-switcher'
 
-// Gives everything inside the accent of the node being shown.
+// Gives everything inside the accent of the node being shown; pages outside
+// every node (/projects) take a neutral one.
 export function NodeAccent({ className, children }: PropsWithChildren<{ className?: string }>) {
-  const node = nodeFromPath(usePathname())
+  const pathname = usePathname()
+  const node = nodeFromPath(pathname)
+  const style = node ? accentOf(node.id) : isGlobalPath(pathname) ? NEUTRAL_ACCENT : undefined
 
   return (
-    <div className={className} style={node ? accentOf(node.id) : undefined}>
+    <div className={className} style={style}>
       {children}
     </div>
   )

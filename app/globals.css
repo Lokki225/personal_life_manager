@@ -52,6 +52,7 @@
   --node-accent-personal: #7c3aed;
   --node-accent-career: #c2410c;
   --node-accent-projection: #0e7490;
+  --node-accent-neutral: #475569;
   --on-node-accent: #ffffff;
   --node-accent: var(--node-accent-finance);
   --radius: 0.875rem;
@@ -96,6 +97,7 @@ html[data-theme='dark'] {
   --node-accent-personal: #a78bfa;
   --node-accent-career: #fb923c;
   --node-accent-projection: #22d3ee;
+  --node-accent-neutral: #cbd5e1;
   --on-node-accent: #0b1220;
   color-scheme: dark;
 }

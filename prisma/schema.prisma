@@ -208,6 +208,9 @@ model Goal {
   // The part of life it serves, at most one.
   lifeAreaId             String?
   lifeArea               LifeArea? @relation(fields: [lifeAreaId], references: [id], onDelete: SetNull)
+  // The project it belongs to, in any node ("1,000 users" belongs to OdO).
+  projectId              String?
+  project                Project?  @relation(fields: [projectId], references: [id], onDelete: SetNull)
   groups        ConditionGroup[]
   milestones    Milestone[]
   tasks         Task[]
@@ -356,6 +359,9 @@ model Task {
   // What else it is about, e.g. relatedType "careerOpportunity".
   relatedType String?
   relatedId   String?
+  // A next action of a project.
+  projectId   String?
+  project     Project?         @relation(fields: [projectId], references: [id], onDelete: SetNull)
   completions TaskCompletion[]
   carries     TaskCarry[]
   createdAt   DateTime         @default(now())
@@ -701,16 +707,128 @@ model BudgetException {
   @@index([userId, date])
 }
 
+// Who may see something outside the app (portfolio spec §3). Everything is
+// PRIVATE until the person publishes it from the portfolio.
+enum Visibility {
+  PRIVATE
+  UNLISTED
+  PUBLIC
+}
+
+enum ProjectKind {
+  SOFTWARE
+  MUSIC
+  WRITING
+  TRAINING
+  DESIGN
+  BUSINESS
+  OTHER
+}
+
+enum ProjectStatus {
+  PLANNING
+  ACTIVE
+  PAUSED
+  SHIPPED
+  MAINTAINED
+  ARCHIVED
+}
+
+enum ReleaseKind {
+  VERSION
+  SINGLE
+  ALBUM
+  PUBLICATION
+  DEPLOYMENT
+  MILESTONE
+  OTHER
+}
+
+// A body of work that evolves over time (projects spec): one list for the
+// whole app, the same rows Finance links expenses and incomes to.
 model Project {
-  id        String          @id @default(cuid())
-  userId    String
-  user      User            @relation(fields: [userId], references: [id], onDelete: Cascade)
-  name      String
-  notes     String?
-  incomes   Income[]
-  expenses  Expense[]
-  movements MoneyMovement[]
-  createdAt DateTime        @default(now())
+  id              String                @id @default(cuid())
+  userId          String
+  user            User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name            String
+  notes           String?
+  summary         String?
+  kind            ProjectKind           @default(OTHER)
+  // The node whose views list it first: personal or career.
+  primaryDomain   String                @default("personal")
+  lifeAreaId      String?
+  lifeArea        LifeArea?             @relation(fields: [lifeAreaId], references: [id], onDelete: SetNull)
+  status          ProjectStatus         @default(ACTIVE)
+  statusChangedAt DateTime              @default(now())
+  // Midnight on the person's clock.
+  startedAt       DateTime?
+  // The Projection idea it graduated from, once ideas exist.
+  originIdeaId    String?
+  // For the portfolio, which owns publishing.
+  visibility      Visibility            @default(PRIVATE)
+  slug            String?
+  publicSummary   String?
+  showTime        Boolean               @default(false)
+  origin          String?
+  links           ProjectLink[]
+  statusChanges   ProjectStatusChange[]
+  releases        ProjectRelease[]
+  tasks           Task[]
+  sessions        Session[]
+  goals           Goal[]
+  careerFacts     CareerFact[]
+  incomes         Income[]
+  expenses        Expense[]
+  movements       MoneyMovement[]
+  createdAt       DateTime              @default(now())
+
+  @@unique([userId, slug])
+  @@index([userId, status])
+}
+
+model ProjectLink {
+  id        String  @id @default(cuid())
+  projectId String
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  label     String
+  url       String
+  sortOrder Int     @default(0)
+
+  @@index([projectId])
+}
+
+model ProjectStatusChange {
+  id        String         @id @default(cuid())
+  projectId String
+  project   Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  from      ProjectStatus?
+  to        ProjectStatus
+  // Archiving says why: a result, not a failure.
+  reason    String?
+  changedAt DateTime       @default(now())
+
+  @@index([projectId, changedAt])
+}
+
+model ProjectRelease {
+  id            String      @id @default(cuid())
+  projectId     String
+  project       Project     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  title         String
+  kind          ReleaseKind @default(VERSION)
+  // Midnight on the person's clock.
+  releasedAt    DateTime
+  notes         String?
+  url           String?
+  retroWentWell String?
+  retroLearned  String?
+  retroNext     String?
+  visibility    Visibility  @default(PRIVATE)
+  publicNotes   String?
+  showLearned   Boolean     @default(false)
+  createdAt     DateTime    @default(now())
+
+  @@index([projectId, releasedAt])
 }
 
 // Time spent on something: started and stopped, or logged afterwards.
@@ -728,6 +846,10 @@ model Session {
   durationMin Int?
   note        String?
   origin      String?
+  // Time spent on a project directly; a session of a project's goal counts
+  // for it too, once.
+  projectId   String?
+  project     Project?  @relation(fields: [projectId], references: [id], onDelete: SetNull)
   createdAt   DateTime  @default(now())
 
   @@index([userId, startedAt])
@@ -778,6 +900,8 @@ enum JournalType {
   REVIEW
   // A line in the Career quick log.
   CAREER_LOG
+  // A devlog entry of a project.
+  PROJECT_LOG
 }
 
 // A journal entry. Open by default; a secured one asks for its password
@@ -904,8 +1028,10 @@ model CareerFact {
   expiresAt           DateTime?
   // Skill: the level in the person's own words.
   level               String?
-  // Experience: the position it happened in.
+  // Experience: the position it happened in, and the project it came from.
   positionId          String?
+  projectId           String?
+  project             Project?             @relation(fields: [projectId], references: [id], onDelete: SetNull)
   origin              String?
   evidence            CareerEvidenceLink[]
   createdAt           DateTime             @default(now())
@@ -1011,7 +1137,7 @@ model CareerStatusChange {
 // Music, Family. Goals in every node, and later projects and ideas, belong to
 // one area at most; tasks and sessions inherit it through their goal.
 model LifeArea {
-  id        String   @id @default(cuid())
+  id        String    @id @default(cuid())
   userId    String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   name      String
@@ -1022,7 +1148,8 @@ model LifeArea {
   icon      String?
   sortOrder Int      @default(0)
   goals     Goal[]
-  createdAt DateTime @default(now())
+  projects  Project[]
+  createdAt DateTime  @default(now())
 
   @@index([userId, sortOrder])
 }

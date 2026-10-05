@@ -21,7 +21,7 @@ describe('journal links', () => {
   })
 
   it('ignores what only looks like a link', () => {
-    expect(parseLinks('@[x](project:p1) @[y](goal:) [z](goal:g2) @[](goal:g3)')).toEqual([])
+    expect(parseLinks('@[x](planet:p1) @[y](goal:) [z](goal:g2) @[](goal:g3)')).toEqual([])
   })
 
   it('writes a token that reads back as the same link, without brackets in the label', () => {

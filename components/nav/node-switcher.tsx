@@ -6,16 +6,18 @@ import { Check, ChevronDown, Waypoints } from 'lucide-react'
 import { DropdownMenu } from 'radix-ui'
 
 import { useT } from '@/lib/i18n/client'
-import { canOpen, getNode, NODES, viewFromPath, type NodeDef, type NodeId } from '@/lib/nav/registry'
+import { canOpen, canOpenProjects, getNode, NODES, PROJECTS, viewFromPath, type NodeDef, type NodeId } from '@/lib/nav/registry'
 import { cn } from '@/lib/utils'
 
 import { NodeIcon } from './node-icon'
 import { useNodeMemory } from './node-memory'
 
 export const accentOf = (id: NodeId) => ({ '--node-accent': `var(--node-accent-${id})` }) as CSSProperties
+export const NEUTRAL_ACCENT = { '--node-accent': 'var(--node-accent-neutral)' } as CSSProperties
 
-// The node button: opens the list of nodes, each reopening on its last view.
-export function NodeSwitcher({ current, isAdmin }: { current: NodeDef; isAdmin: boolean }) {
+// The node button: opens the list of nodes, each reopening on its last view,
+// and "All projects". `current` is null on a page outside every node.
+export function NodeSwitcher({ current, isAdmin }: { current: NodeDef | null; isAdmin: boolean }) {
   const t = useT()
   const router = useRouter()
   const { lastRoute } = useNodeMemory()
@@ -24,12 +26,12 @@ export function NodeSwitcher({ current, isAdmin }: { current: NodeDef; isAdmin: 
     <DropdownMenu.Root>
       <DropdownMenu.Trigger
         className="group flex h-11 items-center gap-2 rounded-full border bg-card pr-3 pl-1.5 text-sm font-semibold shadow-[var(--shadow-soft)] outline-none transition-colors hover:border-node-accent/50 focus-visible:ring-[3px] focus-visible:ring-node-accent/40"
-        aria-label={t('Switch node, now {node}', { node: t(current.label) })}
+        aria-label={t('Switch node, now {node}', { node: t(current?.label ?? PROJECTS.label) })}
       >
         <span className="flex size-8 items-center justify-center rounded-full bg-node-accent/15 text-node-accent">
-          <NodeIcon name={current.icon} className="size-4" />
+          <NodeIcon name={current?.icon ?? PROJECTS.icon} className="size-4" />
         </span>
-        {t(current.label)}
+        {t(current?.label ?? PROJECTS.label)}
         <ChevronDown
           className="size-4 text-muted-foreground transition-transform group-data-[state=open]:rotate-180"
           aria-hidden="true"
@@ -64,12 +66,28 @@ export function NodeSwitcher({ current, isAdmin }: { current: NodeDef; isAdmin: 
                   </span>
                 </span>
                 <Check
-                  className={cn('size-4 text-node-accent', node.id === current.id ? 'visible' : 'invisible')}
+                  className={cn('size-4 text-node-accent', node.id === current?.id ? 'visible' : 'invisible')}
                   aria-hidden="true"
                 />
               </DropdownMenu.Item>
             )
           })}
+          {canOpenProjects(isAdmin) ? (
+            <>
+              <DropdownMenu.Separator className="my-1 h-px bg-border" />
+              <DropdownMenu.Item
+                onSelect={() => router.push(PROJECTS.href)}
+                style={NEUTRAL_ACCENT}
+                className="flex min-h-12 cursor-pointer items-center gap-3 rounded-xl px-2.5 py-2 outline-none select-none data-[highlighted]:bg-accent"
+              >
+                <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-node-accent/15 text-node-accent">
+                  <NodeIcon name={PROJECTS.icon} className="size-[1.125rem]" />
+                </span>
+                <span className="flex-1 text-sm font-semibold">{t(PROJECTS.label)}</span>
+                <Check className={cn('size-4 text-node-accent', current === null ? 'visible' : 'invisible')} aria-hidden="true" />
+              </DropdownMenu.Item>
+            </>
+          ) : null}
         </DropdownMenu.Content>
       </DropdownMenu.Portal>
     </DropdownMenu.Root>
@@ -84,7 +102,7 @@ export function GraphTrigger({
   onOpen,
 }: {
   ref: Ref<HTMLButtonElement>
-  current: NodeDef
+  current: NodeDef | null
   expanded: boolean
   onOpen: () => void
 }) {
@@ -101,9 +119,9 @@ export function GraphTrigger({
       className="group flex h-11 items-center gap-2 rounded-full border bg-card pr-3 pl-1.5 text-sm font-semibold shadow-[var(--shadow-soft)] outline-none transition-colors hover:border-node-accent/50 focus-visible:ring-[3px] focus-visible:ring-node-accent/40"
     >
       <span className="flex size-8 items-center justify-center rounded-full bg-node-accent/15 text-node-accent">
-        <NodeIcon name={current.icon} className="size-4" />
+        <NodeIcon name={current?.icon ?? PROJECTS.icon} className="size-4" />
       </span>
-      {t(current.label)}
+      {t(current?.label ?? PROJECTS.label)}
       <Waypoints className="size-4 text-muted-foreground" aria-hidden="true" />
     </button>
   )
