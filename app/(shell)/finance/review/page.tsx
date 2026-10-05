@@ -10,6 +10,7 @@ import { setClockZone } from '@/lib/clock'
 import { getT } from '@/lib/i18n/server'
 import { m, type Translator } from '@/lib/i18n/translate'
 import { cn } from '@/lib/utils'
+import { SaveSnapshot } from '@/components/offline/save-snapshot'
 
 import { categoryColor, categoryStyle } from '../categories'
 import { chartPoints } from '../chart-data'
@@ -132,6 +133,19 @@ export default async function FinanceReviewPage({ searchParams }: PageProps<'/fi
 
   return (
     <main className="mx-auto w-full max-w-2xl space-y-4 px-4 py-6 sm:px-6">
+      <SaveSnapshot
+        snapshotKey="finance.review"
+        data={{
+          period: review.period,
+          plannedBudget: review.plannedBudget,
+          actualSpent: review.actualSpent,
+          remaining: review.remaining,
+          actualSavings: review.actualSavings,
+          exceptionCount: review.exceptionCount,
+          categories: review.categoryBreakdown.map((c) => ({ category: c.category, total: c.total })),
+          goals: review.goals.map((g) => ({ name: g.name, satisfied: g.satisfied })),
+        }}
+      />
       <header>
         <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">{t('Review')}</h1>
         <p className="mt-1 text-sm text-muted-foreground">{t('How the plan held up, and where it did not.')}</p>

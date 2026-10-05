@@ -12,6 +12,8 @@ import { getSignedInUser } from '@/infrastructure/auth/sessionUser'
 import { now as clockNow, setClockZone } from '@/lib/clock'
 import { getT } from '@/lib/i18n/server'
 import { cn } from '@/lib/utils'
+import { SaveSnapshot } from '@/components/offline/save-snapshot'
+import { isoDay } from '@/lib/offline/snapshots'
 
 import { DailyLine } from '../journal/entry-forms'
 import { SessionCard } from '../sessions/session-card'
@@ -45,6 +47,25 @@ export default async function PersonalTodayPage() {
 
   return (
     <main className="mx-auto w-full max-w-2xl space-y-4 px-4 py-6 sm:px-6">
+      <SaveSnapshot
+        snapshotKey="personal.today"
+        data={{
+          day: isoDay(now),
+          planned: load.planned,
+          done: load.done,
+          capacity: load.capacity,
+          tasks: ordered.map(({ task, done }) => ({
+            id: task.id,
+            title: task.title,
+            done,
+            repeats: task.recurrence !== null,
+            carryCount: task.carryCount,
+            category: task.category?.name ?? null,
+          })),
+          sessionMinutes: sessions.totalMinutes,
+          dailyNote: dailyNote?.body ?? null,
+        }}
+      />
       <header>
         <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">{t('Today')}</h1>
         <p className="mt-1 text-sm text-muted-foreground first-letter:uppercase">{dateLine}</p>

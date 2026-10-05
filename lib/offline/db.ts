@@ -63,5 +63,34 @@ export async function clearUserData(userId: string) {
 export async function clearDevice() {
   const store = offlineDb()
   if (!store) return
+  forgetOfflineUser()
   await Promise.all([store.drafts.clear(), store.snapshots.clear(), store.outbox.clear()])
+}
+
+// The last person who used the app on this device, so the offline page knows
+// whose snapshots to show without a connection. Cleared on sign out.
+const LAST_USER_KEY = 'plm.offline.user'
+
+export function rememberOfflineUser(userId: string) {
+  try {
+    localStorage.setItem(LAST_USER_KEY, userId)
+  } catch {
+    // Without storage, the offline page shows nothing; the app still works.
+  }
+}
+
+export function offlineUser(): string | null {
+  try {
+    return localStorage.getItem(LAST_USER_KEY)
+  } catch {
+    return null
+  }
+}
+
+export function forgetOfflineUser() {
+  try {
+    localStorage.removeItem(LAST_USER_KEY)
+  } catch {
+    // Nothing to forget.
+  }
 }

@@ -8,13 +8,12 @@ import { getWeeklyReview } from '@/application/personal/review'
 import { getSignedInUser } from '@/infrastructure/auth/sessionUser'
 import { now as clockNow, setClockZone } from '@/lib/clock'
 import { getT } from '@/lib/i18n/server'
+import { SaveSnapshot } from '@/components/offline/save-snapshot'
+import { isoDay } from '@/lib/offline/snapshots'
 
 import { NewEntryDrawer } from '../journal/entry-forms'
 import { EntryCard } from '../journal/entry-view'
 import { CARRY_REASON_LABELS } from '../tasks/task-forms'
-
-const isoDay = (date: Date) =>
-  `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`
 
 const parseDay = (value: unknown) => {
   if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return null
@@ -63,6 +62,25 @@ export default async function PersonalReviewPage({ searchParams }: PageProps<'/p
 
   return (
     <main className="mx-auto w-full max-w-2xl space-y-5 px-4 py-6 sm:px-6">
+      {isCurrent ? (
+        <SaveSnapshot
+          snapshotKey="personal.review"
+          data={{
+            start: isoDay(start),
+            end: isoDay(lastDay),
+            tasksDone: review.tasksDone,
+            slips: review.slips,
+            reasons: review.reasons,
+            sessionMinutes: review.sessions.minutes,
+            byGoal: review.sessions.byGoal,
+            onTrack: review.goals.onTrack.map((g) => g.name),
+            behind: review.goals.behind.map((g) => g.name),
+            achieved: review.goals.achieved.map((g) => g.name),
+            habitsKept: review.goals.habitsKept.map((g) => g.name),
+            habitsSlipping: review.goals.habitsSlipping.map((g) => g.name),
+          }}
+        />
+      ) : null}
       <header className="space-y-3">
         <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">{t('Review')}</h1>
         <nav aria-label={t('Weeks')} className="flex items-center justify-between gap-2">

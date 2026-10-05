@@ -1546,6 +1546,17 @@ export const FR: Messages = {
 
     // --- Offline page ------------------------------------------------------------
     "This page hasn't been opened yet on this device. Connect to load it.": "Cette page n'a pas encore été ouverte sur cet appareil. Connectez-vous à internet pour la charger.",
+
+    // --- Offline screens ---------------------------------------------------------
+    "Readable offline": "Lisible hors ligne",
+    "Finance · Today": "Finances · Aujourd'hui",
+    "Finance · Review": "Finances · Bilan",
+    "Personal · Today": "Personnel · Aujourd'hui",
+    "Personal · Review": "Personnel · Bilan",
+    "Last updated {count} days ago. Connect to see where things stand.": "Dernière mise à jour il y a {count} jours. Connectez-vous pour voir où vous en êtes.",
+    "Offline · as of {time}": "Hors ligne · à jour à {time}",
+    "Daily budget: {amount}": "Budget du jour : {amount}",
+    "Remaining": "Reste",
   },
 
   // Text that arrives already filled in. More specific patterns come first.
