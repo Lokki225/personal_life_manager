@@ -1,11 +1,11 @@
 'use client'
 
 import Link from 'next/link'
-import { signOut } from 'next-auth/react'
 import { BookOpen, Check, Languages, LogOut, MessageSquareHeart, ShieldCheck, UserRound, Wallet } from 'lucide-react'
 import { DropdownMenu } from 'radix-ui'
 
 import { LOCALES } from '@/lib/i18n/config'
+import { signOutAndClear } from '@/lib/offline/sign-out'
 import { useT } from '@/lib/i18n/client'
 
 import { Avatar } from './avatar'
@@ -94,7 +94,7 @@ export function UserMenu({ user }: { user: MenuUser }) {
           ))}
 
           <DropdownMenu.Separator className="my-1.5 h-px bg-border" />
-          <DropdownMenu.Item className={ITEM_CLASS} onSelect={() => void signOut({ callbackUrl: '/' })}>
+          <DropdownMenu.Item className={ITEM_CLASS} onSelect={() => void signOutAndClear()}>
             <LogOut aria-hidden="true" />
             {t('Sign out')}
           </DropdownMenu.Item>

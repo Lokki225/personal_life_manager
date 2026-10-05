@@ -14,6 +14,8 @@ const PUBLIC_PATHS = [
   '/apple-icon',
   '/manifest.webmanifest',
   '/sw.js',
+  '/serwist/sw.js',
+  '/offline',
   '/icons/192',
   '/icons/512',
 ]

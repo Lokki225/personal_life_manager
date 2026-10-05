@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { Geist, Geist_Mono } from 'next/font/google'
 
+import { ServiceWorker } from '@/components/offline/service-worker'
 import { I18nProvider } from '@/lib/i18n/client'
 import { getLocale } from '@/lib/i18n/server'
 
@@ -41,6 +42,7 @@ export default async function RootLayout({ children }: LayoutProps<'/'>) {
       <body className="min-h-full flex flex-col bg-background text-foreground selection:bg-[var(--accent-soft)] selection:text-foreground">
         <I18nProvider locale={locale}>
           <ThemeToggle />
+          <ServiceWorker />
           {children}
         </I18nProvider>
       </body>
