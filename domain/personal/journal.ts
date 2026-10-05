@@ -1,15 +1,16 @@
 // The Personal journal: entry kinds, links written into the text, and the
 // small rules around them. No database.
 
-// CAREER_LOG lines are written from Career, and read here with the rest.
-export const JOURNAL_TYPES = ['FREE', 'DAILY', 'DECISION', 'IDEA', 'REVIEW', 'CAREER_LOG'] as const
+// CAREER_LOG lines are written from Career and PROJECT_LOG entries from a
+// project's devlog; both are read here with the rest.
+export const JOURNAL_TYPES = ['FREE', 'DAILY', 'DECISION', 'IDEA', 'REVIEW', 'CAREER_LOG', 'PROJECT_LOG'] as const
 export type JournalType = (typeof JOURNAL_TYPES)[number]
 
 // The kinds a person writes by hand; reviews are written from the review page.
 export const WRITABLE_TYPES = ['FREE', 'DAILY', 'DECISION', 'IDEA'] as const
 
 // Career log lines also link to Career records (Career spec §9.2).
-export const LINK_TARGETS = ['goal', 'task', 'careerGoal', 'careerOpportunity', 'careerFact', 'careerEvidence'] as const
+export const LINK_TARGETS = ['goal', 'task', 'careerGoal', 'careerOpportunity', 'careerFact', 'careerEvidence', 'project', 'projectRelease'] as const
 export type LinkTarget = (typeof LINK_TARGETS)[number]
 
 export type JournalLink = { targetType: LinkTarget; targetId: string; label: string }

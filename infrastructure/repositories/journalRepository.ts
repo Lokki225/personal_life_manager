@@ -152,6 +152,8 @@ export const journalRepository = {
       find('careerOpportunity', (id) => prisma.careerOpportunity.findMany({ where: { userId, id: { in: id } }, select: { id: true } })),
       find('careerFact', (id) => prisma.careerFact.findMany({ where: { userId, id: { in: id } }, select: { id: true } })),
       find('careerEvidence', (id) => prisma.careerEvidence.findMany({ where: { userId, id: { in: id } }, select: { id: true } })),
+      find('project', (id) => prisma.project.findMany({ where: { userId, id: { in: id } }, select: { id: true } })),
+      find('projectRelease', (id) => prisma.projectRelease.findMany({ where: { project: { userId }, id: { in: id } }, select: { id: true } })),
     ])
     return new Set(found.flat())
   },

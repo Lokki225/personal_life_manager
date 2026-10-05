@@ -120,6 +120,18 @@ export const NODES: NodeDef[] = [
   },
 ]
 
+// Projects: shared by every node, not a node (projects spec §3). Reached from
+// the switcher's "All projects" row and the graph's "You" hub; neutral accent.
+export const PROJECTS = { label: m('All projects'), icon: 'folder' as NodeIconName, href: '/projects', access: 'admin' as NodeAccess }
+
+export const canOpenProjects = (isAdmin: boolean) => PROJECTS.access === 'all' || (PROJECTS.access === 'admin' && isAdmin)
+
+// A page of the app outside every node: /projects and its pages.
+export const isGlobalPath = (route: string) => {
+  const path = pathOf(route)
+  return path === PROJECTS.href || path.startsWith(`${PROJECTS.href}/`)
+}
+
 // The path part of a route, without its search params or hash.
 const pathOf = (route: string) => route.split(/[?#]/, 1)[0]
 

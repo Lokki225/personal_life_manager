@@ -7,6 +7,7 @@ export const ENTRY_TYPE_LABELS = {
   IDEA: m('Idea'),
   REVIEW: m('Review'),
   CAREER_LOG: m('Career log'),
+  PROJECT_LOG: m('Devlog'),
 } as const
 
 export const ENTRY_TYPE_HINTS = {
@@ -16,4 +17,5 @@ export const ENTRY_TYPE_HINTS = {
   IDEA: m('A quick thought, to come back to.'),
   REVIEW: m('A look back at a week or a month.'),
   CAREER_LOG: m('A line from the Career quick log.'),
+  PROJECT_LOG: m('An entry in a project’s devlog.'),
 } as const

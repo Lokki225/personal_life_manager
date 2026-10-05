@@ -15,6 +15,8 @@ const HREFS: Record<string, (id: string) => string> = {
   careerOpportunity: (id) => `/career/opportunities/${id}`,
   careerFact: () => '/career/situation',
   careerEvidence: () => '/career/situation',
+  project: (id) => `/projects/${id}`,
+  projectRelease: () => '/projects',
 }
 
 // An entry's text, with its links drawn as chips that open the goal or task.

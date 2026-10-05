@@ -5,7 +5,7 @@ import { X } from 'lucide-react'
 
 import { useT } from '@/lib/i18n/client'
 import { CANVAS, CHIP_HEIGHT, GRAPH_EDGES, HUB, layoutGraph } from '@/lib/nav/graph/layout'
-import { canOpen, NODES, type NodeDef, type NodeId } from '@/lib/nav/registry'
+import { canOpen, canOpenProjects, type NodeDef, type NodeId, NODES, PROJECTS } from '@/lib/nav/registry'
 import { cn } from '@/lib/utils'
 
 import { NodeIcon } from './node-icon'
@@ -28,7 +28,8 @@ export function LifeGraphOverlay({
 }: {
   open: boolean
   origin: { x: number; y: number }
-  current: NodeDef
+  // Null on a page outside every node.
+  current: NodeDef | null
   currentView: string | null
   isAdmin: boolean
   onClose: () => void
@@ -153,16 +154,27 @@ export function LifeGraphOverlay({
               <line key={`${chip.node}-${chip.view}`} x1={node.x} y1={node.y} x2={chip.x} y2={chip.y} style={accent(chip.node)} stroke="var(--c)" strokeOpacity={0.28} strokeWidth={1.4} />
             )
           })}
-          <circle cx={HUB.x} cy={HUB.y} r={HUB.r} className="fill-card stroke-border" />
-          <text x={HUB.x} y={HUB.y + 5} textAnchor="middle" className="fill-foreground text-[13px] font-semibold">
-            {t('You')}
-          </text>
+          {/* The hub: everything that is yours across the nodes, your projects. */}
+          <g
+            role={canOpenProjects(isAdmin) ? 'button' : undefined}
+            data-focus={canOpenProjects(isAdmin) ? true : undefined}
+            tabIndex={open && canOpenProjects(isAdmin) ? 0 : -1}
+            aria-label={canOpenProjects(isAdmin) ? t('Open all projects') : undefined}
+            onClick={() => canOpenProjects(isAdmin) && onGo(PROJECTS.href)}
+            onKeyDown={(event) => canOpenProjects(isAdmin) && activate(event, () => onGo(PROJECTS.href))}
+            className={canOpenProjects(isAdmin) ? 'graph-item group cursor-pointer' : undefined}
+          >
+            <circle cx={HUB.x} cy={HUB.y} r={HUB.r} className="fill-card stroke-border group-hover:stroke-foreground group-focus-visible:stroke-foreground" />
+            <text x={HUB.x} y={HUB.y + 5} textAnchor="middle" className="fill-foreground text-[13px] font-semibold">
+              {t('You')}
+            </text>
+          </g>
         </g>
 
         {laid.nodes.map((laidNode) => {
           const node = byId.get(laidNode.id)!
           const enabled = canOpen(node, isAdmin)
-          const isCurrent = node.id === current.id
+          const isCurrent = node.id === current?.id
           const badge = !enabled ? t('Coming soon') : badges === null ? '…' : (badges[node.id] ?? '')
           const go = () => enabled && onGo(lastRoute(node.id))
 
@@ -206,7 +218,7 @@ export function LifeGraphOverlay({
           const node = byId.get(chip.node)!
           const view = node.views.find((v) => v.id === chip.view)!
           const enabled = canOpen(node, isAdmin)
-          const isCurrent = node.id === current.id && view.id === currentView
+          const isCurrent = node.id === current?.id && view.id === currentView
           const go = () => enabled && onGo(view.href)
 
           return (

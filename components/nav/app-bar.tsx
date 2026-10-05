@@ -5,7 +5,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import { ChevronLeft } from 'lucide-react'
 
 import { useT } from '@/lib/i18n/client'
-import { canOpen, NODES, nodeFromPath, viewFromPath } from '@/lib/nav/registry'
+import { canOpen, isGlobalPath, nodeFromPath, NODES, viewFromPath } from '@/lib/nav/registry'
 import { cn } from '@/lib/utils'
 
 import { StatusPill } from '../offline/status-pill'
@@ -82,11 +82,12 @@ export function AppBar({ isAdmin }: { isAdmin: boolean }) {
     return () => window.removeEventListener('keydown', onKey)
   }, [wide, graphOpen, isAdmin, lastRoute, router, openGraph, closeGraph, goFromGraph])
 
-  if (!node) {
+  // Pages outside every node (/projects) keep the bar, with no node current.
+  if (!node && !isGlobalPath(pathname)) {
     return null
   }
 
-  const view = viewFromPath(node, pathname)
+  const view = node ? viewFromPath(node, pathname) : null
 
   return (
     <>
