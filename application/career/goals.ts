@@ -6,18 +6,33 @@ import { primaryPosition } from '../../domain/career/situation'
 import { startOfDay } from '../../domain/personal/tasks'
 import { careerGoalRepository, type CareerGoalFields, type CareerGoalRepository } from '../../infrastructure/repositories/careerGoalRepository'
 import { careerOpportunityRepository } from '../../infrastructure/repositories/careerOpportunityRepository'
+import { financeRepository } from '../../infrastructure/repositories/financeRepository'
+import { isFinanceRuleError } from '../../domain/finance/errors'
+import { createSavingsGoal } from '../finance/createSavingsGoal'
+import { getChestsWithBalances } from '../finance/getChestsWithBalances'
 import { careerRepository } from '../../infrastructure/repositories/careerRepository'
 import { now as clockNow } from '../../lib/clock'
 
 type Deps = CareerGoalRepository &
   Pick<typeof careerRepository, 'getLocations' | 'updateFact'> & {
     ownsOpportunity: (userId: string, id: string) => Promise<boolean>
+    // What a Career goal costs, saved in Finance.
+    createSavings: (userId: string, input: { name: string; targetAmount: number; alreadySaved: number }) => Promise<{ id: string }>
+    savingsProgress: (userId: string, financeGoalId: string) => Promise<{ name: string; saved: number; target: number } | null>
   }
 const defaultDeps: Deps = {
   ...careerGoalRepository,
   getLocations: careerRepository.getLocations,
   updateFact: careerRepository.updateFact,
   ownsOpportunity: async (userId, id) => (await careerOpportunityRepository.get(userId, id)) !== null,
+  createSavings: (userId, input) => createSavingsGoal(userId, input),
+  savingsProgress: async (userId, financeGoalId) => {
+    const [goal, chests] = await Promise.all([financeRepository.getGoal(userId, financeGoalId), getChestsWithBalances(userId)])
+    const balance = goal?.conditions.find((c) => c.measurement === 'chest_balance' && c.chestId)
+    if (!goal || !balance) return null
+    const chest = chests.find((c) => c.id === balance.chestId)
+    return { name: goal.name, saved: chest?.balance ?? 0, target: balance.targetValue }
+  },
 }
 
 export const IMPORTANCES = ['LOW', 'MEDIUM', 'HIGH'] as const
@@ -42,6 +57,7 @@ export async function getCareerGoal(userId: string, id: string, now: Date = cloc
     deps.linkedOpportunities(userId, id),
   ])
   if (!goal) return null
+  const savings = goal.linkedGoalId ? await deps.savingsProgress(userId, goal.linkedGoalId) : null
 
   const evaluation = evaluateCareerGoal(goal, evidence, now)
   // Side by side (spec §7): "Now" and each linked opportunity, one result
@@ -51,6 +67,7 @@ export async function getCareerGoal(userId: string, id: string, now: Date = cloc
     evaluation: evaluateCareerGoal(goal, evidence, now, { type: 'OPPORTUNITY', id: opportunity.id }),
   }))
   return {
+    savings,
     comparison: columns,
     ...goal,
     evaluation,
@@ -141,6 +158,27 @@ export async function markCriterionReviewed(userId: string, conditionId: string,
 
 async function setState(userId: string, id: string, state: Parameters<Deps['updateGoal']>[2], deps: Deps) {
   if (!(await deps.updateGoal(userId, id, state))) throw new CareerRuleError('This goal no longer exists.')
+}
+
+// What reaching the goal costs (a course, a move, months without pay), saved
+// for in Finance: a savings goal with its chest, whose progress the Career
+// goal shows. Finance stays the only place the money is.
+export async function saveForGoal(
+  userId: string,
+  goalId: string,
+  input: { targetAmount: number; alreadySaved: number },
+  deps: Deps = defaultDeps,
+) {
+  const goal = await deps.getGoal(userId, goalId)
+  if (!goal) throw new CareerRuleError('This goal no longer exists.')
+  if (goal.linkedGoalId) throw new CareerRuleError('This goal is already saved for in Finance.')
+  try {
+    const savings = await deps.createSavings(userId, { name: goal.name, targetAmount: input.targetAmount, alreadySaved: input.alreadySaved })
+    await deps.updateGoal(userId, goalId, { linkedGoalId: savings.id })
+  } catch (error) {
+    if (isFinanceRuleError(error)) throw new CareerRuleError(error.message, error.field === 'name' ? 'targetAmount' : error.field)
+    throw error
+  }
 }
 
 // Achieved is the person's call: the app only says when the criteria are met.

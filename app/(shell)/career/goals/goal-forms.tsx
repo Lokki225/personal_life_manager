@@ -33,6 +33,7 @@ import {
   judgeAction,
   markCriterionReviewedAction,
   removeCriterionAction,
+  saveForGoalAction,
   saveGoalAction,
   supersedeGoalAction,
 } from './actions'
@@ -333,6 +334,36 @@ export function GoalStateActions({ goalId, status, others }: { goalId: string; s
       )}
       <ErrorLine error={error} />
     </div>
+  )
+}
+
+// What reaching the goal costs, saved for in Finance.
+export function SaveForGoalDrawer({ goalId }: { goalId: string }) {
+  const t = useT()
+  const scope = `save-for-${goalId}`
+
+  return (
+    <ActionDrawer
+      title={t('Save for this goal')}
+      description={t('A savings goal and its chest in Finance, named after this goal. Its progress shows here.')}
+      trigger={
+        <Button type="button" variant="outline" className="h-10">
+          {t('Save for it')}
+        </Button>
+      }
+    >
+      {(close) => (
+        <ActionForm action={saveForGoalAction} submitLabel={t('Create in Finance')} onDone={close}>
+          {(state) => (
+            <>
+              <input type="hidden" name="goalId" value={goalId} />
+              <TextField state={state} scope={scope} name="targetAmount" label={t('What it costs ({currency})', { currency: CURRENCY_CODE })} inputMode="numeric" />
+              <TextField state={state} scope={scope} name="alreadySaved" label={t('Already saved (optional)')} inputMode="numeric" />
+            </>
+          )}
+        </ActionForm>
+      )}
+    </ActionDrawer>
   )
 }
 

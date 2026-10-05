@@ -13,7 +13,10 @@ import { cn } from '@/lib/utils'
 
 import { STATUS_LABELS, statusTone } from '../../../personal/goals/goal-labels'
 import { IMPORTANCE_LABELS, isoDay, LEVEL_HINTS, LEVEL_LABELS, RESULT_LABELS } from '../../labels'
-import { AddCriterionDrawer, CriterionActions, GoalDrawer, GoalStateActions, JudgeDrawer } from '../goal-forms'
+import { Meter } from '@/components/ui/meter'
+import { CURRENCY_CODE } from '@/domain/finance/calculations'
+
+import { AddCriterionDrawer, CriterionActions, GoalDrawer, GoalStateActions, JudgeDrawer, SaveForGoalDrawer } from '../goal-forms'
 import { criterionText, sourceText, summaryLines, valueText } from '../goal-text'
 
 export const metadata: Metadata = {
@@ -83,6 +86,26 @@ export default async function CareerGoalPage({ params }: PageProps<'/career/goal
       ) : null}
 
       <GoalStateActions goalId={goal.id} status={status} others={goal.others} />
+
+      {goal.savings ? (
+        <section className="space-y-1.5 rounded-xl border bg-card p-4">
+          <div className="flex flex-wrap items-baseline justify-between gap-2">
+            <h2 className="text-sm font-semibold">{t('Saved in Finance')}</h2>
+            <Link href="/finance/goals" className="text-xs text-node-accent hover:underline">
+              {goal.savings.name}
+            </Link>
+          </div>
+          <Meter
+            value={goal.savings.target > 0 ? Math.min((goal.savings.saved / goal.savings.target) * 100, 100) : 0}
+            tone={goal.savings.saved >= goal.savings.target ? 'success' : 'node'}
+            label={t('{saved} of {target}', { saved: `${t.amount(goal.savings.saved)} ${CURRENCY_CODE}`, target: `${t.amount(goal.savings.target)} ${CURRENCY_CODE}` })}
+          />
+        </section>
+      ) : status !== 'ACHIEVED' && status !== 'ABANDONED' && status !== 'SUPERSEDED' ? (
+        <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+          {t('Does it cost money?')} <SaveForGoalDrawer goalId={goal.id} />
+        </div>
+      ) : null}
 
       <section className="space-y-3">
         <div className="flex flex-wrap items-end justify-between gap-2">

@@ -4,7 +4,7 @@ import { CHOICE_DIMENSIONS, LEVELS, NUMBER_DIMENSIONS, type Criterion } from '@/
 import { isCareerRuleError } from '@/domain/career/errors'
 import { FACT_KINDS } from '@/domain/career/situation'
 import { FormHandler } from '@/lib/forms/FormHandler'
-import { requiredText } from '@/lib/forms/fields'
+import { moneyField, requiredText } from '@/lib/forms/fields'
 
 const options = { isRuleError: isCareerRuleError }
 
@@ -63,6 +63,11 @@ export const judgeSchema = z.object({
 })
 
 export const abandonSchema = z.object({ id, reason: text(280) })
+export const saveForSchema = z.object({
+  goalId: id,
+  targetAmount: moneyField,
+  alreadySaved: z.union([z.literal(''), z.string().trim().regex(/^\d{1,12}$/, 'Use digits only, for example 60000.')]).optional(),
+})
 export const supersedeSchema = z.object({ id, byId: z.string({ error: 'Choose the goal that replaces it.' }).trim().min(1, 'Choose the goal that replaces it.') })
 
 export const goalForm = new FormHandler(goalSchema, options)
@@ -70,3 +75,4 @@ export const criterionForm = new FormHandler(criterionSchema, options)
 export const judgeForm = new FormHandler(judgeSchema, options)
 export const abandonForm = new FormHandler(abandonSchema, options)
 export const supersedeForm = new FormHandler(supersedeSchema, options)
+export const saveForForm = new FormHandler(saveForSchema, options)

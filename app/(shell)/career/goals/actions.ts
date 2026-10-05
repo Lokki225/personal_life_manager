@@ -14,6 +14,7 @@ import {
   removeCriterion,
   reopenGoal,
   resumeGoal,
+  saveForGoal,
   supersedeGoal,
   updateCareerGoal,
 } from '@/application/career/goals'
@@ -26,7 +27,7 @@ import { getT } from '@/lib/i18n/server'
 
 import { canUseCareer } from '../access'
 import { dayOf } from '../situation/schema'
-import { abandonForm, criterionForm, criterionFrom, goalForm, judgeForm, supersedeForm } from './schema'
+import { abandonForm, criterionForm, criterionFrom, goalForm, judgeForm, saveForForm, supersedeForm } from './schema'
 
 const refresh = () => revalidatePath('/career', 'layout')
 
@@ -99,6 +100,22 @@ export async function supersedeGoalAction(_previous: FormState, formData: FormDa
 
   const state = await supersedeForm.submit(formData, (form) => supersedeGoal(user.id, form.id, form.byId, now()))
   if (state.status === 'success') refresh()
+  return translateFormState(state, t)
+}
+
+export async function saveForGoalAction(_previous: FormState, formData: FormData): Promise<FormState> {
+  const [user, t] = await signedIn()
+  setClockZone(user?.timeZone)
+  if (!canUseCareer(user)) return signedOutState(t)
+  if (!(await writesAllowed(user.id))) return tooMany(t)
+
+  const state = await saveForForm.submit(formData, (form) =>
+    saveForGoal(user.id, form.goalId, { targetAmount: form.targetAmount, alreadySaved: form.alreadySaved ? Number(form.alreadySaved) : 0 }),
+  )
+  if (state.status === 'success') {
+    refresh()
+    revalidatePath('/finance', 'layout')
+  }
   return translateFormState(state, t)
 }
 

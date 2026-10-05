@@ -15,6 +15,7 @@ import type { Translator } from '@/lib/i18n/translate'
 import { cn } from '@/lib/utils'
 
 import { conditionLine } from './goal-display'
+import { canUseCareer } from '../../career/access'
 import { NewGoalDrawer } from './goal-forms'
 import { HORIZON_LABELS, STATUS_LABELS, statusTone, TIER_LABELS } from './goal-labels'
 
@@ -48,6 +49,7 @@ export default async function PersonalGoalsPage({ searchParams }: PageProps<'/pe
           </p>
         </div>
         <NewGoalDrawer
+          careerOpen={canUseCareer(user)}
           categories={categories.map(({ id, name }) => ({ id, name }))}
           series={series.map((s) => ({ id: s.id, name: s.label, unit: s.unit }))}
         />

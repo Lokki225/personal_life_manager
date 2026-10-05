@@ -1,5 +1,7 @@
 import type { GoalCondition } from '../../domain/goals/engine'
 import type { CareerEvidence } from '../../domain/goals/careerSources'
+import { incomePerMonth } from '../../domain/career/money'
+import { now as clockNow } from '../../lib/clock'
 import { prisma } from '../prisma/client'
 import { careerRepository } from './careerRepository'
 import { conditionData, toGoalCondition } from './goalRows'
@@ -36,6 +38,7 @@ const toCareerGoal = (row: GoalRow) => {
     pausedAt: row.pausedAt,
     supersededAt: row.supersededAt,
     supersededById: row.supersededById,
+    linkedGoalId: row.linkedGoalId,
     createdAt: row.createdAt,
     group: {
       id: group?.id ?? `${row.id}-criteria`,
@@ -58,6 +61,7 @@ export type CareerGoalState = Partial<{
   supersededById: string | null
   abandonedAt: Date | null
   abandonReason: string | null
+  linkedGoalId: string | null
 }>
 
 export const careerGoalRepository = {
@@ -146,7 +150,7 @@ export const careerGoalRepository = {
   // Everything the Career sources read, for this person, in a few queries.
   // With the date each fact's evidence was linked, to see the data as it stood.
   loadEvidence: async (userId: string): Promise<CareerEvidence & { evidenceDates: Map<string, Date[]> }> => {
-    const [facts, opportunities, judgements] = await Promise.all([
+    const [facts, opportunities, judgements, incomes] = await Promise.all([
       careerRepository.listFacts(userId),
       prisma.careerOpportunity.findMany({
         where: { userId },
@@ -156,7 +160,17 @@ export const careerGoalRepository = {
         where: { condition: { group: { goal: { userId, domain: DOMAIN } } } },
         select: { conditionId: true, subjectType: true, subjectId: true, result: true, judgedAt: true },
       }),
+      careerRepository.listIncomes(userId),
     ])
+    // A position linked to a Finance income is paid what the income says.
+    const now = clockNow()
+    const pay = new Map(incomes.map((income) => [income.id, incomePerMonth(income, now)]))
+    const monthlyPay = (fact: (typeof facts)[number]) =>
+      fact.financeIncomeId && pay.has(fact.financeIncomeId)
+        ? pay.get(fact.financeIncomeId)!
+        : fact.monthlyCompensation === null
+          ? null
+          : Number(fact.monthlyCompensation)
 
     return {
       facts: facts.map((f) => ({
@@ -170,7 +184,7 @@ export const careerGoalRepository = {
         lastReviewedAt: f.lastReviewedAt,
         createdAt: f.createdAt,
         evidenceCount: f.evidence.length,
-        monthlyCompensation: f.monthlyCompensation === null ? null : Number(f.monthlyCompensation),
+        monthlyCompensation: monthlyPay(f),
         workArrangement: f.workArrangement,
         contractType: f.contractType,
         weeklyHours: f.weeklyHours,

@@ -199,6 +199,12 @@ model Goal {
   pausedAt        DateTime?
   supersededAt    DateTime?
   supersededById  String?
+  // Personal: counts for the career. Once achieved, Career offers to add it
+  // as a skill; the offer is answered once.
+  careerRelevant         Boolean   @default(false)
+  careerPromptAnsweredAt DateTime?
+  // Career: the Finance savings goal that pays for it.
+  linkedGoalId           String?
   groups        ConditionGroup[]
   milestones    Milestone[]
   tasks         Task[]

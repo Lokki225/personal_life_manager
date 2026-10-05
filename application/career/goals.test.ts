@@ -1,7 +1,8 @@
 import { describe, expect, it, vi } from 'vitest'
 
 import { conditionOf } from '../../domain/career/criteria'
-import { addCriterion, createCareerGoal, judge, listCareerGoals, markCriterionReviewed, supersedeGoal } from './goals'
+import { FinanceRuleError } from '../../domain/finance/errors'
+import { addCriterion, createCareerGoal, judge, listCareerGoals, markCriterionReviewed, saveForGoal, supersedeGoal } from './goals'
 
 const now = new Date(2026, 9, 7, 12)
 
@@ -54,6 +55,8 @@ function repo(extra: object = {}) {
     loadEvidence: vi.fn(async () => ({ facts: [position], opportunities: [], judgements: [] })),
     getLocations: vi.fn(async () => ['Abidjan']),
     updateFact: vi.fn(async () => true),
+    createSavings: vi.fn(async () => ({ id: 'fin' })),
+    savingsProgress: vi.fn(async () => null),
     ...extra,
   }
 }
@@ -97,5 +100,23 @@ describe('Career goals', () => {
     const r = repo()
     await supersedeGoal('u', 'open', 'done', now, r as never)
     expect(r.updateGoal).toHaveBeenCalledWith('u', 'open', { supersededAt: now, supersededById: 'done' })
+  })
+})
+
+describe('saving for a Career goal', () => {
+  it('creates a Finance savings goal named after it, and keeps the link', async () => {
+    const r = repo({ createSavings: vi.fn(async () => ({ id: 'fin1' })) })
+    await saveForGoal('u', 'open', { targetAmount: 900000, alreadySaved: 100000 }, r as never)
+    expect(r.createSavings).toHaveBeenCalledWith('u', { name: 'open', targetAmount: 900000, alreadySaved: 100000 })
+    expect(r.updateGoal).toHaveBeenCalledWith('u', 'open', { linkedGoalId: 'fin1' })
+  })
+
+  it('happens once, and says Finance’s refusal in Career’s words', async () => {
+    const linked = repo({ getGoal: vi.fn(async () => storedGoal('open', { linkedGoalId: 'fin1' })), createSavings: vi.fn() })
+    await expect(saveForGoal('u', 'open', { targetAmount: 1, alreadySaved: 0 }, linked as never)).rejects.toThrow('already saved for')
+    expect(linked.createSavings).not.toHaveBeenCalled()
+
+    const refused = repo({ createSavings: vi.fn(async () => Promise.reject(new FinanceRuleError('You already have a chest with this name.', 'name'))) })
+    await expect(saveForGoal('u', 'open', { targetAmount: 1, alreadySaved: 0 }, refused as never)).rejects.toMatchObject({ name: 'CareerRuleError' })
   })
 })

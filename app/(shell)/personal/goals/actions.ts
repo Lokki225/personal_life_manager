@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 
-import { abandonGoal, addGoalTask, addMilestone, createPersonalGoal, logGoalValue } from '@/application/personal/goals'
+import { abandonGoal, addGoalTask, addMilestone, createPersonalGoal, logGoalValue, setCareerRelevant } from '@/application/personal/goals'
 import { syncSeries } from '@/application/personal/sync'
 import { isPersonalRuleError } from '@/domain/personal/errors'
 import { addDays, startOfDay } from '@/domain/personal/tasks'
@@ -40,7 +40,7 @@ async function submit(run: (userId: string) => Promise<FormState>): Promise<Form
 export async function createGoalAction(_previous: FormState, formData: FormData): Promise<FormState> {
   return submit((userId) =>
     goalForm.submit(formData, async (goal) => {
-      await createPersonalGoal(
+      const created = await createPersonalGoal(
         userId,
         {
           preset: goal.preset,
@@ -61,8 +61,25 @@ export async function createGoalAction(_previous: FormState, formData: FormData)
         },
         now(),
       )
+      if (goal.careerRelevant) await setCareerRelevant(userId, created.id, true)
     }),
   )
+}
+
+// Whether a goal counts for the career: once reached, Career offers it as a skill.
+export async function careerRelevantAction(goalId: string, value: boolean): Promise<{ error: string | null }> {
+  const [user, t] = await Promise.all([getSignedInUser(), getT()])
+  setClockZone(user?.timeZone)
+  if (!canUsePersonal(user)) return { error: t('Your session has ended. Sign in again to continue.') }
+  if (!(await writesAllowed(user.id))) return { error: t(TOO_MANY_WRITES) }
+  try {
+    await setCareerRelevant(user.id, goalId, value)
+  } catch (error) {
+    if (isPersonalRuleError(error)) return { error: t(error.message) }
+    throw error
+  }
+  revalidatePath('/personal', 'layout')
+  return { error: null }
 }
 
 export async function abandonGoalAction(_previous: FormState, formData: FormData): Promise<FormState> {

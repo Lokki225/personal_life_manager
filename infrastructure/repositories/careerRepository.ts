@@ -20,8 +20,36 @@ export const careerRepository = {
     return prisma.careerFact.findFirst({ where: { id, userId }, include: FACT_INCLUDE })
   },
 
-  createFact: async (userId: string, data: FactInput) => {
+  createFact: async (userId: string, data: FactInput & { financeIncomeId?: string | null }) => {
     return prisma.careerFact.create({ data: { userId, origin: currentOrigin(), ...data }, select: { id: true } })
+  },
+
+  // The person's plan incomes a position's pay can come from.
+  listIncomes: async (userId: string) => {
+    const rows = await prisma.income.findMany({
+      where: { userId, payDay: { not: null } },
+      select: { id: true, source: true, amount: true, frequency: true },
+      orderBy: { createdAt: 'asc' },
+    })
+    return rows.map((row) => ({ ...row, amount: Number(row.amount) }))
+  },
+
+  // Personal goals that count for the career, achieved, whose offer to become
+  // a skill is not answered yet.
+  listSkillSuggestions: async (userId: string) => {
+    return prisma.goal.findMany({
+      where: { userId, domain: 'personal', careerRelevant: true, achievedAt: { not: null }, careerPromptAnsweredAt: null },
+      select: { id: true, name: true, achievedAt: true },
+      orderBy: { achievedAt: 'desc' },
+    })
+  },
+
+  answerSkillSuggestion: async (userId: string, goalId: string, at: Date) => {
+    const { count } = await prisma.goal.updateMany({
+      where: { id: goalId, userId, domain: 'personal', careerRelevant: true, careerPromptAnsweredAt: null },
+      data: { careerPromptAnsweredAt: at },
+    })
+    return count > 0
   },
 
   // Resolves to false when the fact is not this person's.

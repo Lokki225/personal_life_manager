@@ -195,6 +195,7 @@ export async function getPersonalGoal(userId: string, goalId: string, now: Date 
     category: goal.category,
     tree: goal.tree,
     abandonReason: goal.abandonReason,
+    careerRelevant: goal.careerRelevant,
     preset: evaluation.completion[0] ? presetOf(evaluation.completion[0].condition, goal.tree.lifecycle) : null,
     evaluation,
     tasks: tasks
@@ -205,6 +206,12 @@ export async function getPersonalGoal(userId: string, goalId: string, now: Date 
     sync,
     entries: entries.map((e) => ({ value: Number(e.value), recordedAt: e.recordedAt })),
   }
+}
+
+// A goal that counts for the career: once achieved, Career offers to add it
+// as a skill.
+export async function setCareerRelevant(userId: string, goalId: string, value: boolean, deps: Deps = defaultDeps) {
+  if (!(await deps.setCareerRelevant(userId, goalId, value))) throw new PersonalRuleError('This goal no longer exists.')
 }
 
 // Abandoning is the only manual status. A reason given is also kept in the
