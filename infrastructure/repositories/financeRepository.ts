@@ -153,8 +153,7 @@ export interface IncomeRepository {
   // The plan's incomes only; money that came once is listed apart.
   listIncomes: (userId: string) => Promise<PlanIncomeRecord[]>
   listOneOffIncomes: (userId: string, since?: Date) => Promise<IncomeRecord[]>
-  updateIncome: (id: string, data: UpdateIncomeData) => Promise<IncomeRecord>
-  deleteIncome: (id: string) => Promise<IncomeRecord>
+  updateIncome: (userId: string, id: string, data: UpdateIncomeData) => Promise<IncomeRecord>
   // Deletes one of the user's incomes along with its confirmations. Money
   // those confirmations already placed in chests stays there.
   removeIncome: (userId: string, id: string) => Promise<void>
@@ -163,19 +162,19 @@ export interface IncomeRepository {
 export interface AllocationRepository {
   createAllocation: (userId: string, data: CreateAllocationData) => Promise<AllocationRecord>
   listAllocations: (userId: string) => Promise<AllocationRecord[]>
-  updateAllocation: (id: string, data: UpdateAllocationData) => Promise<AllocationRecord>
-  deleteAllocation: (id: string) => Promise<AllocationRecord>
+  updateAllocation: (userId: string, id: string, data: UpdateAllocationData) => Promise<AllocationRecord>
+  deleteAllocation: (userId: string, id: string) => Promise<AllocationRecord>
 }
 
 export interface ExpenseRepository {
   createExpense: (userId: string, data: CreateExpenseData) => Promise<ExpenseRecord>
   listExpenses: (userId: string) => Promise<ExpenseRecordWithProject[]>
-  updateExpense: (id: string, data: UpdateExpenseData) => Promise<ExpenseRecord>
-  deleteExpense: (id: string) => Promise<ExpenseRecord>
+  updateExpense: (userId: string, id: string, data: UpdateExpenseData) => Promise<ExpenseRecord>
+  deleteExpense: (userId: string, id: string) => Promise<ExpenseRecord>
   // An expense paid from a chest, with the money leaving that chest, together.
   createChestExpense: (userId: string, data: ChestExpenseData) => Promise<void>
   // Changes it, and the money taken from the chest with it.
-  updateChestExpense: (id: string, data: { amount: number; category: string; description: string | null }) => Promise<void>
+  updateChestExpense: (userId: string, id: string, data: { amount: number; category: string; description: string | null }) => Promise<void>
 }
 
 export type ChestExpenseData = {
@@ -205,8 +204,8 @@ export type UpdateBudgetExceptionData = Partial<CreateBudgetExceptionData>
 export interface BudgetExceptionRepository {
   createBudgetException: (userId: string, data: CreateBudgetExceptionData) => Promise<BudgetExceptionRecord>
   listBudgetExceptions: (userId: string) => Promise<BudgetExceptionRecord[]>
-  updateBudgetException: (id: string, data: UpdateBudgetExceptionData) => Promise<BudgetExceptionRecord>
-  deleteBudgetException: (id: string) => Promise<BudgetExceptionRecord>
+  updateBudgetException: (userId: string, id: string, data: UpdateBudgetExceptionData) => Promise<BudgetExceptionRecord>
+  deleteBudgetException: (userId: string, id: string) => Promise<BudgetExceptionRecord>
 }
 
 export type ProjectRecord = NonNullable<Awaited<ReturnType<typeof prisma.project.findFirst>>>
@@ -267,9 +266,6 @@ export type CreateGoalData = {
 export interface ChestRepository {
   createChest: (userId: string, data: CreateChestData) => Promise<ChestRecord>
   listChests: (userId: string) => Promise<ChestRecord[]>
-  getChest: (id: string) => Promise<ChestRecord | null>
-  updateChest: (id: string, data: UpdateChestData) => Promise<ChestRecord>
-  deleteChest: (id: string) => Promise<ChestRecord>
   // Deletes one of the user's chests and unlinks it from past movements, so
   // the balances of the other chests stay exactly as they were.
   removeChest: (userId: string, chestId: string) => Promise<void>
@@ -283,8 +279,7 @@ export interface MovementRepository {
 export interface GoalRepository {
   createGoal: (userId: string, data: CreateGoalData) => Promise<GoalRecordWithConditions>
   listGoals: (userId: string) => Promise<GoalRecordWithConditions[]>
-  getGoal: (id: string) => Promise<GoalRecordWithConditions | null>
-  deleteGoal: (id: string) => Promise<GoalRecord>
+  getGoal: (userId: string, id: string) => Promise<GoalRecordWithConditions | null>
   // A savings goal in one step: its chest, the goal with its balance
   // condition, and the first contribution. All of it, or nothing.
   createSavingsGoal: (userId: string, data: CreateSavingsGoalData) => Promise<GoalRecord>
@@ -300,8 +295,8 @@ export type CreateSavingsGoalData = {
 export interface ProjectRepository {
   createProject: (userId: string, data: CreateProjectData) => Promise<ProjectRecord>
   listProjects: (userId: string) => Promise<ProjectRecord[]>
-  updateProject: (id: string, data: UpdateProjectData) => Promise<ProjectRecord>
-  deleteProject: (id: string) => Promise<ProjectRecord>
+  updateProject: (userId: string, id: string, data: UpdateProjectData) => Promise<ProjectRecord>
+  deleteProject: (userId: string, id: string) => Promise<ProjectRecord>
 }
 
 
@@ -606,18 +601,14 @@ export const financeRepository: SetupPlanRepository &
     })
   },
 
-  updateIncome: async (id: string, data: UpdateIncomeData) => {
+  updateIncome: async (userId: string, id: string, data: UpdateIncomeData) => {
     return prisma.income.update({
-      where: { id },
+      where: { id, userId },
       data: {
         ...data,
         amount: data.amount === undefined ? undefined : Number(data.amount),
       },
     })
-  },
-
-  deleteIncome: async (id: string) => {
-    return prisma.income.delete({ where: { id } })
   },
 
   removeIncome: async (userId: string, id: string) => {
@@ -661,7 +652,7 @@ export const financeRepository: SetupPlanRepository &
     })
   },
 
-  updateAllocation: async (id: string, data: UpdateAllocationData) => {
+  updateAllocation: async (userId: string, id: string, data: UpdateAllocationData) => {
     const updateData: Record<string, unknown> = { ...data }
 
     if (data.amount !== undefined) {
@@ -669,13 +660,13 @@ export const financeRepository: SetupPlanRepository &
     }
 
     return prisma.allocation.update({
-      where: { id },
+      where: { id , userId },
       data: updateData as Parameters<typeof prisma.allocation.update>[0]['data'],
     })
   },
 
-  deleteAllocation: async (id: string) => {
-    return prisma.allocation.delete({ where: { id } })
+  deleteAllocation: async (userId: string, id: string) => {
+    return prisma.allocation.delete({ where: { id, userId } })
   },
 
   createExpense: async (userId: string, data: CreateExpenseData) => {
@@ -724,7 +715,7 @@ export const financeRepository: SetupPlanRepository &
     })
   },
 
-  updateExpense: async (id: string, data: UpdateExpenseData) => {
+  updateExpense: async (userId: string, id: string, data: UpdateExpenseData) => {
     const updateData: Record<string, unknown> = { ...data }
 
     if (data.amount !== undefined) {
@@ -732,14 +723,14 @@ export const financeRepository: SetupPlanRepository &
     }
 
     return prisma.expense.update({
-      where: { id },
+      where: { id , userId },
       data: updateData as Parameters<typeof prisma.expense.update>[0]['data'],
     })
   },
 
-  deleteExpense: async (id: string) => {
+  deleteExpense: async (userId: string, id: string) => {
     // The money it took from a chest goes back with it (the movement cascades).
-    return prisma.expense.delete({ where: { id } })
+    return prisma.expense.delete({ where: { id, userId } })
   },
 
   createChestExpense: async (userId: string, data: ChestExpenseData) => {
@@ -773,10 +764,10 @@ export const financeRepository: SetupPlanRepository &
     })
   },
 
-  updateChestExpense: async (id: string, data: { amount: number; category: string; description: string | null }) => {
+  updateChestExpense: async (userId: string, id: string, data: { amount: number; category: string; description: string | null }) => {
     await prisma.$transaction([
-      prisma.expense.update({ where: { id }, data }),
-      prisma.moneyMovement.updateMany({ where: { expenseId: id }, data: { amount: data.amount, notes: data.description } }),
+      prisma.expense.update({ where: { id, userId }, data }),
+      prisma.moneyMovement.updateMany({ where: { expenseId: id, userId }, data: { amount: data.amount, notes: data.description } }),
     ])
   },
 
@@ -821,7 +812,7 @@ export const financeRepository: SetupPlanRepository &
     })
   },
 
-  updateBudgetException: async (id: string, data: UpdateBudgetExceptionData) => {
+  updateBudgetException: async (userId: string, id: string, data: UpdateBudgetExceptionData) => {
     const updateData: Record<string, unknown> = { ...data }
 
     if (data.plannedAmount !== undefined) {
@@ -837,13 +828,13 @@ export const financeRepository: SetupPlanRepository &
     }
 
     return prisma.budgetException.update({
-      where: { id },
+      where: { id , userId },
       data: updateData as Parameters<typeof prisma.budgetException.update>[0]['data'],
     })
   },
 
-  deleteBudgetException: async (id: string) => {
-    return prisma.budgetException.delete({ where: { id } })
+  deleteBudgetException: async (userId: string, id: string) => {
+    return prisma.budgetException.delete({ where: { id, userId } })
   },
 
 
@@ -869,17 +860,17 @@ export const financeRepository: SetupPlanRepository &
     })
   },
 
-  updateProject: async (id: string, data: UpdateProjectData) => {
+  updateProject: async (userId: string, id: string, data: UpdateProjectData) => {
     const updateData: Record<string, unknown> = { ...data }
 
     return prisma.project.update({
-      where: { id },
+      where: { id, userId },
       data: updateData as Parameters<typeof prisma.project.update>[0]['data'],
     })
   },
 
-  deleteProject: async (id: string) => {
-    return prisma.project.delete({ where: { id } })
+  deleteProject: async (userId: string, id: string) => {
+    return prisma.project.delete({ where: { id, userId } })
   },
 
     createChest: async (userId: string, data: CreateChestData) => {
@@ -905,23 +896,6 @@ export const financeRepository: SetupPlanRepository &
       where: { userId },
       orderBy: { createdAt: 'asc' },
     })
-  },
-
-  getChest: async (id: string) => {
-    return prisma.chest.findUnique({ where: { id } })
-  },
-
-  updateChest: async (id: string, data: UpdateChestData) => {
-    return prisma.chest.update({
-      where: { id },
-      data: data as Parameters<typeof prisma.chest.update>[0]['data'],
-    })
-  },
-
-  deleteChest: async (id: string) => {
-    // NOTE: this does not check isSystem — that guard belongs in the
-    // use-case layer (application/finance/deleteChest.ts), not here.
-    return prisma.chest.delete({ where: { id } })
   },
 
   removeChest: async (userId: string, chestId: string) => {
@@ -1059,12 +1033,8 @@ export const financeRepository: SetupPlanRepository &
     return goals.map(toFinanceGoal)
   },
 
-  getGoal: async (id: string) => {
-    const goal = await prisma.goal.findFirst({ where: { id, domain: 'finance' }, include: FINANCE_GOAL_INCLUDE })
+  getGoal: async (userId: string, id: string) => {
+    const goal = await prisma.goal.findFirst({ where: { id, userId, domain: 'finance' }, include: FINANCE_GOAL_INCLUDE })
     return goal ? toFinanceGoal(goal) : null
-  },
-
-  deleteGoal: async (id: string) => {
-    return prisma.goal.delete({ where: { id } })
   },
 }

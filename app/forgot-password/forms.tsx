@@ -123,7 +123,7 @@ export function ResetPasswordForm({ token }: { token: string }) {
           autoFocus
           className={FIELD_CLASS}
         />
-        <p className="text-xs text-muted-foreground">{t('At least 8 characters.')}</p>
+        <p className="text-xs text-muted-foreground">{t('At least 10 characters.')}</p>
         <FieldError state={state} name="password" />
       </div>
       <div className="grid gap-2">

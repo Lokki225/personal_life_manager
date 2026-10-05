@@ -16,7 +16,7 @@ const errorsOf = (entries: Record<string, string>) => {
 }
 
 describe('sign-up form', () => {
-  it('accepts an email and a matching password of 8 characters or more', () => {
+  it('accepts an email and a matching password of 10 characters or more', () => {
     expect(signUpForm.parse(formDataOf(valid))).toEqual({ ok: true, data: valid })
     expect(signUpForm.parse(formDataOf({ ...valid, timeZone: 'Africa/Abidjan' })).ok).toBe(true)
   })
@@ -33,7 +33,7 @@ describe('sign-up form', () => {
     // The nickname is optional.
     expect(signUpForm.parse(formDataOf({ ...valid, username: 'Wawa' })).ok).toBe(true)
     expect(errorsOf({ ...valid, password: 'short', confirmPassword: 'short' })).toEqual({
-      password: ['Use at least 8 characters.'],
+      password: ['Use at least 10 characters.'],
     })
     expect(errorsOf({ ...valid, confirmPassword: 'something-else' })).toEqual({
       confirmPassword: ['The two passwords do not match.'],

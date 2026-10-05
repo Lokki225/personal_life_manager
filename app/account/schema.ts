@@ -27,7 +27,8 @@ export const emailField = z
 // bcrypt only reads the first 72 bytes of a password.
 export const newPasswordField = z
   .string({ error: 'Choose a password.' })
-  .min(8, 'Use at least 8 characters.')
+  // New passwords only: existing ones keep working.
+  .min(10, 'Use at least 10 characters.')
   .max(72, 'Use at most 72 characters.')
 
 export const profileSchema = z.object({

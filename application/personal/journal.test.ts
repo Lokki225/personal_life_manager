@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 
-import { createEntry, deleteEntry, lockEntry, removeLock, saveDailyNote, updateEntry, visibleEntry } from './journal'
+import { createEntry, deleteEntry, lockEntry, removeLock, saveDailyNote, unlockEntry, updateEntry, visibleEntry } from './journal'
 
 const day = new Date(2026, 9, 7, 21, 30)
 const input = { type: 'FREE' as const, title: null, body: 'A good day.', mood: null, energy: null, entryDate: day, reviewOn: null }
@@ -78,10 +78,19 @@ describe('locked entries', () => {
     expect(r.updateEntry).toHaveBeenCalled()
   })
 
+  // A limiter that remembers wrong passwords in memory.
+  const guard = () => {
+    const hits: string[] = []
+    return {
+      isLimited: async (key: string, limit: number) => hits.filter((hit) => hit === key).length >= limit,
+      recordAttempt: async (key: string) => void hits.push(key),
+    }
+  }
+
   it('lose their lock only with the current password', async () => {
     const r = locked()
-    await expect(removeLock('u', 'e', 'guess', r as never)).rejects.toMatchObject({ field: 'password' })
-    await removeLock('u', 'e', 'open sesame', r as never)
+    await expect(removeLock('u', 'e', 'guess', r as never, guard())).rejects.toMatchObject({ field: 'password' })
+    await removeLock('u', 'e', 'open sesame', r as never, guard())
     expect(r.setLock).toHaveBeenCalledWith('u', 'e', null)
   })
 
@@ -91,6 +100,14 @@ describe('locked entries', () => {
     await lockEntry('u', 'e', 'open sesame', r as never)
     expect(r.setLock).toHaveBeenCalledWith('u', 'e', 'open sesame')
     await expect(lockEntry('u', 'e', 'open sesame', locked() as never)).rejects.toThrow('This entry is already locked.')
+  })
+
+  it('stop taking guesses after 5 wrong passwords, even the right one', async () => {
+    const r = locked()
+    const g = guard()
+    for (let i = 0; i < 5; i++) expect(await unlockEntry('u', 'e', `guess ${i}`, r as never, g)).toBe(false)
+    await expect(unlockEntry('u', 'e', 'open sesame', r as never, g)).rejects.toThrow('Too many wrong passwords. Try again in 15 minutes.')
+    expect(await unlockEntry('u', 'e', 'open sesame', r as never, guard())).toBe(true)
   })
 
   it('show only their date and kind until unlocked', () => {

@@ -139,7 +139,7 @@ describe('recordDailyException', () => {
     await recordDailyException({ userId: 'user-1', category: 'food', reason: 'Dinner out' }, deps, today)
 
     expect(deps.update).toHaveBeenCalledTimes(1)
-    expect(deps.update).toHaveBeenCalledWith('waiting', { category: 'food', reason: 'Dinner out' })
+    expect(deps.update).toHaveBeenCalledWith('user-1', 'waiting', { category: 'food', reason: 'Dinner out' })
     expect(deps.create).not.toHaveBeenCalled()
   })
 })

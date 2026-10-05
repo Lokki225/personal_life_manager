@@ -27,18 +27,20 @@ type ManageExpenseDeps = {
   listExpenses: (userId: string) => Promise<ExpenseRow[]>
   listExceptions: (userId: string) => Promise<ExceptionRow[]>
   updateExpense: (
+    userId: string,
     id: string,
     data: { amount: number; category: string; description: string | null },
   ) => Promise<unknown>
-  deleteExpense: (id: string) => Promise<unknown>
+  deleteExpense: (userId: string, id: string) => Promise<unknown>
   createException: (input: Parameters<typeof createBudgetException>[0]) => Promise<unknown>
   updateException: (
+    userId: string,
     id: string,
     data: { plannedAmount: number; actualAmount: number; difference: number },
   ) => Promise<unknown>
-  deleteException: (id: string) => Promise<unknown>
+  deleteException: (userId: string, id: string) => Promise<unknown>
   listChests: (userId: string) => Promise<ChestRow[]>
-  updateChestExpense: (id: string, data: { amount: number; category: string; description: string | null }) => Promise<unknown>
+  updateChestExpense: (userId: string, id: string, data: { amount: number; category: string; description: string | null }) => Promise<unknown>
 }
 
 const defaultDeps: ManageExpenseDeps = {
@@ -110,12 +112,12 @@ async function syncTodayExceptions(
 
     for (const exception of over > 0 ? duplicates : [linked, ...duplicates]) {
       if (exception) {
-        await deps.deleteException(exception.id)
+        await deps.deleteException(userId, exception.id)
       }
     }
 
     if (over > 0 && linked) {
-      await deps.updateException(linked.id, figures)
+      await deps.updateException(userId, linked.id, figures)
     } else if (over > 0) {
       await deps.createException({
         userId,
@@ -156,11 +158,11 @@ export async function editExpense(
       }
     }
 
-    await deps.updateChestExpense(expense.id, change)
+    await deps.updateChestExpense(userId, expense.id, change)
     return
   }
 
-  await deps.updateExpense(expense.id, change)
+  await deps.updateExpense(userId, expense.id, change)
   await syncTodayExceptions(userId, state, deps, today)
 }
 
@@ -175,9 +177,9 @@ export async function removeExpense(
 
   // Its exception goes with it, rather than staying behind with no expense.
   for (const exception of exceptions.filter((candidate) => candidate.expenseId === id)) {
-    await deps.deleteException(exception.id)
+    await deps.deleteException(userId, exception.id)
   }
 
-  await deps.deleteExpense(id)
+  await deps.deleteExpense(userId, id)
   await syncTodayExceptions(userId, state, deps, today)
 }

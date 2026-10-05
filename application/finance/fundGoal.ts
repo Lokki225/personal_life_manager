@@ -19,7 +19,7 @@ export async function fundGoal(
   sourceChestId: string,
   deps: FundGoalDeps = defaultDeps,
 ) {
-  const goal = await deps.getGoal(goalId)
+  const goal = await deps.getGoal(userId, goalId)
 
   // A goal that belongs to someone else is reported exactly like a missing one.
   if (!goal || goal.userId !== userId) {
