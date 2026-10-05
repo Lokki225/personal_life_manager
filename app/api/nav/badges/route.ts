@@ -1,4 +1,5 @@
 import { getBadges } from '@/application/nav/badges'
+import { badgesAllowed } from '@/infrastructure/auth/limits'
 import { getSignedInUser } from '@/infrastructure/auth/sessionUser'
 import { now, setClockZone } from '@/lib/clock'
 import { getT } from '@/lib/i18n/server'
@@ -12,6 +13,10 @@ export async function GET() {
 
   if (!user) {
     return Response.json({ error: 'unauthorized' }, { status: 401 })
+  }
+
+  if (!(await badgesAllowed(user.id))) {
+    return Response.json({ error: 'rate_limited' }, { status: 429 })
   }
 
   const isAdmin = user.role === 'ADMIN'

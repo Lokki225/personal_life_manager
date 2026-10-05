@@ -1581,6 +1581,10 @@ export const FR: Messages = {
     "Not sent": "Non envoyé",
     "Discard": "Abandonner",
     "{count} not sent": "{count} non envoyé(s)",
+
+    // --- Rate limits -------------------------------------------------------------
+    "Too many changes in a minute. Wait a moment and try again.": "Trop de modifications en une minute. Patientez un instant et réessayez.",
+    "Wait a minute before syncing again.": "Attendez une minute avant de synchroniser à nouveau.",
   },
 
   // Text that arrives already filled in. More specific patterns come first.

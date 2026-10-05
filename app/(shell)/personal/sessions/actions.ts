@@ -5,6 +5,7 @@ import { z } from 'zod'
 
 import { logSession, startSession, stopSession } from '@/application/personal/sessions'
 import { isPersonalRuleError } from '@/domain/personal/errors'
+import { TOO_MANY_WRITES, writesAllowed } from '@/infrastructure/auth/limits'
 import { getSignedInUser } from '@/infrastructure/auth/sessionUser'
 import { now, setClockZone } from '@/lib/clock'
 import { FormHandler } from '@/lib/forms/FormHandler'
@@ -22,6 +23,10 @@ async function run(task: (userId: string) => Promise<unknown>): Promise<{ error:
 
   if (!canUsePersonal(user)) {
     return { error: t('Your session has ended. Sign in again to continue.') }
+  }
+
+  if (!(await writesAllowed(user.id))) {
+    return { error: t(TOO_MANY_WRITES) }
   }
 
   try {
@@ -62,6 +67,10 @@ export async function logSessionAction(_previous: FormState, formData: FormData)
 
   if (!canUsePersonal(user)) {
     return signedOutState(t)
+  }
+
+  if (!(await writesAllowed(user.id))) {
+    return { status: 'error', fieldErrors: {}, formErrors: [t(TOO_MANY_WRITES)] }
   }
 
   const state = await logForm.submit(formData, async (session) => {

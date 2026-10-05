@@ -6,6 +6,7 @@ import { abandonGoal, addGoalTask, addMilestone, createPersonalGoal, logGoalValu
 import { syncSeries } from '@/application/personal/sync'
 import { isPersonalRuleError } from '@/domain/personal/errors'
 import { addDays, startOfDay } from '@/domain/personal/tasks'
+import { chessSyncAllowed, TOO_MANY_WRITES, writesAllowed } from '@/infrastructure/auth/limits'
 import { getSignedInUser } from '@/infrastructure/auth/sessionUser'
 import { now, setClockZone } from '@/lib/clock'
 import { signedOutState, translateFormState, type FormState } from '@/lib/forms/formState'
@@ -21,6 +22,10 @@ async function submit(run: (userId: string) => Promise<FormState>): Promise<Form
 
   if (!canUsePersonal(user)) {
     return signedOutState(t)
+  }
+
+  if (!(await writesAllowed(user.id))) {
+    return { status: 'error', fieldErrors: {}, formErrors: [t(TOO_MANY_WRITES)] }
   }
 
   const state = await run(user.id)
@@ -96,6 +101,15 @@ export async function syncNowAction(seriesId: string): Promise<{ error: string |
 
   if (!canUsePersonal(user)) {
     return { error: t('Your session has ended. Sign in again to continue.') }
+  }
+
+  if (!(await writesAllowed(user.id))) {
+    return { error: t(TOO_MANY_WRITES) }
+  }
+
+  // chess.com is read at most once a minute on demand.
+  if (!(await chessSyncAllowed(user.id))) {
+    return { error: t('Wait a minute before syncing again.') }
   }
 
   try {

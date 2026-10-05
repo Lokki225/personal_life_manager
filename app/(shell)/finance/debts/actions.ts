@@ -5,6 +5,7 @@ import { revalidatePath } from 'next/cache'
 import { notifyLater } from '@/app/notify-later'
 import { recordDebt, repayDebt } from '@/application/finance/debts'
 import { notifyReachedGoals } from '@/application/notifications/instant'
+import { TOO_MANY_WRITES, writesAllowed } from '@/infrastructure/auth/limits'
 import { getSignedInUser } from '@/infrastructure/auth/sessionUser'
 import { setClockZone } from '@/lib/clock'
 import { signedOutState, translateFormState, type FormState } from '@/lib/forms/formState'
@@ -20,6 +21,10 @@ export async function createDebtAction(_previousState: FormState, formData: Form
 
   if (!userId) {
     return signedOutState(t)
+  }
+
+  if (!(await writesAllowed(userId))) {
+    return { status: 'error', fieldErrors: {}, formErrors: [t(TOO_MANY_WRITES)] }
   }
 
   const state = await debtForm.submit(formData, (debt) =>
@@ -53,6 +58,10 @@ export async function repayDebtAction(_previousState: FormState, formData: FormD
 
   if (!userId) {
     return signedOutState(t)
+  }
+
+  if (!(await writesAllowed(userId))) {
+    return { status: 'error', fieldErrors: {}, formErrors: [t(TOO_MANY_WRITES)] }
   }
 
   const state = await repayForm.submit(formData, (repayment) =>
