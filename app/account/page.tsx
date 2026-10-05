@@ -152,6 +152,11 @@ export default async function AccountPage() {
             <Download className="size-4" aria-hidden="true" />
             {t('Export my data')}
           </a>
+          <p className="text-sm text-muted-foreground">
+            <Link href="/privacy" className="underline underline-offset-4 hover:text-foreground">
+              {t('What the app keeps about you, and who sees it')}
+            </Link>
+          </p>
         </CardContent>
       </Card>
 

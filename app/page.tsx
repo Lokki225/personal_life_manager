@@ -267,8 +267,11 @@ export default async function Home() {
         </section>
       </main>
 
-      <footer className="mt-auto border-t py-6 text-xs text-muted-foreground">
-        &copy; {new Date().getFullYear()} Personal Life Manager
+      <footer className="mt-auto flex flex-wrap justify-between gap-2 border-t py-6 text-xs text-muted-foreground">
+        <span>&copy; {new Date().getFullYear()} Personal Life Manager</span>
+        <Link href="/privacy" className="underline-offset-4 hover:text-foreground hover:underline">
+          {t('Privacy')}
+        </Link>
       </footer>
     </div>
   )
