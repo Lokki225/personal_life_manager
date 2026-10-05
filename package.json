@@ -15,7 +15,8 @@
     "lint": "eslint",
     "test": "vitest run",
     "test:watch": "vitest --watch",
-    "postinstall": "prisma generate"
+    "postinstall": "prisma generate",
+    "test:authz": "vitest run --config vitest.authz.config.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.131.0",
