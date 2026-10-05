@@ -15,6 +15,8 @@ import { now as clockNow, setClockZone } from '@/lib/clock'
 import { getT } from '@/lib/i18n/server'
 import { m } from '@/lib/i18n/translate'
 import { cn } from '@/lib/utils'
+import { SaveSnapshot } from '@/components/offline/save-snapshot'
+import { isoDay } from '@/lib/offline/snapshots'
 
 import { LogoTile } from '../../logo'
 import { categoryStyle, eventStyle } from './categories'
@@ -119,6 +121,26 @@ export default async function FinanceTodayPage() {
 
   return (
     <main className="mx-auto w-full max-w-5xl space-y-4 px-4 py-6 sm:px-6">
+      <SaveSnapshot
+        snapshotKey="finance.today"
+        data={{
+          day: isoDay(now),
+          budget: state.dailyBudget,
+          spent: state.dailySpent,
+          saved: state.savedToday,
+          monthSpent: state.monthlySpent,
+          monthBudget: state.periodBudget,
+          totalSaved: state.totalSaved,
+          expenses: state.dailyExpenses.map((e) => ({
+            amount: e.amount,
+            category: e.category,
+            description: e.description ?? null,
+            paidFromChest: e.paidFromChest,
+          })),
+          chests: state.chests.map((c) => ({ name: c.name, balance: c.balance })),
+          goals: state.goals.map((g) => ({ name: g.name, satisfied: g.satisfied })),
+        }}
+      />
       <header className="space-y-4">
         <Link href="/" className="inline-flex min-h-11 items-center gap-2.5">
           <LogoTile className="size-8" />

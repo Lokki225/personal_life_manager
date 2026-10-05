@@ -372,3 +372,16 @@ export function getDailyFinanceStatus(
     message: `You can still save ${formatCurrency(remaining)} today.`,
   }
 }
+
+// What is left of the day and how far it is over, from its budget, what was
+// spent against it and what was saved from it (saved money is committed too,
+// so spending after saving can still put the day over). Shared by the server
+// and the offline Today screen, so the two can never disagree.
+export function todayFigures(input: { budget: number; spent: number; saved: number }): { remaining: number; overspend: number } {
+  const used = input.spent + input.saved
+  return {
+    remaining: Math.max(input.budget - used, 0),
+    // Without a daily budget there is nothing to be over.
+    overspend: input.budget > 0 ? Math.max(used - input.budget, 0) : 0,
+  }
+}

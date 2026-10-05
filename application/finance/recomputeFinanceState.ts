@@ -5,6 +5,7 @@ import {
   isUncoveredDay,
   monthlyAmount,
   monthlyLivingBudget,
+  todayFigures,
   uncoveredDayBudget,
   type BudgetPeriod,
 } from '../../domain/finance/calculations'
@@ -258,11 +259,11 @@ export async function recomputeFinanceState(input: RecomputeFinanceStateInput): 
   const coveredToday = uncoveredDay ? 0 : drawnToday
   const dailyBudgetAmount = uncoveredDay ? reserveBudget : plannedDailyBudget + coveredToday
 
-  const dailyRemaining = Math.max(dailyBudgetAmount - dailySpent - todaySavingMovement, 0)
-  // What was saved today is committed too, so spending after saving can still
-  // put the day over. Without a daily budget there is nothing to be over.
-  const dailyOverspend =
-    dailyBudgetAmount > 0 ? Math.max(dailySpent + todaySavingMovement - dailyBudgetAmount, 0) : 0
+  const { remaining: dailyRemaining, overspend: dailyOverspend } = todayFigures({
+    budget: dailyBudgetAmount,
+    spent: dailySpent,
+    saved: todaySavingMovement,
+  })
 
   const exceptionDates = budgetExceptions.map((exception) => new Date(exception.date ?? referenceDate))
   const monthExceptionCount = exceptionDates.filter((date) => date >= startOfPeriod && date <= endOfPeriod).length

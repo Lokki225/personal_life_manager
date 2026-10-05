@@ -19,6 +19,7 @@ import {
   splitReserveDraw,
   debtTotal,
   debtOutstanding,
+  todayFigures,
   daysInPeriod,
   formatCurrency,
   getDailyFinanceStatus,
@@ -259,5 +260,16 @@ describe('finance calculations', () => {
       tone: 'rose',
       message: 'You are over your daily budget by XOF 150.00.',
     })
+  })
+})
+
+describe('todayFigures', () => {
+  it('leaves the budget less what was spent and saved, never below zero', () => {
+    expect(todayFigures({ budget: 2000, spent: 500, saved: 300 })).toEqual({ remaining: 1200, overspend: 0 })
+    expect(todayFigures({ budget: 2000, spent: 1800, saved: 500 })).toEqual({ remaining: 0, overspend: 300 })
+  })
+
+  it('is never over without a daily budget', () => {
+    expect(todayFigures({ budget: 0, spent: 800, saved: 0 })).toEqual({ remaining: 0, overspend: 0 })
   })
 })
