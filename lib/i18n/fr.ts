@@ -1660,6 +1660,13 @@ export const FR: Messages = {
     "What the app keeps about you, where, who else sees it, and how to take it back.": "Ce que l’app garde sur vous, où, qui d’autre le voit, et comment le reprendre.",
     "Back to my account": "Retour à mon compte",
     "Back to the home page": "Retour à l’accueil",
+
+    // --- Goal engine v2 and Career log -------------------------------------------
+    "Criteria met": "Critères remplis",
+    "Paused": "En pause",
+    "Replaced": "Remplacé",
+    "Career log": "Journal de carrière",
+    "A line from the Career quick log.": "Une ligne du journal rapide de Carrière.",
   },
 
   // Text that arrives already filled in. More specific patterns come first.

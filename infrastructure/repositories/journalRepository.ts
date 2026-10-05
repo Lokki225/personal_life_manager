@@ -127,7 +127,7 @@ export const journalRepository = {
     const [goals, tasks] = await Promise.all([
       prisma.goal.findMany({ where: { userId, domain: 'personal', abandonedAt: null }, select: { id: true, name: true }, orderBy: { createdAt: 'desc' } }),
       prisma.task.findMany({
-        where: { userId, status: { in: ['OPEN', 'CARRIED_OVER'] } },
+        where: { userId, domain: 'personal', status: { in: ['OPEN', 'CARRIED_OVER'] } },
         select: { id: true, title: true },
         orderBy: { createdAt: 'desc' },
         take: 50,

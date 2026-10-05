@@ -1,6 +1,8 @@
 import type { Condition as ConditionRow, Prisma } from '../../app/generated/prisma/client'
 import type { GoalCondition, GoalWindow } from '../../domain/goals/engine'
 
+const textList = (value: unknown): string[] | null => (Array.isArray(value) ? value.filter((v): v is string => typeof v === 'string') : null)
+
 // Database rows of the goal engine, turned into the engine's plain types.
 
 export function toGoalCondition(row: ConditionRow): GoalCondition {
@@ -15,6 +17,10 @@ export function toGoalCondition(row: ConditionRow): GoalCondition {
     unit: row.unit,
     floor: row.floor === null ? null : Number(row.floor),
     stretch: row.stretch === null ? null : Number(row.stretch),
+    label: row.label,
+    level: row.level,
+    acceptedValues: textList(row.acceptedValues),
+    staleAfterDays: row.staleAfterDays,
   }
 }
 
@@ -30,5 +36,9 @@ export function conditionData(condition: Omit<GoalCondition, 'id'>) {
     unit: condition.unit ?? null,
     floor: condition.floor ?? null,
     stretch: condition.stretch ?? null,
+    label: condition.label ?? null,
+    level: condition.level ?? 'REQUIRED',
+    acceptedValues: condition.acceptedValues ? (condition.acceptedValues as Prisma.InputJsonValue) : undefined,
+    staleAfterDays: condition.staleAfterDays ?? null,
   }
 }

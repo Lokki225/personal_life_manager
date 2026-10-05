@@ -52,6 +52,9 @@ async function findTrees(where: { userId: string; domain: string; id?: string })
       deadline: row.deadline,
       achievedAt: row.achievedAt,
       abandonedAt: row.abandonedAt,
+      achievementMode: row.achievementMode,
+      pausedAt: row.pausedAt,
+      supersededAt: row.supersededAt,
       groups: row.groups.map(toGroup),
       milestones: row.milestones.map((m) => ({
         id: m.id,

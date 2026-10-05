@@ -1,7 +1,12 @@
 // The shared goal engine (Ressources/goal-completion-mechanism.md), with no
 // database: a condition reads points from a source, keeps those in its
 // window, reduces them to one number and compares it with a target. Groups
-// combine conditions and child groups with ALL or ANY.
+// combine their required conditions and child groups with ALL or ANY.
+//
+// A condition's result is MET, EXCEEDS, GAP or UNKNOWN (mechanism §4.1), and
+// may be due for review when what it rests on is old. It is evaluated against
+// a subject: the person's own situation (SELF) or an alternative, such as a
+// Career opportunity, side by side.
 
 export type Point = { at: Date; value: number }
 
@@ -12,9 +17,17 @@ export type GoalWindow =
   | { type: 'ROLLING'; days: number }
 
 export type Aggregation = 'LATEST' | 'SUM' | 'COUNT' | 'MAX' | 'MIN' | 'AVG' | 'STREAK' | 'RATIO'
-export type Operator = 'GTE' | 'GT' | 'LTE' | 'LT' | 'EQ'
+// IN compares a text value with the accepted ones ("remote or hybrid").
+export type Operator = 'GTE' | 'GT' | 'LTE' | 'LT' | 'EQ' | 'IN'
 export type Logic = 'ALL' | 'ANY'
 export type ConditionRole = 'COMPLETION' | 'HEALTH'
+// Required conditions decide achievement; preferred ones are counted but never
+// block it; info ones are only shown.
+export type Level = 'REQUIRED' | 'PREFERRED' | 'INFO'
+export type Result = 'MET' | 'EXCEEDS' | 'GAP' | 'UNKNOWN'
+
+export type Subject = { type: 'SELF' } | { type: 'OPPORTUNITY'; id: string }
+export const SELF: Subject = { type: 'SELF' }
 
 export type GoalCondition = {
   id: string
@@ -27,6 +40,11 @@ export type GoalCondition = {
   unit?: string | null
   floor?: number | null
   stretch?: number | null
+  // Optional, for conditions that need them; absent means the old behavior.
+  label?: string | null
+  level?: Level
+  acceptedValues?: string[] | null
+  staleAfterDays?: number | null
 }
 
 export type ConditionGroup = {
@@ -40,9 +58,32 @@ export type ConditionGroup = {
 // Bounds are inclusive; a missing bound is open.
 export type Range = { from?: Date; to?: Date }
 
-// Turns a condition into its raw points. Sources are pure functions over data
-// loaded beforehand, so a page with many goals loads each kind of data once.
-export type Resolve = (condition: GoalCondition) => Point[]
+// What a source says about a condition, when it has more to say than points.
+export type SourceAnswer = {
+  points: Point[]
+  // What no points mean: nothing yet (zero), or not known.
+  emptyMeans: 'zero' | 'unknown'
+  // For an IN condition: the text value, null when not known.
+  text?: string | null
+  // Where the value comes from, e.g. "Current position: RPA Developer at Acme".
+  describe?: string | null
+  // When what the value rests on was last given or checked.
+  asOf?: Date | null
+  // The source's own freshness rule; the condition's staleAfterDays wins.
+  staleAfterDays?: number | null
+}
+
+// Turns a condition into its raw points, for a subject. Sources are pure
+// functions over data loaded beforehand, so a page with many goals loads each
+// kind of data once. Points alone mean that nothing is zero.
+export type Resolve = (condition: GoalCondition, subject: Subject) => Point[] | SourceAnswer
+
+const answerOf = (resolved: Point[] | SourceAnswer): SourceAnswer =>
+  Array.isArray(resolved) ? { points: resolved, emptyMeans: 'zero' } : resolved
+
+// A condition's raw points, whatever form its source answers in.
+export const pointsOf = (resolve: Resolve, condition: GoalCondition, subject: Subject = SELF): Point[] =>
+  answerOf(resolve(condition, subject)).points
 
 const DAY_MS = 86_400_000
 
@@ -131,7 +172,7 @@ export function aggregate(points: Point[], aggregation: Aggregation, now: Date):
   }
 }
 
-export function compare(operator: Operator, actual: number, target: number): boolean {
+export function compare(operator: Exclude<Operator, 'IN'>, actual: number, target: number): boolean {
   switch (operator) {
     case 'GTE':
       return actual >= target
@@ -152,42 +193,115 @@ export function progress(operator: Operator, actual: number, target: number): nu
   if (operator === 'GTE' || operator === 'GT') {
     return target <= 0 ? 1 : Math.max(0, Math.min(actual / target, 1))
   }
+  if (operator === 'IN') return 0
 
   return compare(operator, actual, target) ? 1 : 0
 }
+
+// Beyond the target in the wanted direction. Only "at least" and "at most"
+// can be exceeded: a strict condition is simply met.
+const exceeds = (operator: Operator, actual: number, target: number) =>
+  (operator === 'GTE' && actual > target) || (operator === 'LTE' && actual < target)
+
+const DAY = 86_400_000
 
 export const combine = (logic: Logic, results: boolean[]) =>
   logic === 'ALL' ? results.every(Boolean) : results.some(Boolean)
 
 export type ConditionResult = {
   condition: GoalCondition
+  // The number compared (0 when unknown or a text value).
   actual: number
+  // The value as shown: a number, a text, or null when unknown.
+  value: number | string | null
+  result: Result
+  // MET or EXCEEDS.
   satisfied: boolean
+  // A result exists, but what it rests on is older than the freshness rule.
+  reviewDue: boolean
+  describe: string | null
+  asOf: Date | null
   progress: number
 }
 
-export function evaluateCondition(condition: GoalCondition, resolve: Resolve, now: Date, goalStart: Date): ConditionResult {
-  const points = inRange(resolve(condition), windowRange(condition.window, now, goalStart))
-  const actual = aggregate(points, condition.aggregation, now)
+export const levelOf = (condition: GoalCondition): Level => condition.level ?? 'REQUIRED'
 
-  return {
-    condition,
+export function evaluateCondition(
+  condition: GoalCondition,
+  resolve: Resolve,
+  now: Date,
+  goalStart: Date,
+  subject: Subject = SELF,
+): ConditionResult {
+  const answer = answerOf(resolve(condition, subject))
+  const staleDays = condition.staleAfterDays ?? answer.staleAfterDays ?? null
+  const asOf = answer.asOf ?? null
+  const base = { condition, describe: answer.describe ?? null, asOf }
+
+  const unknown = (): ConditionResult => ({ ...base, actual: 0, value: null, result: 'UNKNOWN', satisfied: false, reviewDue: false, progress: 0 })
+  const known = (result: Result, actual: number, value: number | string, progressValue: number): ConditionResult => ({
+    ...base,
     actual,
-    satisfied: compare(condition.operator, actual, condition.target),
-    progress: progress(condition.operator, actual, condition.target),
+    value,
+    result,
+    satisfied: result === 'MET' || result === 'EXCEEDS',
+    reviewDue: staleDays !== null && asOf !== null && now.getTime() - asOf.getTime() > staleDays * DAY,
+    progress: progressValue,
+  })
+
+  if (condition.operator === 'IN') {
+    const text = answer.text ?? null
+    if (text === null) return unknown()
+    const accepted = (condition.acceptedValues ?? []).map((v) => v.toLowerCase())
+    return known(accepted.includes(text.toLowerCase()) ? 'MET' : 'GAP', 0, text, accepted.includes(text.toLowerCase()) ? 1 : 0)
   }
+
+  const points = inRange(answer.points, windowRange(condition.window, now, goalStart))
+  if (points.length === 0 && answer.emptyMeans === 'unknown') return unknown()
+
+  const actual = aggregate(points, condition.aggregation, now)
+  const met = compare(condition.operator, actual, condition.target)
+  const result: Result = !met ? 'GAP' : exceeds(condition.operator, actual, condition.target) ? 'EXCEEDS' : 'MET'
+  return known(result, actual, actual, progress(condition.operator, actual, condition.target))
 }
 
 export type GroupResult = { satisfied: boolean; results: ConditionResult[] }
 
-// A group holds when ALL or ANY of its conditions and child groups hold. The
-// results of every condition below it come back flat, in tree order.
-export function evaluateGroup(group: ConditionGroup, resolve: Resolve, now: Date, goalStart: Date): GroupResult {
-  const own = group.conditions.map((c) => evaluateCondition(c, resolve, now, goalStart))
-  const children = group.children.map((child) => evaluateGroup(child, resolve, now, goalStart))
+// A group holds when ALL or ANY of its required conditions and child groups
+// hold; an unknown one does not hold. Preferred and info conditions are
+// evaluated and listed, never combined. The results of every condition below
+// the group come back flat, in tree order.
+export function evaluateGroup(group: ConditionGroup, resolve: Resolve, now: Date, goalStart: Date, subject: Subject = SELF): GroupResult {
+  const own = group.conditions.map((c) => evaluateCondition(c, resolve, now, goalStart, subject))
+  const children = group.children.map((child) => evaluateGroup(child, resolve, now, goalStart, subject))
+  const required = own.filter((r) => levelOf(r.condition) === 'REQUIRED')
+  // A group of only preferred or info conditions decides nothing.
+  const decides = required.length > 0 || children.length > 0 || own.length === 0
 
   return {
-    satisfied: combine(group.logic, [...own.map((r) => r.satisfied), ...children.map((c) => c.satisfied)]),
+    satisfied: decides && combine(group.logic, [...required.map((r) => r.satisfied), ...children.map((c) => c.satisfied)]),
     results: [...own, ...children.flatMap((c) => c.results)],
   }
+}
+
+export type LevelCounts = { met: number; exceeds: number; gap: number; unknown: number; reviewDue: number }
+export type Summary = { required: LevelCounts; preferred: LevelCounts; info: number }
+
+const noCounts = (): LevelCounts => ({ met: 0, exceeds: 0, gap: 0, unknown: 0, reviewDue: 0 })
+
+// Counts per level, never a percentage (mechanism §4.3). A result due for
+// review still counts as what it was; it is also counted as due.
+export function summarize(results: ConditionResult[]): Summary {
+  const summary: Summary = { required: noCounts(), preferred: noCounts(), info: 0 }
+  for (const r of results) {
+    const level = levelOf(r.condition)
+    if (level === 'INFO') {
+      summary.info += 1
+      continue
+    }
+    const counts = level === 'REQUIRED' ? summary.required : summary.preferred
+    counts[r.result === 'MET' ? 'met' : r.result === 'EXCEEDS' ? 'exceeds' : r.result === 'GAP' ? 'gap' : 'unknown'] += 1
+    if (r.reviewDue) counts.reviewDue += 1
+  }
+  return summary
 }

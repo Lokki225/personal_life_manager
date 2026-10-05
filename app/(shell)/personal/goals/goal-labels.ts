@@ -9,17 +9,20 @@ export const STATUS_LABELS: Record<GoalStatus, string> = {
   IN_PROGRESS: m('In progress'),
   ON_TRACK: m('On track'),
   BEHIND: m('Behind'),
+  CRITERIA_MET: m('Criteria met'),
   ACHIEVED: m('Achieved'),
   MAINTAINING: m('Holding'),
   LAPSED: m('Slipping'),
   EXPIRED: m('Past its date'),
+  PAUSED: m('Paused'),
   ABANDONED: m('Abandoned'),
+  SUPERSEDED: m('Replaced'),
 }
 
 // Good news in green, everything else neutral: status colours are never red
 // for a goal, which is never a failure.
 export const statusTone = (status: GoalStatus) =>
-  status === 'ACHIEVED' || status === 'MAINTAINING' || status === 'ON_TRACK' ? 'success' : 'neutral'
+  status === 'ACHIEVED' || status === 'CRITERIA_MET' || status === 'MAINTAINING' || status === 'ON_TRACK' ? 'success' : 'neutral'
 
 export const PRESET_LABELS = {
   outcome: m('A level to reach'),

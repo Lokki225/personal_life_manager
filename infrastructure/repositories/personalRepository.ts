@@ -63,10 +63,10 @@ export const personalRepository = {
     await prisma.category.createMany({ data: names.map((name) => ({ userId, name })), skipDuplicates: true })
   },
 
-  // Every task that is not dropped.
+  // Every Personal task that is not dropped.
   listTasks: async (userId: string) => {
     return prisma.task.findMany({
-      where: { userId, status: { not: 'DROPPED' } },
+      where: { userId, domain: 'personal', status: { not: 'DROPPED' } },
       include: TASK_INCLUDE,
       orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
     })
@@ -77,6 +77,7 @@ export const personalRepository = {
     return prisma.task.findMany({
       where: {
         userId,
+        domain: 'personal',
         status: { not: 'DROPPED' },
         OR: [{ dueDate: { gte: dayStart, lt: dayEnd } }, { recurrence: { not: Prisma.DbNull } }],
       },
@@ -90,6 +91,7 @@ export const personalRepository = {
     return prisma.task.findMany({
       where: {
         userId,
+        domain: 'personal',
         status: { in: ['OPEN', 'CARRIED_OVER'] },
         dueDate: { lt: before },
         recurrence: { equals: Prisma.DbNull },
