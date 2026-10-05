@@ -1543,6 +1543,9 @@ export const FR: Messages = {
 
     // --- Security ----------------------------------------------------------------
     "Too many wrong passwords. Try again in 15 minutes.": "Trop de mots de passe erronés. Réessayez dans 15 minutes.",
+
+    // --- Offline page ------------------------------------------------------------
+    "This page hasn't been opened yet on this device. Connect to load it.": "Cette page n'a pas encore été ouverte sur cet appareil. Connectez-vous à internet pour la charger.",
   },
 
   // Text that arrives already filled in. More specific patterns come first.

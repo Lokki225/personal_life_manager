@@ -1,11 +1,11 @@
 'use client'
 
 import { useState } from 'react'
-import { signOut } from 'next-auth/react'
 import { Loader2, LogOut } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import { useT } from '@/lib/i18n/client'
+import { signOutAndClear } from '@/lib/offline/sign-out'
 
 export function SignOutButton() {
   const t = useT()
@@ -18,7 +18,7 @@ export function SignOutButton() {
       disabled={isPending}
       onClick={() => {
         setIsPending(true)
-        void signOut({ callbackUrl: '/' })
+        void signOutAndClear()
       }}
       className="h-11"
     >

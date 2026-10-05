@@ -57,3 +57,11 @@ export async function clearUserData(userId: string) {
     store.outbox.where('userId').equals(userId).delete(),
   ])
 }
+
+// Everything the app left on this device, for anyone. Called on sign out:
+// the next person to sign in on this phone starts from nothing.
+export async function clearDevice() {
+  const store = offlineDb()
+  if (!store) return
+  await Promise.all([store.drafts.clear(), store.snapshots.clear(), store.outbox.clear()])
+}

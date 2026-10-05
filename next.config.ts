@@ -1,3 +1,4 @@
+import { withSerwist } from "@serwist/turbopack";
 import type { NextConfig } from "next";
 
 // What the browser may load and do on every page (Ressources/security-codebase-plan.md).
@@ -40,6 +41,11 @@ const nextConfig: NextConfig = {
   async headers() {
     return [{ source: '/:path*', headers: securityHeaders }];
   },
+  async rewrites() {
+    // The service worker is built from app/sw.ts and served under /serwist;
+    // it keeps the address /sw.js, which existing push subscriptions use.
+    return [{ source: '/sw.js', destination: '/serwist/sw.js' }];
+  },
 };
 
-export default nextConfig;
+export default withSerwist(nextConfig);
