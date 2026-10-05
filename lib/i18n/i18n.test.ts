@@ -111,7 +111,7 @@ function textsToTranslate(): Set<string> {
     collect(/(?<![\w.])(?:t|m|translate)\(/g, 1)
     collect(/(?<![\w.])t\.plural\(\s*[^,]+,/g, 2)
     // Rule messages written out in full.
-    collect(/new (?:Finance|Account)RuleError\(/g, 1)
+    collect(/new (?:Finance|Account|Personal|Career)RuleError\(/g, 1)
 
     // Validation messages: the sentences in form schemas.
     if (/(schema|fields|registerUser)\.ts$/.test(path)) {

@@ -28,6 +28,8 @@ export type NodeIconName =
   | 'telescope'
   | 'calendar-range'
   | 'mail'
+  | 'door-open'
+  | 'id-card'
 
 export type NodeView = {
   id: string
@@ -90,12 +92,13 @@ export const NODES: NodeDef[] = [
     id: 'career',
     label: m('Career'),
     icon: 'briefcase',
-    defaultView: 'overview',
-    access: 'none',
+    defaultView: 'week',
+    access: 'admin',
     views: [
-      view('overview', m('Overview'), 'layout', '/career/overview'),
-      view('projects', m('Projects'), 'folder', '/career/projects'),
-      view('skills', m('Skills'), 'sparkles', '/career/skills'),
+      view('week', m('Week'), 'calendar-check', '/career/week'),
+      view('goals', m('Goals'), 'target', '/career/goals'),
+      view('opportunities', m('Opportunities'), 'door-open', '/career/opportunities'),
+      view('situation', m('Situation'), 'id-card', '/career/situation'),
       view('review', m('Review'), 'chart', '/career/review'),
     ],
   },

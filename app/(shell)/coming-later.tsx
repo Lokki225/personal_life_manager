@@ -2,7 +2,7 @@ import { Hourglass } from 'lucide-react'
 
 import { getT } from '@/lib/i18n/server'
 
-// A view of Personal that is planned but not built yet.
+// A view that is planned but not built yet, in any node.
 export async function ComingLater({ title, text }: { title: string; text: string }) {
   const t = await getT()
 

@@ -2,6 +2,18 @@ import { readFileSync } from 'node:fs'
 
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
+import {
+  addEvidence,
+  addFact,
+  deleteEvidence,
+  endFact,
+  getSituation,
+  linkEvidence,
+  makePrimary,
+  markReviewed,
+  unlinkEvidence,
+  updateFact,
+} from '@/application/career/situation'
 import { fundGoal } from '@/application/finance/fundGoal'
 import { confirmIncome, depositSetupMonth } from '@/application/finance/confirmIncome'
 import { recordChestExpense } from '@/application/finance/chestExpense'
@@ -108,7 +120,32 @@ beforeAll(async () => {
     await createEntry(userA, { type: 'FREE', title: 'Locked', body: 'Very private', mood: null, energy: null, entryDate: now, reviewOn: null, password: 'open sesame' })
   ).id
   a.series = (await prisma.metricSeries.findFirst({ where: { userId: userA } }))!.id
+
+  // --- A's Career ---
+  a.fact = (await addFact(userA, { ...careerFact, title: 'RPA Developer', monthlyCompensation: 450000 })).id
+  a.evidence = (await addEvidence(userA, { title: 'Repository', url: 'https://example.com/a', description: null, factIds: [a.fact] })).id
+  a.bFact = (await addFact(userB, { ...careerFact, title: 'B position' })).id
+  a.bEvidence = (await addEvidence(userB, { title: 'B link', url: null, description: null, factIds: [] })).id
 })
+
+const careerFact = {
+  kind: 'POSITION' as const,
+  title: '',
+  details: null,
+  validFrom: new Date(2024, 0, 1),
+  validTo: null,
+  organisation: null,
+  monthlyCompensation: null,
+  workArrangement: null,
+  contractType: null,
+  weeklyHours: null,
+  location: null,
+  issuer: null,
+  obtainedAt: null,
+  expiresAt: null,
+  level: null,
+  positionId: null,
+}
 
 afterAll(async () => {
   await removeUser(userA)
@@ -217,6 +254,38 @@ describe('Personal: B cannot touch A’s records', () => {
       password: null,
     })
     expect(await prisma.journalLink.count({ where: { entryId: own.id } })).toBe(0)
+  })
+})
+
+describe('Career: B cannot touch A’s situation', () => {
+  it('cannot see A’s facts, pay or evidence', async () => {
+    const situation = await getSituation(userB)
+    const ids = [...Object.values(situation.byKind).flat(), ...situation.past].map((f) => f.id)
+    expect(ids).toEqual([a.bFact])
+    expect(situation.evidence.map((e) => e.id)).toEqual([a.bEvidence])
+  })
+
+  it('cannot change, end, review or promote A’s facts', async () => {
+    await refused(() => updateFact(userB, a.fact, { ...careerFact, title: 'Hacked', monthlyCompensation: 1, confirmed: true }))
+    await refused(() => endFact(userB, a.fact, new Date()))
+    await refused(() => markReviewed(userB, a.fact))
+    await refused(() => makePrimary(userB, a.fact))
+    await refused(() => addFact(userB, { ...careerFact, kind: 'EXPERIENCE', title: 'x', positionId: a.fact }))
+
+    const fact = await prisma.careerFact.findUnique({ where: { id: a.fact } })
+    expect(fact).toMatchObject({ title: 'RPA Developer', validTo: null, lastReviewedAt: null, source: 'DOCUMENTED' })
+    expect(Number(fact?.monthlyCompensation)).toBe(450000)
+  })
+
+  it('cannot link, unlink or delete evidence across accounts', async () => {
+    await refused(() => addEvidence(userB, { title: 'x', url: null, description: null, factIds: [a.fact] }))
+    await refused(() => linkEvidence(userB, a.evidence, a.bFact))
+    await refused(() => linkEvidence(userB, a.bEvidence, a.fact))
+    await refused(() => deleteEvidence(userB, a.evidence))
+    await unlinkEvidence(userB, a.evidence, a.fact)
+
+    expect(await prisma.careerEvidenceLink.count({ where: { evidenceId: a.evidence } })).toBe(1)
+    expect(await prisma.careerEvidenceLink.count({ where: { factId: a.fact } })).toBe(1)
   })
 })
 

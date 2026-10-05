@@ -17,6 +17,8 @@ import {
   UserRound,
   Wallet,
   type LucideIcon,
+  DoorOpen,
+  IdCard,
   type LucideProps,
 } from 'lucide-react'
 
@@ -40,6 +42,8 @@ const ICONS: Record<NodeIconName, LucideIcon> = {
   telescope: Telescope,
   'calendar-range': CalendarRange,
   mail: Mail,
+  'door-open': DoorOpen,
+  'id-card': IdCard,
 }
 
 export function NodeIcon({ name, ...props }: { name: NodeIconName } & LucideProps) {

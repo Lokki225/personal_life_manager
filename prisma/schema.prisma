@@ -440,6 +440,8 @@ model User {
   metricSeries      MetricSeries[]
   journalEntries    JournalEntry[]
   syncConnectors    SyncConnector[]
+  careerFacts       CareerFact[]
+  careerEvidence    CareerEvidence[]
 }
 
 // What was already sent to a person, so the same event is never sent twice.
@@ -842,6 +844,88 @@ model SyncConnector {
 // An action sent from a device's outbox (offline mode), by the id the device
 // gave it. Written before the action runs, so the same action sent twice
 // (a retry after a lost answer) is only done once.
+// --- Career (Ressources/career-node-specification.md) --------------------------
+
+enum CareerFactKind {
+  POSITION
+  QUALIFICATION
+  SKILL
+  EXPERIENCE
+}
+
+// self: said by the person; documented: evidence is linked; confirmed: the
+// person marked it as checked.
+enum CareerFactSource {
+  SELF
+  DOCUMENTED
+  CONFIRMED
+}
+
+// Something true about the person's professional situation, from a date and
+// possibly until one. Facts are ended, never deleted: they are the history.
+model CareerFact {
+  id                  String               @id @default(cuid())
+  userId              String
+  user                User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  kind                CareerFactKind
+  title               String
+  details             String?
+  // Midnight on the person's clock. No end date: still true.
+  validFrom           DateTime
+  validTo             DateTime?
+  source              CareerFactSource     @default(SELF)
+  // Among current positions, the one goals compare with.
+  isPrimary           Boolean              @default(false)
+  lastReviewedAt      DateTime?
+  // Position.
+  organisation        String?
+  // Per month, in XOF. Sensitive: never kept on a device.
+  monthlyCompensation Decimal?
+  workArrangement     String?
+  contractType        String?
+  weeklyHours         Int?
+  location            String?
+  financeIncomeId     String?
+  // Qualification.
+  issuer              String?
+  obtainedAt          DateTime?
+  expiresAt           DateTime?
+  // Skill: the level in the person's own words.
+  level               String?
+  // Experience: the position it happened in.
+  positionId          String?
+  origin              String?
+  evidence            CareerEvidenceLink[]
+  createdAt           DateTime             @default(now())
+
+  @@index([userId, kind])
+}
+
+// A link (and what it shows) that supports one or more facts.
+model CareerEvidence {
+  id          String               @id @default(cuid())
+  userId      String
+  user        User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title       String
+  url         String?
+  description String?
+  addedAt     DateTime             @default(now())
+  origin      String?
+  facts       CareerEvidenceLink[]
+
+  @@index([userId])
+}
+
+model CareerEvidenceLink {
+  evidenceId String
+  evidence   CareerEvidence @relation(fields: [evidenceId], references: [id], onDelete: Cascade)
+  factId     String
+  fact       CareerFact     @relation(fields: [factId], references: [id], onDelete: Cascade)
+
+  @@id([evidenceId, factId])
+  @@index([factId])
+}
+
 // What happened that matters for security: failed sign-ins, limits reached,
 // wrong journal passwords, account changes (security plan, decision D4). No
 // link to the user, so failures for unknown emails can be kept too.
