@@ -185,10 +185,11 @@ describe('Personal: B cannot touch A’s records', () => {
   })
 
   it('cannot read, change, lock, unlock or delete A’s journal entries', async () => {
-    expect(await getEntry(userB, a.entry, () => true)).toBeNull()
-    expect(await getEntry(userB, a.lockedEntry, () => true)).toBeNull()
+    const anyKey = () => Buffer.alloc(32)
+    expect(await getEntry(userB, a.entry, anyKey)).toBeNull()
+    expect(await getEntry(userB, a.lockedEntry, anyKey)).toBeNull()
     const input = { type: 'FREE' as const, title: null, body: 'Hacked', mood: null, energy: null, entryDate: new Date(), reviewOn: null }
-    await refused(() => updateEntry(userB, a.entry, input, true))
+    await refused(() => updateEntry(userB, a.entry, input, anyKey()))
     await refused(() => deleteEntry(userB, a.entry, true))
     await refused(() => lockEntry(userB, a.entry, 'guessable'))
     await refused(() => unlockEntry(userB, a.lockedEntry, 'open sesame'))
@@ -198,6 +199,9 @@ describe('Personal: B cannot touch A’s records', () => {
     const locked = await prisma.journalEntry.findUnique({ where: { id: a.lockedEntry } })
     expect(entry).toMatchObject({ body: 'Private text', isSecured: false })
     expect(locked?.isSecured).toBe(true)
+    // Stored sealed: the database does not hold the text.
+    expect(locked?.body).not.toContain('Very private')
+    expect(locked?.title).toBeNull()
   })
 
   it('cannot link B’s entry to A’s goal or task', async () => {

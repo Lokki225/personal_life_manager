@@ -13,7 +13,7 @@ import { getT } from '@/lib/i18n/server'
 
 import { canUsePersonal } from '../access'
 import { entryForm, passwordForm } from './schema'
-import { forgetUnlock, rememberUnlock, unlockedChecker } from './unlock'
+import { forgetUnlock, rememberUnlock, unlockedKeys } from './unlock'
 
 const refresh = () => revalidatePath('/personal', 'layout')
 
@@ -31,7 +31,7 @@ export async function saveEntryAction(_previous: FormState, formData: FormData):
     return { status: 'error', fieldErrors: {}, formErrors: [t(TOO_MANY_WRITES)] }
   }
 
-  const isUnlocked = await unlockedChecker(user.id)
+  const keyFor = await unlockedKeys(user.id)
   const state = await entryForm.submit(formData, async (entry) => {
     const input = {
       type: entry.type,
@@ -44,7 +44,7 @@ export async function saveEntryAction(_previous: FormState, formData: FormData):
     }
 
     if (entry.id) {
-      await updateEntry(user.id, entry.id, input, isUnlocked(entry.id))
+      await updateEntry(user.id, entry.id, input, keyFor(entry.id))
     } else {
       await createEntry(user.id, { ...input, password: entry.secure ? (entry.password ?? '') : null })
     }
@@ -63,10 +63,11 @@ export async function unlockEntryAction(_previous: FormState, formData: FormData
   }
 
   const state = await passwordForm.submit(formData, async ({ id, password }) => {
-    if (!(await unlockEntry(user.id, id, password))) {
+    const key = await unlockEntry(user.id, id, password)
+    if (!key) {
       throw new PersonalRuleError('That is not the password.', 'password')
     }
-    await rememberUnlock(user.id, id)
+    await rememberUnlock(user.id, id, key)
   })
 
   if (state.status === 'success') refresh()
@@ -117,7 +118,7 @@ export async function deleteEntryAction(entryId: string): Promise<{ error: strin
   }
 
   try {
-    await deleteEntry(user.id, entryId, (await unlockedChecker(user.id))(entryId))
+    await deleteEntry(user.id, entryId, (await unlockedKeys(user.id))(entryId) !== null)
     await forgetUnlock(entryId)
   } catch (error) {
     if (isPersonalRuleError(error)) return { error: t(error.message) }

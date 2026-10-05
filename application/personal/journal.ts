@@ -12,6 +12,16 @@ import {
 import { startOfDay } from '../../domain/personal/tasks'
 import { journalRepository, type EntryRecord } from '../../infrastructure/repositories/journalRepository'
 import { securityRepository } from '../../infrastructure/repositories/securityRepository'
+import {
+  deriveKey,
+  isSealed,
+  newSalt,
+  openEntry,
+  saltOf,
+  sealEntry,
+  type EntryContent,
+  type EntryKey,
+} from '../../infrastructure/crypto/entryCipher'
 
 type Deps = typeof journalRepository
 
@@ -62,19 +72,33 @@ const checkPassword = (password: string) => {
   if (password.length > 100) throw new PersonalRuleError('Keep it under 100 characters.', 'password')
 }
 
+// A locked entry's title and body are stored sealed; the rest stays readable
+// so lists can show its date and kind.
+const sealed = <D extends EntryContent>(data: D, key: EntryKey, salt: Buffer): D => ({
+  ...data,
+  title: null,
+  body: sealEntry(key, salt, { title: data.title, body: data.body }),
+})
+
 export async function createEntry(userId: string, input: EntryInput & { password: string | null }, deps: Deps = journalRepository) {
   if (input.password !== null) checkPassword(input.password)
   const { data, links } = await prepare(userId, input, deps)
-  return deps.createEntry(userId, data, links, input.password)
+  if (input.password === null) return deps.createEntry(userId, data, links, null)
+
+  const salt = newSalt()
+  return deps.createEntry(userId, sealed(data, await deriveKey(input.password, salt), salt), links, input.password)
 }
 
-// Editing a locked entry needs it unlocked first (`unlocked`).
-export async function updateEntry(userId: string, id: string, input: EntryInput, unlocked: boolean, deps: Deps = journalRepository) {
+// The content of a locked entry, when this key opens it.
+const opened = (entry: EntryRecord, key: EntryKey | null) => (key && isSealed(entry.body) ? openEntry(key, entry.body) : null)
+
+// Editing a locked entry needs its key, given while it is unlocked.
+export async function updateEntry(userId: string, id: string, input: EntryInput, key: EntryKey | null, deps: Deps = journalRepository) {
   const entry = await ownEntry(userId, id, deps)
-  if (entry.isSecured && !unlocked) throw new PersonalRuleError('Unlock this entry first.')
+  if (entry.isSecured && !opened(entry, key)) throw new PersonalRuleError('Unlock this entry first.')
 
   const { data, links } = await prepare(userId, input, deps)
-  await deps.updateEntry(userId, id, data, links)
+  await deps.updateEntry(userId, id, entry.isSecured ? sealed(data, key!, saltOf(entry.body)) : data, links)
 }
 
 async function ownEntry(userId: string, id: string, deps: Deps) {
@@ -101,10 +125,19 @@ async function guardedCheck(userId: string, id: string, password: string, deps: 
   return ok
 }
 
-// True when the password opens the entry.
+// The entry's key when the password opens it, or null. An entry locked
+// before encryption is sealed now, the first time its password is given.
 export async function unlockEntry(userId: string, id: string, password: string, deps: Deps = journalRepository, guard: Guard = securityRepository) {
-  await ownEntry(userId, id, deps)
-  return guardedCheck(userId, id, password, deps, guard)
+  const entry = await ownEntry(userId, id, deps)
+  if (!(await guardedCheck(userId, id, password, deps, guard))) return null
+  if (!entry.isSecured) return null
+
+  if (isSealed(entry.body)) return deriveKey(password, saltOf(entry.body))
+
+  const salt = newSalt()
+  const key = await deriveKey(password, salt)
+  await deps.setContent(userId, id, sealed({ title: entry.title, body: entry.body }, key, salt))
+  return key
 }
 
 // Locks an open entry, or (with its current password) takes the lock off.
@@ -112,7 +145,8 @@ export async function lockEntry(userId: string, id: string, password: string, de
   const entry = await ownEntry(userId, id, deps)
   if (entry.isSecured) throw new PersonalRuleError('This entry is already locked.')
   checkPassword(password)
-  await deps.setLock(userId, id, password)
+  const salt = newSalt()
+  await deps.setLock(userId, id, password, sealed({ title: entry.title, body: entry.body }, await deriveKey(password, salt), salt))
 }
 
 export async function removeLock(
@@ -125,7 +159,11 @@ export async function removeLock(
   const entry = await ownEntry(userId, id, deps)
   if (!entry.isSecured) return
   if (!(await guardedCheck(userId, id, currentPassword, deps, guard))) throw new PersonalRuleError('That is not the password.', 'password')
-  await deps.setLock(userId, id, null)
+
+  // Stored plain again once the lock is off.
+  const content = isSealed(entry.body) ? openEntry(await deriveKey(currentPassword, saltOf(entry.body)), entry.body) : null
+  if (isSealed(entry.body) && !content) throw new PersonalRuleError('That is not the password.', 'password')
+  await deps.setLock(userId, id, null, content ?? undefined)
 }
 
 export async function deleteEntry(userId: string, id: string, unlocked: boolean, deps: Deps = journalRepository) {
@@ -134,9 +172,11 @@ export async function deleteEntry(userId: string, id: string, unlocked: boolean,
   await deps.deleteEntry(userId, id)
 }
 
-// What may be shown of an entry: a locked one shows only its date and kind.
-export function visibleEntry(entry: EntryRecord, unlocked: boolean) {
-  const open = !entry.isSecured || unlocked
+// What may be shown of an entry: a locked one shows only its date and kind,
+// unless its content was opened with its key.
+export function visibleEntry(entry: EntryRecord, content: EntryContent | null = null) {
+  const shown = entry.isSecured ? content : { title: entry.title, body: entry.body }
+  const open = shown !== null
   return {
     id: entry.id,
     type: entry.type,
@@ -144,9 +184,9 @@ export function visibleEntry(entry: EntryRecord, unlocked: boolean) {
     reviewOn: entry.reviewOn,
     isSecured: entry.isSecured,
     locked: !open,
-    title: open ? entry.title : null,
-    body: open ? entry.body : null,
-    preview: open ? excerpt(entry.body) : null,
+    title: shown?.title ?? null,
+    body: shown?.body ?? null,
+    preview: shown ? excerpt(shown.body) : null,
     mood: open ? entry.mood : null,
     energy: open ? entry.energy : null,
   }
@@ -155,17 +195,17 @@ export function visibleEntry(entry: EntryRecord, unlocked: boolean) {
 export type VisibleEntry = ReturnType<typeof visibleEntry>
 
 export async function listEntries(userId: string, type: JournalType | null, deps: Deps = journalRepository) {
-  return (await deps.listEntries(userId, type)).map((entry) => visibleEntry(entry, false))
+  return (await deps.listEntries(userId, type)).map((entry) => visibleEntry(entry))
 }
 
-export async function getEntry(userId: string, id: string, isUnlocked: (id: string) => boolean, deps: Deps = journalRepository) {
+export async function getEntry(userId: string, id: string, keyFor: (id: string) => EntryKey | null, deps: Deps = journalRepository) {
   const entry = await deps.getEntry(userId, id)
-  return entry ? visibleEntry(entry, isUnlocked(entry.id)) : null
+  return entry ? visibleEntry(entry, entry.isSecured ? opened(entry, keyFor(entry.id)) : null) : null
 }
 
 // The entries that mention a goal or a task, for its page.
 export async function linkedEntries(userId: string, targetType: 'goal' | 'task', targetId: string, deps: Deps = journalRepository) {
-  return (await deps.listLinkedEntries(userId, targetType, targetId)).map((entry) => visibleEntry(entry, false))
+  return (await deps.listLinkedEntries(userId, targetType, targetId)).map((entry) => visibleEntry(entry))
 }
 
 // The goals and tasks an entry can link to.
