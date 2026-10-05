@@ -9,7 +9,6 @@ import {
   scheduleTask,
   setCarryReason,
   setDailyCapacity,
-  setTaskDone,
 } from '@/application/personal/tasks'
 import { isPersonalRuleError } from '@/domain/personal/errors'
 import { addDays, startOfDay } from '@/domain/personal/tasks'
@@ -100,10 +99,6 @@ async function run(task: (userId: string) => Promise<void>): Promise<Outcome> {
 
   refresh()
   return { error: null }
-}
-
-export async function toggleTaskAction(taskId: string, done: boolean): Promise<Outcome> {
-  return run((userId) => setTaskDone(userId, taskId, done, now()))
 }
 
 export async function carryReasonAction(taskId: string, reason: string): Promise<Outcome> {

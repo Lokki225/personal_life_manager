@@ -185,9 +185,14 @@ export async function getDailyNote(userId: string, now: Date, deps: Deps = journ
 }
 
 // "One line about today": writes today's daily note, or replaces its text.
-export async function saveDailyNote(userId: string, text: string, now: Date, deps: Deps = journalRepository) {
+// `writtenAt`, for a line sent later from a device, keeps a newer one.
+export async function saveDailyNote(userId: string, text: string, now: Date, deps: Deps = journalRepository, writtenAt?: Date) {
   const input = { type: 'DAILY' as const, title: null, body: text, mood: null, energy: null, entryDate: now, reviewOn: null }
   const existing = await deps.findDailyNote(userId, startOfDay(now))
+
+  if (existing && writtenAt && existing.updatedAt > writtenAt) {
+    return
+  }
 
   if (existing) {
     const { data, links } = await prepare(userId, { ...input, mood: existing.mood, energy: existing.energy, title: existing.title }, deps)

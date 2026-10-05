@@ -4,6 +4,7 @@ import { startTransition, useActionState, useRef, useState, useTransition, type 
 import { CircleAlert, Link2, Loader2, Lock, LockOpen, Pencil, Plus, Trash2 } from 'lucide-react'
 
 import { useIsOffline } from '@/components/offline/connection'
+import { useQueuedAction } from '@/components/offline/queued-action'
 import { ActionDrawer, ActionForm, FIELD_CLASS } from '@/components/forms/action-drawer'
 import { Button } from '@/components/ui/button'
 import { FieldError } from '@/components/ui/field-error'
@@ -20,11 +21,11 @@ import {
   lockEntryAction,
   relockEntryAction,
   removeLockAction,
-  saveDailyNoteAction,
   saveEntryAction,
   unlockEntryAction,
 } from './actions'
 import { ENTRY_TYPE_HINTS, ENTRY_TYPE_LABELS } from './entry-labels'
+import { dailyNoteForm } from './schema'
 
 const scope = 'entry'
 
@@ -361,7 +362,8 @@ export function DeleteEntryButton({ entryId }: { entryId: string }) {
 // "One line about today", on Personal Today: today's daily note.
 export function DailyLine({ body }: { body: string | null }) {
   const t = useT()
-  const [state, formAction, isPending] = useActionState(saveDailyNoteAction, initialFormState)
+  const queuedNote = useQueuedAction('personal.saveDailyNote', dailyNoteForm, ({ body }) => ({ body }))
+  const [state, formAction, isPending] = useActionState(queuedNote, initialFormState)
   const submit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     const formData = new FormData(event.currentTarget)

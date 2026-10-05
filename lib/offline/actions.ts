@@ -27,6 +27,14 @@ export const OFFLINE_ACTIONS = {
     category: z.enum(EXCEPTION_CATEGORIES),
     reason: optionalText(160),
   }),
+  // The title only helps the device say what waits; the server ignores it.
+  'personal.toggleTask': z.object({ taskId: id, done: z.boolean(), title: optionalText(120) }),
+  'personal.logSession': z.object({
+    minutes: z.number().int().min(1).max(960),
+    goalId: id.nullable().optional(),
+    note: optionalText(200),
+  }),
+  'personal.saveDailyNote': z.object({ body: z.string().trim().min(1).max(500) }),
 } as const
 
 export type OfflineAction = keyof typeof OFFLINE_ACTIONS
