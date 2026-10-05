@@ -2,8 +2,8 @@ import { withSerwist } from "@serwist/turbopack";
 import type { NextConfig } from "next";
 
 // What the browser may load and do on every page (Ressources/security-codebase-plan.md).
-// The content policy is only reported for now, so it cannot break a page
-// before it has been watched in use; the other headers are enforced.
+// Enforced: the app loads nothing from other sites (fonts are served with it,
+// pictures are data URLs, outside services are called from the server).
 const contentPolicy = [
   "default-src 'self'",
   // Next.js and the theme script run inline scripts.
@@ -28,7 +28,7 @@ const securityHeaders = [
   { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=()' },
   // No page of the app may be shown inside another site's frame.
   { key: 'X-Frame-Options', value: 'DENY' },
-  { key: 'Content-Security-Policy-Report-Only', value: contentPolicy },
+  { key: 'Content-Security-Policy', value: contentPolicy },
 ];
 
 const nextConfig: NextConfig = {
