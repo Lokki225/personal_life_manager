@@ -15,6 +15,7 @@ import { removeAllocation, removeIncome, saveAllocation, saveIncome } from '@/ap
 import { recordDailyExpense } from '@/application/finance/recordDailyExpense'
 import { transferBetweenChests } from '@/application/finance/transferBetweenChests'
 import { getBadges } from '@/application/nav/badges'
+import { processSyncItems } from '@/application/offline/sync'
 import {
   abandonGoal,
   addGoalTask,
@@ -216,6 +217,25 @@ describe('Personal: B cannot touch A’s records', () => {
       password: null,
     })
     expect(await prisma.journalLink.count({ where: { entryId: own.id } })).toBe(0)
+  })
+})
+
+describe('Offline sync: B cannot act on A’s records from a device', () => {
+  it('cannot tick A’s task or log time on A’s goal through /api/sync', async () => {
+    const at = new Date().toISOString()
+    const results = await processSyncItems(
+      { id: userB, timeZone: null, settledThrough: null },
+      [
+        { id: `authz-${stamp}-t`, action: 'personal.toggleTask', payload: { taskId: a.task, done: true }, occurredAt: at },
+        { id: `authz-${stamp}-s`, action: 'personal.logSession', payload: { minutes: 10, goalId: a.personalGoal }, occurredAt: at },
+      ],
+      new Date(),
+      (text) => text,
+    )
+
+    expect(results.every((result) => result.status !== 'synced')).toBe(true)
+    expect(await prisma.taskCompletion.count({ where: { taskId: a.task } })).toBe(0)
+    expect(await prisma.session.count({ where: { userId: userB, goalId: a.personalGoal } })).toBe(0)
   })
 })
 

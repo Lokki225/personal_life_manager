@@ -2,11 +2,17 @@ import { offlineDb } from './db'
 
 // Drafts: what was typed in a capture form, kept until it is sent.
 
-// The form's fields as text, the way FormData gives them.
+// The form's fields as text, the way FormData gives them. A password is never
+// kept on the device.
 export function formValues(form: HTMLFormElement): Record<string, string> {
+  const passwords = new Set(
+    Array.from(form.elements)
+      .filter((element): element is HTMLInputElement => element instanceof HTMLInputElement && element.type === 'password')
+      .map((element) => element.name),
+  )
   const values: Record<string, string> = {}
   for (const [name, value] of new FormData(form).entries()) {
-    if (typeof value === 'string' && !name.startsWith('$ACTION')) values[name] = value
+    if (typeof value === 'string' && !name.startsWith('$ACTION') && !passwords.has(name)) values[name] = value
   }
   return values
 }
